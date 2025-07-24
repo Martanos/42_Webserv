@@ -31,6 +31,7 @@ Other considerations:
  - Robustness: Proper error handling and resource cleanup
  - Maintainability: Code design should show clear seperation of concerns
 
+{
 ---- Pseudo classes ----
 
 class Server {
@@ -68,7 +69,9 @@ class HttpResponse {
     std::string body;
     size_t bytes_sent;
 };
+}
 
+{
 ---- Project flow ----
 
 1. Program intialisation
@@ -180,7 +183,9 @@ HTTP Request Received
     ├── Status code & reason phrase
     ├── Response headers
     └── Response body
+}
 
+{
 ---- Error handling strategy ----
 
 At Every Level:
@@ -195,8 +200,10 @@ Response:
 ├── Log the error appropriately
 ├── Generate proper HTTP error response
 ├── Clean up resources
-└── Continue serving other clients
+└── Continue serving other 
+}
 
+{
 ---- Program termination strategy ----
 
 Signal Handler (SIGINT/SIGTERM):
@@ -205,3 +212,4 @@ Signal Handler (SIGINT/SIGTERM):
 ├── Close listening sockets
 ├── Clean up all resources
 └── Exit cleanly
+}
