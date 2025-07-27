@@ -6,13 +6,11 @@
 #include <map>
 #include <iostream>
 
+
 #include "LocationConfig.hpp"
 
 class ServerConfig {
     private:
-        ServerConfig(const ServerConfig &other);
-        ServerConfig& operator=(const ServerConfig &other);
-        
         std::string _host;
         std::vector<int> _ports;
         std::string _root;
@@ -40,17 +38,22 @@ class ServerConfig {
         const std::string& getErrorLog() const;
 
         void setHost(const std::string& host);
-        void setPorts(const std::vector<int>& ports);
+        void addPort(int port);
         void setRoot(const std::string& root);
         void setIndex(const std::vector<std::string>& index);
         void setClientMaxBodySize(unsigned long size);
-        void setServerNames(const std::vector<std::string>& names);
-        void setErrorPages(const std::map<int, std::string>& pages);
-        void setLocations(const std::vector<LocationConfig>& locations);
-        void setAccessLog(const std::string& log);
-        void setErrorLog(const std::string& log);
+        void addServerName(const std::string& serverName);
+        void setServerNames(const std::vector<std::string>& serverNames);
+        void addErrorPage(int errorCode, const std::string& errorPage);
+        void addErrorPages(const std::vector<int>& errorCodes, const std::string& errorPage);
+        void addLocation(const LocationConfig& location);
+        void setSslCertificate(const std::string& certPath);
+        void setSslCertificateKey(const std::string& keyPath);
+        void addSslProtocol(const std::string& protocol);
+        void setAccessLog(const std::string& logPath);
+        void setErrorLog(const std::string& logPath);
 
         void printConfig() const;
-}
+};
 
 #endif

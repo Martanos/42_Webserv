@@ -20,9 +20,9 @@ class LocationConfig {
         std::string _uploadPath;
         std::vector<std::string> _tryFiles;
 
+    public:
         LocationConfig(const LocationConfig &other);
         LocationConfig& operator=(const LocationConfig &other);
-    public:
 
         LocationConfig();
         ~LocationConfig();
@@ -31,7 +31,7 @@ class LocationConfig {
         const std::string& getRoot() const;
         const std::vector<std::string>& getAllowedMethods() const;
         const std::string& getRedirect() const;
-        bool isAutoIndex() const;
+        bool isAutoIndexEnabled() const;
         const std::string& getIndex() const;
         const std::string& getCgiPath() const;
         const std::string& getCgiIndex() const;
@@ -41,17 +41,17 @@ class LocationConfig {
 
         void setPath(const std::string& path);
         void setRoot(const std::string& root);
-        void setAllowedMethods(const std::vector<std::string>& methods);
+        void addAllowedMethod(const std::string& method);
         void setRedirect(const std::string& redirect);
         void setAutoIndex(bool autoIndex);
         void setIndex(const std::string& index);
         void setCgiPath(const std::string& cgiPath);
         void setCgiIndex(const std::string& cgiIndex);
-        void setCgiParams(const std::map<std::string, std::string>& params);
+        void addCgiParam(const std::string& param, const std::string& value);
         void setUploadPath(const std::string& uploadPath);
-        void setTryFiles(const std::vector<std::string>& tryFiles);
-
+        void addTryFile(const std::string& file);
+        
         void printConfig() const;
-}
+};
 
 #endif

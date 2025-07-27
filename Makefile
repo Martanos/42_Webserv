@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: malee <malee@student.42singapore.sg>       +#+  +:+       +#+         #
+#    By: seayeo <seayeo@42.sg>                      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/07/24 16:54:44 by malee             #+#    #+#              #
-#    Updated: 2025/07/24 16:55:38 by malee            ###   ########.fr        #
+#    Updated: 2025/07/27 17:08:14 by seayeo           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -19,7 +19,12 @@ SRC_DIR = srcs
 INC_DIR = includes
 OBJ_DIR = obj/srcs
 # Source files
-SRC_FILES = main.cpp
+SRC_FILES = main.cpp \
+			configparser/ConfigParser.cpp \
+			configparser/utils/ConfigParserUtils.cpp \
+			configparser/utils/ServerConfigUtils.cpp \
+			configparser/utils/LocationConfigUtils.cpp \
+			# Add other source files here as needed
 # Object files with proper path
 OBJ = $(addprefix $(OBJ_DIR)/, $(SRC_FILES:.cpp=.o))
 # Dependency files
@@ -35,6 +40,7 @@ $(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
 # Modified object file rule
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
+	@mkdir -p $(dir $@)
 	@$(CC) $(CFLAGS) $(STD) -I$(INC_DIR) -c $< -o $@
 	@echo "$(YELLOW)Compiling $@$(RESET)"
 $(NAME): $(OBJ)
