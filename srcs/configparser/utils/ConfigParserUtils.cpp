@@ -1,5 +1,31 @@
 #include "ConfigParser.hpp"
 
+ConfigParser::ServerDirectiveType ConfigParser::_getServerDirectiveType(const std::string& directive) const {
+    if (directive == "listen") return SERVER_LISTEN;
+    if (directive == "root") return SERVER_ROOT;
+    if (directive == "server_name") return SERVER_NAME;
+    if (directive == "error_page") return SERVER_ERROR_PAGE;
+    if (directive == "index") return SERVER_INDEX;
+    if (directive == "client_max_body_size") return SERVER_CLIENT_MAX_BODY_SIZE;
+    if (directive == "access_log") return SERVER_ACCESS_LOG;
+    if (directive == "error_log") return SERVER_ERROR_LOG;
+    return SERVER_UNKNOWN;
+}
+
+ConfigParser::LocationDirectiveType ConfigParser::_getLocationDirectiveType(const std::string& directive) const {
+    if (directive == "root") return LOCATION_ROOT;
+    if (directive == "accepted_http_methods") return LOCATION_ACCEPTED_HTTP_METHODS;
+    if (directive == "return") return LOCATION_RETURN;
+    if (directive == "autoindex") return LOCATION_AUTOINDEX;
+    if (directive == "index") return LOCATION_INDEX;
+    if (directive == "fastcgi_pass") return LOCATION_FASTCGI_PASS;
+    if (directive == "fastcgi_param") return LOCATION_FASTCGI_PARAM;
+    if (directive == "fastcgi_index") return LOCATION_FASTCGI_INDEX;
+    if (directive == "upload_path") return LOCATION_UPLOAD_PATH;
+    if (directive == "try_files") return LOCATION_TRY_FILES;
+    return LOCATION_UNKNOWN;
+}
+
 bool ConfigParser::_isValidPort(const std::string &portStr) const {
     if (portStr.empty()) return false;
     
@@ -68,31 +94,8 @@ void ConfigParser::_parseServerBlock(std::ifstream& file) {
     while (_getNextDirective(file, tokens)) {
         std::string directive = tokens[0];
         
-        if (directive == "listen") {
-            _parseListenDirective(tokens, currentServer);
-        }
-        else if (directive == "root") {
-            _parseRootDirective(tokens, currentServer);
-        }
-        else if (directive == "server_name") {
-            _parseServerNameDirective(tokens, currentServer);
-        }
-        else if (directive == "error_page") {
-            _parseErrorPageDirective(tokens, currentServer);
-        }
-        else if (directive == "index") {
-            _parseIndexDirective(tokens, currentServer);
-        }
-        else if (directive == "client_max_body_size") {
-            _parseClientMaxBodySizeDirective(tokens, currentServer);
-        }
-        else if (directive == "access_log") {
-            _parseAccessLogDirective(tokens, currentServer);
-        }
-        else if (directive == "error_log") {
-            _parseErrorLogDirective(tokens, currentServer);
-        }
-        else if (directive == "location") {
+        // Handle location blocks separately since they need special processing
+        if (directive == "location") {
             std::string path = "";
             if (tokens.size() > 2) {
                 for (size_t i = 1; i < tokens.size() - 1; ++i) {
@@ -103,7 +106,43 @@ void ConfigParser::_parseServerBlock(std::ifstream& file) {
             }
             _parseLocationBlock(file, currentServer, path);
         }
+        // Use switch for server directives
+        else {
+            switch (_getServerDirectiveType(directive)) {
+                case SERVER_LISTEN:
+                    _parseListenDirective(tokens, currentServer);
+                    break;
+                case SERVER_ROOT:
+                    _parseRootDirective(tokens, currentServer);
+                    break;
+                case SERVER_NAME:
+                    _parseServerNameDirective(tokens, currentServer);
+                    break;
+                case SERVER_ERROR_PAGE:
+                    _parseErrorPageDirective(tokens, currentServer);
+                    break;
+                case SERVER_INDEX:
+                    _parseIndexDirective(tokens, currentServer);
+                    break;
+                case SERVER_CLIENT_MAX_BODY_SIZE:
+                    _parseClientMaxBodySizeDirective(tokens, currentServer);
+                    break;
+                case SERVER_ACCESS_LOG:
+                    _parseAccessLogDirective(tokens, currentServer);
+                    break;
+                case SERVER_ERROR_LOG:
+                    _parseErrorLogDirective(tokens, currentServer);
+                    break;
+                case SERVER_UNKNOWN:
+                default:
+                    // Log unknown server directives
+                    std::cerr << "Warning: Unknown server directive '" << directive << "' ignored" << std::endl;
+                    break;
+            }
+        }
     }
+    
+    // Set default port if none specified
     if (currentServer.getPorts().empty()) {
         currentServer.addPort(8080);
     }
@@ -228,35 +267,42 @@ void ConfigParser::_parseLocationBlock(std::ifstream& file, ServerConfig& curren
     while (_getNextDirective(file, tokens)) {
         std::string directive = tokens[0];
         
-        if (directive == "root") {
-            _parseLocationRootDirective(tokens, newLocation);
-        }
-        else if (directive == "accepted_http_methods") {
-            _parseAcceptedHttpMethodsDirective(tokens, newLocation);
-        }
-        else if (directive == "return") {
-            _parseReturnDirective(tokens, newLocation);
-        }
-        else if (directive == "autoindex") {
-            _parseAutoIndexDirective(tokens, newLocation);
-        }
-        else if (directive == "index") {
-            _parseIndexDirective(tokens, newLocation);
-        }
-        else if (directive == "fastcgi_pass") {
-            _parseFastCgiPassDirective(tokens, newLocation);
-        }
-        else if (directive == "fastcgi_param") {
-            _parseFastCgiParamDirective(tokens, newLocation);
-        }
-        else if (directive == "fastcgi_index") {
-            _parseFastCgiIndexDirective(tokens, newLocation);
-        }
-        else if (directive == "upload_path") {
-            _parseUploadPathDirective(tokens, newLocation);
-        }
-        else if (directive == "try_files") {
-            _parseTryFilesDirective(tokens, newLocation);
+        switch (_getLocationDirectiveType(directive)) {
+            case LOCATION_ROOT:
+                _parseLocationRootDirective(tokens, newLocation);
+                break;
+            case LOCATION_ACCEPTED_HTTP_METHODS:
+                _parseAcceptedHttpMethodsDirective(tokens, newLocation);
+                break;
+            case LOCATION_RETURN:
+                _parseReturnDirective(tokens, newLocation);
+                break;
+            case LOCATION_AUTOINDEX:
+                _parseAutoIndexDirective(tokens, newLocation);
+                break;
+            case LOCATION_INDEX:
+                _parseIndexDirective(tokens, newLocation);
+                break;
+            case LOCATION_FASTCGI_PASS:
+                _parseFastCgiPassDirective(tokens, newLocation);
+                break;
+            case LOCATION_FASTCGI_PARAM:
+                _parseFastCgiParamDirective(tokens, newLocation);
+                break;
+            case LOCATION_FASTCGI_INDEX:
+                _parseFastCgiIndexDirective(tokens, newLocation);
+                break;
+            case LOCATION_UPLOAD_PATH:
+                _parseUploadPathDirective(tokens, newLocation);
+                break;
+            case LOCATION_TRY_FILES:
+                _parseTryFilesDirective(tokens, newLocation);
+                break;
+            case LOCATION_UNKNOWN:
+            default:
+                // Log unknown location directives
+                std::cerr << "Warning: Unknown location directive '" << directive << "' ignored" << std::endl;
+                break;
         }
     }
     currentServer.addLocation(newLocation);
