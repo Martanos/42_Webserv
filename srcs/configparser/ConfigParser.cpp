@@ -16,8 +16,13 @@ bool ConfigParser::parseConfig(const std::string& filename) {
         return false;
     }
 
+    // Load entire file into stringstream for efficient parsing
+    std::stringstream buffer;
+    buffer << file.rdbuf();  // Single system call - much faster!
+    file.close();
+
     std::string line;
-    while (std::getline(file, line)) {
+    while (std::getline(buffer, line)) {
         line = _trim(line);
 
         if (line.empty() || line[0] == '#') {
@@ -25,11 +30,9 @@ bool ConfigParser::parseConfig(const std::string& filename) {
         }
 
         if (line == "server {" || line == "server{") {
-            _parseServerBlock(file);
+            _parseServerBlock(buffer);  // Use efficient stringstream version
         }
     }
-    
-    file.close();
     
     // If no servers were parsed, create default
     if (_serverConfigs.empty()) {
@@ -54,10 +57,17 @@ void ConfigParser::printAllConfigs() const {
 }
 
 std::string ConfigParser::_trim(const std::string &str) const {
-    size_t first = str.find_first_not_of(" \t\n\r");
+    // First, remove inline comments
+    std::string cleaned = str;
+    size_t commentPos = cleaned.find('#');
+    if (commentPos != std::string::npos) {
+        cleaned = cleaned.substr(0, commentPos);
+    }
+    
+    size_t first = cleaned.find_first_not_of(" \t\n\r");
     if (first == std::string::npos) return ""; // No non-whitespace characters
-    size_t last = str.find_last_not_of(" \t\n\r");
-    return str.substr(first, (last - first + 1));
+    size_t last = cleaned.find_last_not_of(" \t\n\r");
+    return cleaned.substr(first, (last - first + 1));
 }
 
 std::vector<std::string> ConfigParser::_split(const std::string &str) const {

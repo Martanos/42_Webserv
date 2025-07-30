@@ -30,11 +30,7 @@ void ServerConfig::setRoot(const std::string& root) { _root = root; }
 void ServerConfig::setIndex(const std::vector<std::string>& index) { _index = index; }
 void ServerConfig::setClientMaxBodySize(unsigned long size) { _clientMaxBodySize = size; }
 void ServerConfig::addPort(int port) {
-    if (port > 0 && port < 65536) { // Valid port range
-        _ports.push_back(port);
-    } else {
-        std::cerr << "Invalid port number: " << port << ". Port must be between 1 and 65535." << std::endl;
-    }
+    _ports.push_back(port);
 }
 void ServerConfig::addLocation(const LocationConfig& location) { _locations.push_back(location); }
 void ServerConfig::addServerName(const std::string& serverName) { _serverNames.push_back(serverName); }

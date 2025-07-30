@@ -46,6 +46,7 @@ class ConfigParser {
         std::vector<std::string> _split(const std::string &str) const;
         bool _isValidPort(const std::string &portstr) const;
         bool _isValidErrorCode(const std::string &errorCodeStr) const;
+        bool _isWhitespaceOnly(const std::string &str) const;
         
         // Helper methods for directive type identification
         ServerDirectiveType _getServerDirectiveType(const std::string& directive) const;
@@ -59,8 +60,11 @@ class ConfigParser {
         void _parseAccessLogDirective(const std::vector<std::string>& tokens, ServerConfig& currentServer);
         void _parseErrorLogDirective(const std::vector<std::string>& tokens, ServerConfig& currentServer);
         void _parseServerBlock(std::ifstream& file);
+        void _parseServerBlock(std::stringstream& stream);
         void _parseLocationBlock(std::ifstream& file, ServerConfig& currentServer, const std::string& path);
+        void _parseLocationBlock(std::stringstream& stream, ServerConfig& currentServer, const std::string& path);
         bool _getNextDirective(std::ifstream& file, std::vector<std::string>& tokens);
+        bool _getNextDirective(std::stringstream& stream, std::vector<std::string>& tokens);
         void _parseLocationRootDirective(const std::vector<std::string>& tokens, LocationConfig& newLocation);
         void _parseAcceptedHttpMethodsDirective(const std::vector<std::string>& tokens, LocationConfig& newLocation);
         void _parseReturnDirective(const std::vector<std::string>& tokens, LocationConfig& newLocation);
