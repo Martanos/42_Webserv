@@ -14,7 +14,7 @@ ConfigParser::ServerDirectiveType ConfigParser::_getServerDirectiveType(const st
 
 ConfigParser::LocationDirectiveType ConfigParser::_getLocationDirectiveType(const std::string& directive) const {
     if (directive == "root") return LOCATION_ROOT;
-    if (directive == "accepted_http_methods") return LOCATION_ACCEPTED_HTTP_METHODS;
+    if (directive == "allowed_methods") return LOCATION_ACCEPTED_HTTP_METHODS;
     if (directive == "return") return LOCATION_RETURN;
     if (directive == "autoindex") return LOCATION_AUTOINDEX;
     if (directive == "index") return LOCATION_INDEX;
@@ -541,6 +541,12 @@ void ConfigParser::_parseLocationRootDirective(const std::vector<std::string>& t
 void ConfigParser::_parseAcceptedHttpMethodsDirective(const std::vector<std::string>& tokens, LocationConfig& newLocation) {
     if (tokens.size() > 1) {
         for (size_t i = 1; i < tokens.size(); ++i) {
+            // Check if the method is valid (e.g., GET, POST, PUT, DELETE)
+            if (tokens[i] != "GET" && tokens[i] != "POST" && tokens[i] != "PUT" &&
+                tokens[i] != "DELETE" && tokens[i] != "HEAD" && tokens[i] != "OPTIONS") {
+                std::cerr << "Warning: Invalid HTTP method '" << tokens[i] << "' in allowed_methods directive, ignored." << std::endl;
+                continue; // Skip invalid methods
+            }
             newLocation.addAllowedMethod(tokens[i]);
         }
     }
@@ -582,8 +588,15 @@ void ConfigParser::_parseFastCgiIndexDirective(const std::vector<std::string>& t
     }
 }
 
+// truncating whitespaces like tab
 void ConfigParser::_parseUploadPathDirective(const std::vector<std::string>& tokens, LocationConfig& newLocation) {
     if (tokens.size() > 1) {
+        if (tokens[1].empty() || _isWhitespaceOnly(tokens[1])) {
+            std::cerr << "Error: Invalid upload_path directive, path cannot be empty or whitespace only" << std::endl;
+            // newLocation.setUploadPath(""); // Reset to empty if invalid
+        }
+
         newLocation.setUploadPath(tokens[1]);
+       
     }
 }
