@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: seayeo <seayeo@42.sg>                      +#+  +:+       +#+         #
+#    By: seayeo <seayeo@student.42.fr>              +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/07/24 16:54:44 by malee             #+#    #+#              #
-#    Updated: 2025/07/27 17:08:14 by seayeo           ###   ########.fr        #
+#    Updated: 2025/07/31 16:34:30 by seayeo           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -24,6 +24,7 @@ SRC_FILES = main.cpp \
 			configparser/utils/ConfigParserUtils.cpp \
 			configparser/utils/ServerConfigUtils.cpp \
 			configparser/utils/LocationConfigUtils.cpp \
+			cgiexec/CgiEnv.cpp \
 			# Add other source files here as needed
 # Object files with proper path
 OBJ = $(addprefix $(OBJ_DIR)/, $(SRC_FILES:.cpp=.o))
