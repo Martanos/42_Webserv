@@ -539,16 +539,33 @@ void ConfigParser::_parseLocationRootDirective(const std::vector<std::string>& t
 }
 
 void ConfigParser::_parseAcceptedHttpMethodsDirective(const std::vector<std::string>& tokens, LocationConfig& newLocation) {
-    if (tokens.size() > 1) {
-        for (size_t i = 1; i < tokens.size(); ++i) {
-            // Check if the method is valid (e.g., GET, POST, PUT, DELETE)
-            if (tokens[i] != "GET" && tokens[i] != "POST" && tokens[i] != "PUT" &&
-                tokens[i] != "DELETE" && tokens[i] != "HEAD" && tokens[i] != "OPTIONS") {
-                std::cerr << "Warning: Invalid HTTP method '" << tokens[i] << "' in allowed_methods directive, ignored." << std::endl;
-                continue; // Skip invalid methods
-            }
-            newLocation.addAllowedMethod(tokens[i]);
+    if (tokens.size() < 2) {
+        std::cerr << "Error: Invalid allowed_methods directive, missing HTTP method value" << std::endl;
+        return; // Invalid allowed_methods directive, need at least "allowed_methods" and a method
+    }
+    
+    bool hasValidMethod = false;
+    for (size_t i = 1; i < tokens.size(); ++i) {
+        std::string method = tokens[i];
+        
+        // Skip tokens that are just quotes or empty/whitespace
+        if (method == "\"" || _isWhitespaceOnly(method)) {
+            continue; // Skip quote tokens and empty/whitespace-only tokens
         }
+        
+        // Check if the method is valid (e.g., GET, POST, PUT, DELETE)
+        if (method != "GET" && method != "POST" && method != "PUT" &&
+            method != "DELETE" && method != "HEAD" && method != "OPTIONS") {
+            std::cerr << "Warning: Invalid HTTP method '" << method << "' in allowed_methods directive, ignored." << std::endl;
+            continue; // Skip invalid methods
+        }
+        
+        newLocation.addAllowedMethod(method);
+        hasValidMethod = true;
+    }
+    
+    if (!hasValidMethod) {
+        std::cerr << "Error: Invalid allowed_methods directive, all HTTP methods are empty or whitespace only" << std::endl;
     }
 }
 
