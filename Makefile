@@ -6,7 +6,7 @@
 #    By: seayeo <seayeo@42.sg>                      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/07/24 16:54:44 by malee             #+#    #+#              #
-#    Updated: 2025/07/27 17:08:14 by seayeo           ###   ########.fr        #
+#    Updated: 2025/08/04 19:11:36 by seayeo           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -20,10 +20,9 @@ INC_DIR = includes
 OBJ_DIR = obj/srcs
 # Source files
 SRC_FILES = main.cpp \
-			configparser/ConfigParser.cpp \
-			configparser/utils/ConfigParserUtils.cpp \
-			configparser/utils/ServerConfigUtils.cpp \
-			configparser/utils/LocationConfigUtils.cpp \
+			configparser/utils/ConfigParser.cpp \
+			configparser/utils/ServerConfig.cpp \
+			configparser/utils/LocationConfig.cpp \
 			# Add other source files here as needed
 # Object files with proper path
 OBJ = $(addprefix $(OBJ_DIR)/, $(SRC_FILES:.cpp=.o))
