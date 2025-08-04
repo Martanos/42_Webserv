@@ -39,7 +39,8 @@ bool ConfigParser::_isValidPort(const std::string &portStr) const {
         if (!std::isdigit(portStr[i])) return false; // Non-digit character found
     }
     
-    return true; // Valid numeric value
+    long port = std::atol(portStr.c_str());
+    return (port >= 1 && port <= 65535); // Valid port range
 }
 
 bool ConfigParser::_isWhitespaceOnly(const std::string &str) const {
@@ -59,8 +60,8 @@ bool ConfigParser::_isValidErrorCode(const std::string &errorCodeStr) const {
         if (!std::isdigit(errorCodeStr[i])) return false; // Non-digit character found
     }
     
-    int errorCode = std::atoi(errorCodeStr.c_str());
-    return (errorCode);
+    long errorCode = std::atol(errorCodeStr.c_str());
+    return (errorCode >= 100 && errorCode <= 999); // Valid HTTP error code range
 }
 
 void ConfigParser::_parseAccessLogDirective(const std::vector<std::string>& tokens, ServerConfig& currentServer) {
@@ -186,8 +187,8 @@ void ConfigParser::_parseServerBlock(std::ifstream& file) {
     }
     
     // Set default port if none specified
-    if (currentServer.getPorts().empty()) {
-        currentServer.addPort(8080);
+    if (currentServer.getListenDirectives().empty()) {
+        currentServer.addListenDirective("", 8080);
     }
     _serverConfigs.push_back(currentServer);
 }
@@ -249,8 +250,8 @@ void ConfigParser::_parseServerBlock(std::stringstream& stream) {
     }
     
     // Set default port if none specified
-    if (currentServer.getPorts().empty()) {
-        currentServer.addPort(8080);
+    if (currentServer.getListenDirectives().empty()) {
+        currentServer.addListenDirective("", 8080);
     }
     _serverConfigs.push_back(currentServer);
 }
@@ -269,16 +270,13 @@ void ConfigParser::_parseListenDirective(const std::vector<std::string>& tokens,
             std::string host = listenValue.substr(0, colonPos);
             std::string port = listenValue.substr(colonPos + 1);
             
-            if (!host.empty()) {
-                currentServer.setHost(host);
-            }
             if (_isValidPort(port)) {
-                currentServer.addPort(std::atoi(port.c_str()));
+                currentServer.addListenDirective(host, static_cast<int>(std::atol(port.c_str())));
             }
         }
         // Handle port-only format
         else if (_isValidPort(listenValue)) {
-            currentServer.addPort(std::atoi(listenValue.c_str()));
+            currentServer.addListenDirective("", static_cast<int>(std::atol(listenValue.c_str())));
         }
     }
 }
@@ -375,7 +373,7 @@ void ConfigParser::_parseErrorPageDirective(const std::vector<std::string>& toke
     for (size_t i = 1; i < endIndex; ++i) {
         if (tokens[i] != "=") {
             if (_isValidErrorCode(tokens[i])) {
-                errorCodes.push_back(std::atoi(tokens[i].c_str()));
+                errorCodes.push_back(static_cast<int>(std::atol(tokens[i].c_str())));
                 hasValidErrorCode = true;
             } else {
                 std::cerr << "Error: Invalid error code '" << tokens[i] << "' in error_page directive" << std::endl;
