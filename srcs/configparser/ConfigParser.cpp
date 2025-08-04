@@ -22,6 +22,9 @@ bool ConfigParser::parseConfig(const std::string& filename) {
     file.close();
 
     std::string line;
+    bool foundHttp = false;
+    bool insideHttp = false;
+    
     while (std::getline(buffer, line)) {
         line = _trim(line);
 
@@ -29,9 +32,43 @@ bool ConfigParser::parseConfig(const std::string& filename) {
             continue; // Skip empty lines and comments
         }
 
-        if (line == "server {" || line == "server{") {
-            _parseServerBlock(buffer);  // Use efficient stringstream version
+        // Check for http block start
+        if (line == "http {" || line == "http{") {
+            if (foundHttp) {
+                std::cerr << "Error: Multiple http blocks found. Only one http block is allowed." << std::endl;
+                return false;
+            }
+            foundHttp = true;
+            insideHttp = true;
+            continue;
         }
+
+        // Check for http block end
+        if (insideHttp && line == "}") {
+            insideHttp = false;
+            continue;
+        }
+
+        // Check for server blocks
+        if (line == "server {" || line == "server{") {
+            if (!insideHttp) {
+                std::cerr << "Error: 'server' directive is not allowed here. Server blocks must be inside an http block." << std::endl;
+                return false;
+            }
+            _parseServerBlock(buffer);
+        }
+        
+        // Check for server blocks outside http
+        if (!insideHttp && !foundHttp && (line.find("server") != std::string::npos)) {
+            std::cerr << "Error: Configuration must be wrapped in an http block." << std::endl;
+            return false;
+        }
+    }
+    
+    // If no http block was found but server blocks were expected
+    if (!foundHttp && _serverConfigs.empty()) {
+        std::cerr << "Error: No http block found. Configuration must be wrapped in an http block." << std::endl;
+        return false;
     }
     
     // If no servers were parsed, create default
