@@ -13,7 +13,7 @@
 #include <netdb.h>
 #include <cstring>
 #include "Logger.hpp"
-#include "LocationConfig.hpp"
+#include "../utils/LocationConfig.hpp"
 
 // Temp container to gather all config data
 class ServerConfig
@@ -31,7 +31,7 @@ private:
     std::vector<std::string> _indexes;
     bool _autoindex;
     double _clientMaxBodySize;
-    std::map<int, std::string> _responsePages;
+    std::map<int, std::string> _errorPages;
     std::vector<LocationConfig> _locations;
     std::string _accessLog;
     std::string _errorLog;
@@ -53,22 +53,22 @@ public:
     const std::string &getErrorLog() const;
 
     // Setters
-    void setServerNames(const std::vector<std::string> &serverNames);
-    void setHosts_ports(const std::vector<std::pair<std::string, unsigned short> > &hosts_ports);
-    void setRoot(const std::string &root);
-    void setIndexes(const std::vector<std::string> &indexes);
-    void setAutoindex(bool autoindex);
-    void setClientMaxBodySize(double size);
-    void setResponsePages(const std::map<int, std::string> &responsePages);
-    void setAccessLog(const std::string &accessLog);
-    void setErrorLog(const std::string &errorLog);
-    void setLocations(const std::vector<LocationConfig> &locations);
+    // void setServerNames(const std::vector<std::string> &serverNames);
+    // void setHosts_ports(const std::vector<std::pair<std::string, unsigned short> > &hosts_ports);
+    // void setRoot(const std::string &root);
+    // void setIndexes(const std::vector<std::string> &indexes);
+    // void setAutoindex(bool autoindex);
+    // void setClientMaxBodySize(double size);
+    // void setResponsePages(const std::map<int, std::string> &responsePages);
+    // void setAccessLog(const std::string &accessLog);
+    // void setErrorLog(const std::string &errorLog);
+    // void setLocations(const std::vector<LocationConfig> &locations);
 
     // Parsing methods
     void addServerName(std::string line, double lineNumber);
     void addHosts_ports(std::string line, double lineNumber);
     void addIndexes(std::string line, double lineNumber);
-    void addResponsePages(std::string line, double lineNumber);
+    void addErrorPages(std::string line, double lineNumber);
     void addRoot(std::string line, double lineNumber);
     void addClientMaxBodySize(std::string line, double lineNumber);
     void addAutoindex(std::string line, double lineNumber);

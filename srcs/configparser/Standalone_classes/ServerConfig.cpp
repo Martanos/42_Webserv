@@ -1,9 +1,10 @@
-#include "srcs/configparser/Standalone_classes/ServerConfig.hpp"
+#include "ServerConfig.hpp"
 
 // Constructors
 ServerConfig::ServerConfig()
 {
     _clientMaxBodySize = 1048576; // default value of 1MB
+    _autoindex = false; // default value
 }
 
 // Destructor
@@ -22,16 +23,16 @@ const std::string &ServerConfig::getAccessLog() const { return _accessLog; }
 const std::string &ServerConfig::getErrorLog() const { return _errorLog; }
 
 // Setters
-void ServerConfig::setServerNames(const std::vector<std::string> &serverNames) { _serverNames = serverNames; }
-void ServerConfig::setHosts_ports(const std::vector<std::pair<std::string, unsigned short> > &hosts_ports) { _hosts_ports = hosts_ports; }
-void ServerConfig::setRoot(const std::string &root) { _root = root; }
-void ServerConfig::setIndexes(const std::vector<std::string> &indexes) { _indexes = indexes; }
-void ServerConfig::setAutoindex(bool autoindex) { _autoindex = autoindex; }
-void ServerConfig::setClientMaxBodySize(double size) { _clientMaxBodySize = size; }
-void ServerConfig::setResponsePages(const std::map<int, std::string> &responsePages) { _responsePages = responsePages; }
-void ServerConfig::setLocations(const std::vector<LocationConfig> &locations) { _locations = locations; }
-void ServerConfig::setAccessLog(const std::string &accessLog) { _accessLog = accessLog; }
-void ServerConfig::setErrorLog(const std::string &errorLog) { _errorLog = errorLog; }
+// void ServerConfig::setServerNames(const std::vector<std::string> &serverNames) { _serverNames = serverNames; }
+// void ServerConfig::setHosts_ports(const std::vector<std::pair<std::string, unsigned short> > &hosts_ports) { _hosts_ports = hosts_ports; }
+// void ServerConfig::setRoot(const std::string &root) { _root = root; }
+// void ServerConfig::setIndexes(const std::vector<std::string> &indexes) { _indexes = indexes; }
+// void ServerConfig::setAutoindex(bool autoindex) { _autoindex = autoindex; }
+// void ServerConfig::setClientMaxBodySize(double size) { _clientMaxBodySize = size; }
+// void ServerConfig::setResponsePages(const std::map<int, std::string> &responsePages) { _responsePages = responsePages; }
+// void ServerConfig::setLocations(const std::vector<LocationConfig> &locations) { _locations = locations; }
+// void ServerConfig::setAccessLog(const std::string &accessLog) { _accessLog = accessLog; }
+// void ServerConfig::setErrorLog(const std::string &errorLog) { _errorLog = errorLog; }
 
 // Parsing methods
 void ServerConfig::addServerName(std::string line, double lineNumber)
@@ -182,7 +183,34 @@ void ServerConfig::addLocation(const LocationConfig &location, double lineNumber
         _locations.push_back(location);
 }
 
-void ServerConfig::addResponsePages(std::string line, double lineNumber)
+void ServerConfig::addIndexes(std::string line, double lineNumber)
+{
+    lineValidation(line, lineNumber);
+
+    std::stringstream indexesStream(line);
+    std::string token;
+    std::stringstream errorMessage;
+
+    if (!(indexesStream >> token) || token != "index")
+    {
+        errorMessage << "Invalid index directive at line " << lineNumber;
+        Logger::log(Logger::ERROR, errorMessage.str());
+        throw std::runtime_error(errorMessage.str());
+    }
+
+    while (indexesStream >> token)
+    {
+        if (token.empty())
+        {
+            errorMessage << "CHECK PLS Empty index name at line " << lineNumber;
+            Logger::log(Logger::ERROR, errorMessage.str());
+            throw std::runtime_error(errorMessage.str());
+        }
+        _indexes.push_back(token);
+    }
+}
+
+void ServerConfig::addErrorPages(std::string line, double lineNumber)
 {
     lineValidation(line, lineNumber);
 
@@ -190,25 +218,149 @@ void ServerConfig::addResponsePages(std::string line, double lineNumber)
     std::string token;
     std::stringstream errorMessage;
 
-    if (!(errorPagesStream >> token) || token != "response_page")
+    if (!(errorPagesStream >> token) || token != "error_page")
     {
-        errorMessage << "Invalid response_page directive at line " << lineNumber;
+        errorMessage << "Invalid error_page directive at line " << lineNumber;
         Logger::log(Logger::ERROR, errorMessage.str());
         throw std::runtime_error(errorMessage.str());
     }
 
-    // TODO: Move response code validation here
+    std::vector<int> errorCodes;
+    std::string filePath;
+    
+    // Parse tokens: collect error codes first, then file path
     while (errorPagesStream >> token)
     {
-        double responseCode = std::strtod(token.c_str(), NULL);
-        if (responseCode < 100 || responseCode > 600)
+        // Try to parse as error code
+        char* endPtr;
+        long code = std::strtol(token.c_str(), &endPtr, 10);
+        
+        if (*endPtr == '\0' && code >= 300 && code <= 599)
         {
-            errorMessage << "Invalid response_page directive at line " << lineNumber << ": " << token << " (Invalid response code)";
-            Logger::log(Logger::ERROR, errorMessage.str());
-            throw std::runtime_error(errorMessage.str());
+            // Valid error code
+            errorCodes.push_back(static_cast<int>(code));
+        }
+        else
+        {
+            // This should be the file path (last token)
+            if (!filePath.empty())
+            {
+                errorMessage << "Invalid error_page directive at line " << lineNumber << ": Multiple file paths specified";
+                Logger::log(Logger::ERROR, errorMessage.str());
+                throw std::runtime_error(errorMessage.str());
+            }
+            filePath = token;
         }
     }
+    
+    // Validation
+    if (errorCodes.empty())
+    {
+        errorMessage << "Invalid error_page directive at line " << lineNumber << ": No error codes specified";
+        Logger::log(Logger::ERROR, errorMessage.str());
+        throw std::runtime_error(errorMessage.str());
+    }
+
+    if (filePath.empty())
+    {
+        errorMessage << "Invalid error_page directive at line " << lineNumber << ": No file path specified";
+        Logger::log(Logger::ERROR, errorMessage.str());
+        throw std::runtime_error(errorMessage.str());
+    }    
+    // Store the error pages
+    for (std::vector<int>::const_iterator it = errorCodes.begin(); it != errorCodes.end(); ++it)
+    {
+        _errorPages[*it] = filePath;
+    }
 }
+
+void ServerConfig::addRoot(std::string line, double lineNumber)
+{
+    lineValidation(line, lineNumber);
+
+    std::stringstream rootStream(line);
+    std::string token;
+    std::stringstream errorMessage;
+
+    if (!(rootStream >> token) || token != "root")
+    {
+        errorMessage << "Invalid root directive at line " << lineNumber;
+        Logger::log(Logger::ERROR, errorMessage.str());
+        throw std::runtime_error(errorMessage.str());
+    }
+
+    if (!(rootStream >> token) || token.empty())
+    {
+        errorMessage << "Empty root path at line " << lineNumber;
+        Logger::log(Logger::ERROR, errorMessage.str());
+        throw std::runtime_error(errorMessage.str());
+    }
+
+    _root = token;
+}
+
+void ServerConfig::addClientMaxBodySize(std::string line, double lineNumber)
+{
+    lineValidation(line, lineNumber);
+
+    std::stringstream sizeStream(line);
+    std::string token;
+    std::stringstream errorMessage;
+
+    if (!(sizeStream >> token) || token != "client_max_body_size")
+    {
+        errorMessage << "Invalid client_max_body_size directive at line " << lineNumber;
+        Logger::log(Logger::ERROR, errorMessage.str());
+        throw std::runtime_error(errorMessage.str());
+    }
+    if (token.empty())
+    {
+        errorMessage << "CHECK PLS Empty client_max_body_size at line " << lineNumber;
+        Logger::log(Logger::ERROR, errorMessage.str());
+        throw std::runtime_error(errorMessage.str());
+    }
+    sizeStream >> token; // Read the size value
+    char lastChar = token[token.length() - 1];
+    token.erase(token.length() - 1);
+    std::stringstream ss(token);
+    unsigned long size = 0;
+    ss >> size;
+    if (lastChar == 'k' || lastChar == 'K') {
+        size *= 1024;
+    }
+    else if (lastChar == 'm' || lastChar == 'M') {
+        size *= 1024 * 1024;
+    }
+    else if (lastChar == 'g' || lastChar == 'G') {
+        size *= 1024 * 1024 * 1024;
+    }
+    _clientMaxBodySize = size;
+}
+
+void ServerConfig::addAutoindex(std::string line, double lineNumber)
+{
+    lineValidation(line, lineNumber);
+
+    std::stringstream autoindexStream(line);
+    std::string token;
+    std::stringstream errorMessage;
+
+    if (!(autoindexStream >> token) || token != "autoindex")
+    {
+        errorMessage << "Invalid autoindex directive at line " << lineNumber;
+        Logger::log(Logger::ERROR, errorMessage.str());
+        throw std::runtime_error(errorMessage.str());
+    }
+
+    if (!(autoindexStream >> token) || (token != "on" && token != "off"))
+    {
+        errorMessage << "Invalid autoindex value at line " << lineNumber << ": " << token;
+        Logger::log(Logger::ERROR, errorMessage.str());
+        throw std::runtime_error(errorMessage.str());
+    }
+    _autoindex = (token == "on");
+}
+
 
 // TODO: Move access log validation here
 void ServerConfig::addAccessLog(std::string line, double lineNumber)

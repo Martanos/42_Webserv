@@ -3,15 +3,15 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: malee <malee@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: seayeo <seayeo@42.sg>                      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/24 18:16:26 by malee             #+#    #+#             */
-/*   Updated: 2025/08/03 20:38:55 by malee            ###   ########.fr       */
+/*   Updated: 2025/08/06 14:13:13 by seayeo           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "ConfigParser.hpp"
-#include "ServerConfig.hpp"
+#include "configparser/utils/ConfigParser.hpp"
+#include "configparser/Standalone_classes/ServerConfig.hpp"
 #include "Logger.hpp"
 
 int main(int argc, char **argv)
