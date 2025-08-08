@@ -10,6 +10,40 @@ ServerConfig::ServerConfig()
 // Destructor
 ServerConfig::~ServerConfig() {}
 
+// Copy constructor
+ServerConfig::ServerConfig(const ServerConfig &other)
+{
+    _serverNames = other._serverNames;
+    _hosts_ports = other._hosts_ports;
+    _root = other._root;
+    _indexes = other._indexes;
+    _autoindex = other._autoindex;
+    _clientMaxBodySize = other._clientMaxBodySize;
+    _errorPages = other._errorPages;
+    _locations = other._locations;
+    _accessLog = other._accessLog;
+    _errorLog = other._errorLog;
+}
+
+// Assignment operator
+ServerConfig &ServerConfig::operator=(const ServerConfig &other)
+{
+    if (this != &other)
+    {
+        _serverNames = other._serverNames;
+        _hosts_ports = other._hosts_ports;
+        _root = other._root;
+        _indexes = other._indexes;
+        _autoindex = other._autoindex;
+        _clientMaxBodySize = other._clientMaxBodySize;
+        _errorPages = other._errorPages;
+        _locations = other._locations;
+        _accessLog = other._accessLog;
+        _errorLog = other._errorLog;
+    }
+    return *this;
+}
+
 // Getters
 const std::vector<std::string> &ServerConfig::getServerNames() const { return _serverNames; }
 const std::vector<std::pair<std::string, unsigned short> > &ServerConfig::getHosts_ports() const { return _hosts_ports; }
@@ -34,10 +68,36 @@ const std::string &ServerConfig::getErrorLog() const { return _errorLog; }
 // void ServerConfig::setAccessLog(const std::string &accessLog) { _accessLog = accessLog; }
 // void ServerConfig::setErrorLog(const std::string &errorLog) { _errorLog = errorLog; }
 
+std::string _trim(const std::string &str)  {
+    // First, remove inline comments
+    std::string cleaned = str;
+    size_t commentPos = cleaned.find('#');
+    if (commentPos != std::string::npos) {
+        cleaned = cleaned.substr(0, commentPos);
+    }
+    
+    size_t first = cleaned.find_first_not_of(" \t\n\r");
+    if (first == std::string::npos) return ""; // No non-whitespace characters
+    size_t last = cleaned.find_last_not_of(" \t\n\r");
+    return cleaned.substr(first, (last - first + 1));
+}
+
+std::vector<std::string> _split(const std::string &str) {
+    std::vector<std::string> tokens;
+    std::istringstream stream(str);
+    std::string token;
+    
+    while (stream >> token) {
+        tokens.push_back(token);
+    }
+    
+    return tokens;
+}
 // Parsing methods
 void ServerConfig::addServerName(std::string line, double lineNumber)
 {
     lineValidation(line, lineNumber);
+
 
     std::stringstream serverNameStream(line);
     std::string token;
@@ -121,50 +181,45 @@ void ServerConfig::addHosts_ports(std::string line, double lineNumber)
     while (hosts_portsStream >> token)
     {
         std::pair<std::string, unsigned short> host_port;
-        if (try_validate_port_only(token))
+        bool tokenProcessed = false;
+        std::cout << "Processing token: " << token << std::endl;
+        // First, check if token contains a colon (indicating host:port format)
+        if (token.find(':') != std::string::npos)
         {
+            host_port = split_host_port(token);
+            if (host_port.first.empty() && host_port.second == 0)
+            {
+                errorMessage << "Invalid host:port format: " << token << " at line " << lineNumber;
+                Logger::log(Logger::ERROR, errorMessage.str());
+                throw std::runtime_error(errorMessage.str());
+            }
+            tokenProcessed = true;
+        }
+        // If no colon, try to validate as port only
+        else if (try_validate_port_only(token))
+        {
+            // std::cout << "Valid port only: " << token << std::endl;
             host_port = std::make_pair("0.0.0.0", std::strtol(token.c_str(), NULL, 10));
-            if (std::find(this->_hosts_ports.begin(), this->_hosts_ports.end(), host_port) != this->_hosts_ports.end())
-            {
-                errorMessage << "Duplicate listen directive detected: " << token << " at line " << lineNumber;
-                Logger::log(Logger::ERROR, errorMessage.str());
-                throw std::runtime_error(errorMessage.str());
-            }
-            else
-                _hosts_ports.push_back(host_port);
-            continue;
-        }
-        else if (try_validate_host_only(token))
-        {
-            host_port = std::make_pair(token, 80);
-            if (std::find(this->_hosts_ports.begin(), this->_hosts_ports.end(), host_port) != this->_hosts_ports.end())
-            {
-                errorMessage << "Duplicate listen directive detected: " << token << " at line " << lineNumber;
-                Logger::log(Logger::ERROR, errorMessage.str());
-                throw std::runtime_error(errorMessage.str());
-            }
-            else
-                _hosts_ports.push_back(host_port);
-            continue;
-        }
-        // Try to split into host:port
-        std::pair<std::string, unsigned short> host_port = split_host_port(token);
-        if (host_port.first.empty() && host_port.second == 0)
+            tokenProcessed = true;
+        }      
+        // If none of the above worked, it's an invalid token
+        if (!tokenProcessed)
         {
             errorMessage << "Invalid listen directive: " << token << " at line " << lineNumber;
             Logger::log(Logger::ERROR, errorMessage.str());
             throw std::runtime_error(errorMessage.str());
         }
+        
+        // Check for duplicates and add to the list
+        if (std::find(this->_hosts_ports.begin(), this->_hosts_ports.end(), host_port) != this->_hosts_ports.end())
+        {
+            errorMessage << "Duplicate listen directive detected: " << token << " at line " << lineNumber;
+            Logger::log(Logger::ERROR, errorMessage.str());
+            throw std::runtime_error(errorMessage.str());
+        }
         else
         {
-            if (std::find(this->_hosts_ports.begin(), this->_hosts_ports.end(), host_port) != this->_hosts_ports.end())
-            {
-                errorMessage << "Duplicate listen directive detected: " << token << " at line " << lineNumber;
-                Logger::log(Logger::ERROR, errorMessage.str());
-                throw std::runtime_error(errorMessage.str());
-            }
-            else
-                _hosts_ports.push_back(host_port);
+            _hosts_ports.push_back(host_port);
         }
     }
 }
@@ -469,7 +524,7 @@ void ServerConfig::printConfig() const
 
 // Utils
 
-void ServerConfig::lineValidation(std::string line, int lineNumber)
+void ServerConfig::lineValidation(std::string &line, int lineNumber)
 {
     std::stringstream errorMessage;
     if (line.empty())
@@ -484,17 +539,20 @@ void ServerConfig::lineValidation(std::string line, int lineNumber)
         Logger::log(Logger::ERROR, errorMessage.str());
         throw std::runtime_error(errorMessage.str());
     }
-    line.erase(line.find_last_of(';') + 1);
+    line.erase(line.find_last_of(';'));
+    std::cout << "Line after trim: " << line << std::endl;
 }
 
 bool ServerConfig::try_validate_port_only(std::string token)
 {
+    std::cout <<" Validating port only: " << token << std::endl;
     struct addrinfo hints, *result;
     std::memset(&hints, 0, sizeof(hints));
     hints.ai_flags = AI_PASSIVE | AI_NUMERICSERV; // Force numeric port
     hints.ai_socktype = SOCK_STREAM;
 
     int status = getaddrinfo("0.0.0.0", token.c_str(), &hints, &result);
+    std::cout << "getaddrinfo status: " << status << std::endl;
     if (status == 0)
     {
         freeaddrinfo(result);
@@ -531,10 +589,10 @@ std::pair<std::string, unsigned short> ServerConfig::split_host_port(std::string
             std::string port = token.substr(bracket_end + 2);
             if (try_validate_host_only(host) && try_validate_port_only(port))
             {
-                return {host, std::strtol(port.c_str(), NULL, 10)};
+                return std::make_pair(host, static_cast<unsigned short>(std::strtol(port.c_str(), NULL, 10)));
             }
             else
-                return;
+                return std::make_pair("", 0);
         }
     }
 
@@ -546,11 +604,11 @@ std::pair<std::string, unsigned short> ServerConfig::split_host_port(std::string
         std::string port = token.substr(colon_pos + 1);
         if (try_validate_host_only(host) && try_validate_port_only(port))
         {
-            return {host, std::strtol(port.c_str(), NULL, 10)};
+            return std::make_pair(host, static_cast<unsigned short>(std::strtol(port.c_str(), NULL, 10)));
         }
         else
-            return;
+            return std::make_pair("", 0);
     }
 
-    return;
+    return std::make_pair("", 0);
 }

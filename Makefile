@@ -6,7 +6,7 @@
 #    By: seayeo <seayeo@42.sg>                      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/07/24 16:54:44 by malee             #+#    #+#              #
-#    Updated: 2025/08/06 14:06:27 by seayeo           ###   ########.fr        #
+#    Updated: 2025/08/08 17:19:13 by seayeo           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -20,8 +20,9 @@ INC_DIR = includes
 OBJ_DIR = obj/srcs
 # Source files
 SRC_FILES = main.cpp \
-			configparser/utils/ConfigParser.cpp \
+			configparser/Standalone_classes/ConfigParser.cpp \
 			configparser/Standalone_classes/ServerConfig.cpp \
+			configparser/Standalone_classes/LocationConfig.cpp \
 			
 # 			configparser/utils/ServerConfig.cpp \
 # 			configparser/utils/LocationConfig.cpp \

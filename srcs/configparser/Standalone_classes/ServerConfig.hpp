@@ -13,14 +13,14 @@
 #include <netdb.h>
 #include <cstring>
 #include "Logger.hpp"
-#include "../utils/LocationConfig.hpp"
+#include "LocationConfig.hpp"
 
 // Temp container to gather all config data
 class ServerConfig
 {
 private:
-    ServerConfig(const ServerConfig &other);
-    ServerConfig &operator=(const ServerConfig &other);
+    
+    
 
     // Identifier directives
     std::vector<std::string> _serverNames;
@@ -39,6 +39,8 @@ private:
 public:
     ServerConfig();
     ~ServerConfig();
+    ServerConfig(const ServerConfig &other);
+    ServerConfig &operator=(const ServerConfig &other);
 
     // Getters
     const std::vector<std::string> &getServerNames() const;
@@ -77,7 +79,7 @@ public:
     void addLocation(const LocationConfig &location, double lineNumber);
 
     // Utils
-    void lineValidation(std::string line, int lineNumber);
+    void lineValidation(std::string &line, int lineNumber);
     bool try_validate_port_only(std::string token);
     bool try_validate_host_only(std::string token);
     std::pair<std::string, unsigned short> split_host_port(std::string token);
