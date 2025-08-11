@@ -4,18 +4,16 @@
 #include <iostream>
 #include <string>
 
-// Main server object
+// Main server object contains all information for server
 class Server
 {
-
+private:
 public:
 	Server();
 	Server(Server const &src);
 	~Server();
 
 	Server &operator=(Server const &rhs);
-
-private:
 };
 
 std::ostream &operator<<(std::ostream &o, Server const &i);

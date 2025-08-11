@@ -19,9 +19,6 @@
 class ServerConfig
 {
 private:
-    
-    
-
     // Identifier directives
     std::vector<std::string> _serverNames;
     std::vector<std::pair<std::string, unsigned short> > _hosts_ports;
