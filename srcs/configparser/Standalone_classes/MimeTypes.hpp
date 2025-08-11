@@ -12,6 +12,12 @@
 class MimeTypes
 {
   private:
+	// OOC stuff
+	MimeTypes();
+	MimeTypes(MimeTypes const &src);
+	~MimeTypes();
+	MimeTypes &operator=(MimeTypes const &rhs);
+
 	static std::map<std::string, std::string> &getMimeTypesMap()
 	{
 		static std::map<std::string, std::string> instance;
@@ -109,11 +115,6 @@ class MimeTypes
 	}
 
   public:
-	MimeTypes();
-	MimeTypes(MimeTypes const &src);
-	~MimeTypes();
-	MimeTypes &operator=(MimeTypes const &rhs);
-
 	// Returns mime type for extension, checks for file changes automatically
 	static std::string getMimeType(const std::string &extension)
 	{
