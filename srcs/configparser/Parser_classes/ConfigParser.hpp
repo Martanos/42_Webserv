@@ -41,7 +41,6 @@ class ConfigParser {
             LOCATION_FASTCGI_PARAM,
             LOCATION_FASTCGI_INDEX,
             LOCATION_UPLOAD_PATH,
-            LOCATION_TRY_FILES,
             LOCATION_UNKNOWN
         };
 
@@ -54,7 +53,9 @@ class ConfigParser {
         bool serverblockcheck(const std::string &line, bool &insideHttp, bool &insideServer);
         bool httpblockcheck(const std::string &line, bool &foundHttp, bool &insideHttp);
         void _parseServerBlock(std::stringstream &buffer, double &lineNumber);
+        void _parseLocationBlock(std::stringstream &buffer, double &lineNumber, const std::string &locationLine, ServerConfig &currentServer);
         ServerDirectiveType _getServerDirectiveType(const std::string &directive) const;
+        LocationDirectiveType _getLocationDirectiveType(const std::string &directive) const;
 
     public:
         ConfigParser();

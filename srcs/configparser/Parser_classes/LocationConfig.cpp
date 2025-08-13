@@ -126,7 +126,7 @@ void LocationConfig::addAllowedMethods(std::string line, double lineNumber)
     std::string token;
     std::stringstream errorMessage;
 
-    if (!(methodsStream >> token) || token != "allow_methods")
+    if (!(methodsStream >> token) || token != "allowed_methods")
     {
         errorMessage << "Invalid allow_methods directive at line " << lineNumber;
         Logger::log(Logger::ERROR, errorMessage.str());
@@ -137,7 +137,7 @@ void LocationConfig::addAllowedMethods(std::string line, double lineNumber)
     _allowedMethods.clear();
     while (methodsStream >> token)
     {
-        if (token == "GET" || token == "POST" || token == "DELETE" || token == "PUT" || token == "HEAD")
+        if (token == "GET" || token == "POST" || token == "DELETE")
         {
             if (std::find(_allowedMethods.begin(), _allowedMethods.end(), token) == _allowedMethods.end())
             {
@@ -349,39 +349,6 @@ void LocationConfig::addUploadPath(std::string line, double lineNumber)
     _uploadPath = token;
 }
 
-void LocationConfig::addTryFiles(std::string line, double lineNumber)
-{
-    lineValidation(line, lineNumber);
-
-    std::stringstream tryFilesStream(line);
-    std::string token;
-    std::stringstream errorMessage;
-
-    if (!(tryFilesStream >> token) || token != "try_files")
-    {
-        errorMessage << "Invalid try_files directive at line " << lineNumber;
-        Logger::log(Logger::ERROR, errorMessage.str());
-        throw std::runtime_error(errorMessage.str());
-    }
-
-    // Clear existing try files and read new ones
-    _tryFiles.clear();
-    while (tryFilesStream >> token)
-    {
-        if (!token.empty())
-        {
-            _tryFiles.push_back(token);
-        }
-    }
-
-    if (_tryFiles.empty())
-    {
-        errorMessage << "No files specified in try_files directive at line " << lineNumber;
-        Logger::log(Logger::ERROR, errorMessage.str());
-        throw std::runtime_error(errorMessage.str());
-    }
-}
-
 // Debugging methods
 void LocationConfig::printConfig() const
 {
@@ -441,7 +408,7 @@ void LocationConfig::printConfig() const
 }
 
 // Utils
-void LocationConfig::lineValidation(std::string line, int lineNumber)
+void LocationConfig::lineValidation(std::string &line, int lineNumber)
 {
     std::stringstream errorMessage;
     if (line.empty())
@@ -456,5 +423,5 @@ void LocationConfig::lineValidation(std::string line, int lineNumber)
         Logger::log(Logger::ERROR, errorMessage.str());
         throw std::runtime_error(errorMessage.str());
     }
-    line.erase(line.find_last_of(';') + 1);
+    line.erase(line.find_last_of(';'));
 }

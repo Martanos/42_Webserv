@@ -1,4 +1,5 @@
 #include "ConfigParser.hpp"
+#include "LocationConfig.hpp"
 
 ConfigParser::ConfigParser() {}
 
@@ -156,11 +157,13 @@ void ConfigParser::_parseServerBlock(std::stringstream &buffer, double &lineNumb
                 currentServer.addErrorLog(line, lineNumber);
                 break;
             case SERVER_LOCATION:
-                // TODO: Implement location parsing
+                _parseLocationBlock(buffer, lineNumber, line, currentServer);
                 break;
             case SERVER_UNKNOWN:
             default:
                 // TODO: Handle unknown directive or log warning
+                Logger::log(Logger::WARNING, "Unknown server directive: " + directive);
+                
                 break;
         }
         // For now, just create a basic server config
@@ -223,4 +226,83 @@ ConfigParser::ServerDirectiveType ConfigParser::_getServerDirectiveType(const st
     if (directive == "error_log") return SERVER_ERROR_LOG;
     if (directive == "location") return SERVER_LOCATION;
     return SERVER_UNKNOWN;
+}
+
+ConfigParser::LocationDirectiveType ConfigParser::_getLocationDirectiveType(const std::string &directive) const {
+    if (directive == "root") return LOCATION_ROOT;
+    if (directive == "allowed_methods") return LOCATION_ACCEPTED_HTTP_METHODS;
+    if (directive == "return") return LOCATION_RETURN;
+    if (directive == "autoindex") return LOCATION_AUTOINDEX;
+    if (directive == "index") return LOCATION_INDEX;
+    if (directive == "cgi_path") return LOCATION_FASTCGI_PASS;
+    if (directive == "cgi_param") return LOCATION_FASTCGI_PARAM;
+    if (directive == "cgi_index") return LOCATION_FASTCGI_INDEX;
+    if (directive == "upload_path") return LOCATION_UPLOAD_PATH;
+    return LOCATION_UNKNOWN;
+}
+
+void ConfigParser::_parseLocationBlock(std::stringstream &buffer, double &lineNumber, const std::string &locationLine, ServerConfig &currentServer) {
+    LocationConfig currentLocation;
+    std::string line;
+    
+    // Parse the location directive line first to extract the path
+    std::string locationDirective = locationLine + ";"; // Add semicolon for validation
+    currentLocation.addPath(locationDirective, lineNumber);
+    
+    while (std::getline(buffer, line)) {
+        line = _trim(line);
+        lineNumber++;
+
+        if (line.empty() || line[0] == '#') {
+            continue; // Skip empty lines and comments
+        }
+        
+        if (line == "}") {
+            break; // End of location block
+        }
+        
+        // Parse location directive
+        std::vector<std::string> tokens = _split(line);
+        if (tokens.empty()) {
+            continue; // Skip empty lines
+        }
+        std::string directive = tokens[0];
+        
+        switch (_getLocationDirectiveType(directive)) {
+            case LOCATION_ROOT:
+                currentLocation.addRoot(line, lineNumber);
+                break;
+            case LOCATION_ACCEPTED_HTTP_METHODS:
+                currentLocation.addAllowedMethods(line, lineNumber);
+                break;
+            case LOCATION_RETURN:
+                currentLocation.addRedirect(line, lineNumber);
+                break;
+            case LOCATION_AUTOINDEX:
+                currentLocation.addAutoIndex(line, lineNumber);
+                break;
+            case LOCATION_INDEX:
+                currentLocation.addIndex(line, lineNumber);
+                break;
+            case LOCATION_FASTCGI_PASS:
+                currentLocation.addCgiPath(line, lineNumber);
+                break;
+            case LOCATION_FASTCGI_PARAM:
+                currentLocation.addCgiParam(line, lineNumber);
+                break;
+            case LOCATION_FASTCGI_INDEX:
+                currentLocation.addCgiIndex(line, lineNumber);
+                break;
+            case LOCATION_UPLOAD_PATH:
+                currentLocation.addUploadPath(line, lineNumber);
+                break;
+            case LOCATION_UNKNOWN:
+            default:
+                Logger::log(Logger::WARNING, "Unknown location directive: " + directive);
+                break;
+        }
+    }
+    
+    // Add the parsed location to the current server
+    currentServer.addLocation(currentLocation, lineNumber);
 }

@@ -182,7 +182,6 @@ void ServerConfig::addHosts_ports(std::string line, double lineNumber)
     {
         std::pair<std::string, unsigned short> host_port;
         bool tokenProcessed = false;
-        std::cout << "Processing token: " << token << std::endl;
         // First, check if token contains a colon (indicating host:port format)
         if (token.find(':') != std::string::npos)
         {
@@ -540,19 +539,16 @@ void ServerConfig::lineValidation(std::string &line, int lineNumber)
         throw std::runtime_error(errorMessage.str());
     }
     line.erase(line.find_last_of(';'));
-    std::cout << "Line after trim: " << line << std::endl;
 }
 
 bool ServerConfig::try_validate_port_only(std::string token)
 {
-    std::cout <<" Validating port only: " << token << std::endl;
     struct addrinfo hints, *result;
     std::memset(&hints, 0, sizeof(hints));
     hints.ai_flags = AI_PASSIVE | AI_NUMERICSERV; // Force numeric port
     hints.ai_socktype = SOCK_STREAM;
 
     int status = getaddrinfo("0.0.0.0", token.c_str(), &hints, &result);
-    std::cout << "getaddrinfo status: " << status << std::endl;
     if (status == 0)
     {
         freeaddrinfo(result);

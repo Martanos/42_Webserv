@@ -61,7 +61,7 @@ public:
     void printConfig() const;
 
     // Utils
-    void lineValidation(std::string line, int lineNumber);
+    void lineValidation(std::string &line, int lineNumber);
 };
 
 #endif
