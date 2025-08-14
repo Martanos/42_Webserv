@@ -29,7 +29,7 @@ LocationConfig& LocationConfig::operator=(const LocationConfig &other) {
         _cgiPath = other._cgiPath;
         _cgiIndex = other._cgiIndex;
         _cgiParams = other._cgiParams;
-        _uploadPath = other._uploadPath; 
+        _uploadPath = other._uploadPath;
         _tryFiles = other._tryFiles;
     }
     return *this;
