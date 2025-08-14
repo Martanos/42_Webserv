@@ -18,7 +18,6 @@ LocationConfig::LocationConfig(const LocationConfig &other) {
     _cgiIndex = other._cgiIndex;
     _cgiParams = other._cgiParams;
     _uploadPath = other._uploadPath;
-    _tryFiles = other._tryFiles;
 }
 
 // Assignment operator
@@ -34,7 +33,6 @@ LocationConfig& LocationConfig::operator=(const LocationConfig &other) {
         _cgiIndex = other._cgiIndex;
         _cgiParams = other._cgiParams;
         _uploadPath = other._uploadPath;
-        _tryFiles = other._tryFiles;
     }
     return *this;
 }
@@ -50,8 +48,7 @@ bool LocationConfig::operator==(const LocationConfig &other) const {
            _cgiPath == other._cgiPath &&
            _cgiIndex == other._cgiIndex &&
            _cgiParams == other._cgiParams &&
-           _uploadPath == other._uploadPath &&
-           _tryFiles == other._tryFiles;
+           _uploadPath == other._uploadPath;
 }
 
 // Getters
@@ -65,8 +62,6 @@ const std::string& LocationConfig::getCgiPath() const { return _cgiPath; }
 const std::string& LocationConfig::getCgiIndex() const { return _cgiIndex; }
 const std::map<std::string, std::string>& LocationConfig::getCgiParams() const { return _cgiParams; }
 const std::string& LocationConfig::getUploadPath() const { return _uploadPath; }
-const std::vector<std::string>& LocationConfig::getTryFiles() const { return _tryFiles; }
-
 // Parsing methods
 void LocationConfig::addPath(std::string line, double lineNumber)
 {
@@ -394,17 +389,6 @@ void LocationConfig::printConfig() const
     
     if (!_uploadPath.empty())
         std::cout << "      Upload Path: " << _uploadPath << std::endl;
-    
-    if (!_tryFiles.empty())
-    {
-        std::cout << "      Try Files: ";
-        for (size_t i = 0; i < _tryFiles.size(); ++i)
-        {
-            if (i > 0) std::cout << ", ";
-            std::cout << _tryFiles[i];
-        }
-        std::cout << std::endl;
-    }
 }
 
 // Utils

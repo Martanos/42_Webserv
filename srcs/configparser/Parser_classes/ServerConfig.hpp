@@ -80,6 +80,7 @@ public:
     bool try_validate_port_only(std::string token);
     bool try_validate_host_only(std::string token);
     std::pair<std::string, unsigned short> split_host_port(std::string token);
+    bool hasLocation(const LocationConfig &location) const;
 
     // Debugging methods
     void printConfig() const;

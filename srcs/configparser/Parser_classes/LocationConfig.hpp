@@ -22,7 +22,6 @@ private:
     std::string _cgiIndex;
     std::map<std::string, std::string> _cgiParams;
     std::string _uploadPath;
-    std::vector<std::string> _tryFiles;
 
 public:
     LocationConfig();
@@ -55,7 +54,6 @@ public:
     void addCgiIndex(std::string line, double lineNumber);
     void addCgiParam(std::string line, double lineNumber);
     void addUploadPath(std::string line, double lineNumber);
-    void addTryFiles(std::string line, double lineNumber);
 
     // Debugging methods
     void printConfig() const;

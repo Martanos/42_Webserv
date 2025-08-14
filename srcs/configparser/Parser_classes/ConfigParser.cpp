@@ -304,5 +304,10 @@ void ConfigParser::_parseLocationBlock(std::stringstream &buffer, double &lineNu
     }
     
     // Add the parsed location to the current server
-    currentServer.addLocation(currentLocation, lineNumber);
+    //check that a duplicate location is not added
+    if (!currentServer.hasLocation(currentLocation)) {
+        currentServer.addLocation(currentLocation, lineNumber);
+    } else {
+        Logger::log(Logger::WARNING, "Duplicate location found: " + currentLocation.getPath());
+    }
 }

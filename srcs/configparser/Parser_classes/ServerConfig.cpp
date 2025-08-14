@@ -608,3 +608,8 @@ std::pair<std::string, unsigned short> ServerConfig::split_host_port(std::string
 
     return std::make_pair("", 0);
 }
+
+bool ServerConfig::hasLocation(const LocationConfig &location) const
+{
+    return std::find(_locations.begin(), _locations.end(), location) != _locations.end();
+}
