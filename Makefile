@@ -3,7 +3,7 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: seayeo <seayeo@42.sg>                      +#+  +:+       +#+         #
+#    By: seayeo <seayeo@student.42.fr>              +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/07/24 16:54:44 by malee             #+#    #+#              #
 #    Updated: 2025/08/13 13:54:30 by seayeo           ###   ########.fr        #
