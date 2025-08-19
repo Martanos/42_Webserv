@@ -30,8 +30,7 @@ private:
 
 public:
 	Server();
-	Server()
-		Server(Server const &src);
+	Server(Server const &src);
 	~Server();
 
 	Server &operator=(Server const &rhs);

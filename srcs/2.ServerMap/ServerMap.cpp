@@ -46,9 +46,9 @@ ServerMap &ServerMap::operator=(ServerMap const &rhs)
 
 void ServerMap::_spawnServerMap(std::vector<ServerConfig> &serverConfigs)
 {
-	_spawnServers(serverConfigs);
-	_spawnServerKeys(_serverMap);
-	_populateServerMap(_serverMap);
+	std::vector<Server> servers = _spawnServers(serverConfigs);
+	_spawnServerKeys(servers);
+	_populateServerMap(servers);
 }
 
 /*

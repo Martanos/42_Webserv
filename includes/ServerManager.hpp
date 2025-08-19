@@ -3,47 +3,106 @@
 
 #include <iostream>
 #include <string>
-#include <map>
+#include <sys/epoll.h>
+#include <unistd.h>
 #include <vector>
-#include <algorithm>
-#include <sys/socket.h>
-#include <errno.h>
-#include "Server.hpp"
-#include "ServerConfig.hpp"
-#include "Logger.hpp"
+#include <map>
+#include <queue>
 
-// The job of this class is to divide up the information taken from the config into manageble maps for later server operations
-// 1. Divide up ServerConfigs into Server classes (This reduces navigation complexity as well as makes it clearer which class is doing what)
-// 2. Spawn the map of servers where key is a pair pair of fd to host + port pair simultaneously binding to the fd and listening port to get the fd
-// 3. Attempt to deep copy the Server classes to their repective value vectors if a match is found its ignored
-// Accessors returns a const reference to a server object
-class ServerMap
+#include "Logger.hpp"
+#include "ServerMap.hpp"
+
+// Static class that contains main epoll loop and handles all server operations
+class ServerManager
 {
 private:
-	std::map<int, std::pair<std::string, unsigned short> > _fd_host_port_map;
-	std::map<std::pair<std::string, unsigned short>, std::vector<Server> > _serverMap;
+	static ServerMap _serverMap;
+	static int _epoll_fd;
+	ServerManager();
+	ServerManager(ServerManager const &src);
+	~ServerManager();
+	ServerManager &operator=(ServerManager const &rhs);
 
 public:
-	ServerMap();
-	ServerMap(ServerMap const &src);
-	ServerMap(std::vector<ServerConfig> &serverConfigs);
-	ServerMap &operator=(ServerMap const &rhs);
-	~ServerMap();
+	static void run(std::vector<ServerConfig> &serverConfigs)
+	{
+		// Spawn server map based on server configs
+		_serverMap = ServerMap(serverConfigs);
 
-	// Getters
-	const Server &getServer(const std::string &host, const unsigned short &port, const std::string &serverName);
-	const Server &getServer(std::string &host, unsigned short &port, std::string &serverName);
-	const Server &getServer(const int &fd, const std::string &serverName);
-	const Server &getServer(int &fd, std::string &serverName);
+		// Spawn epoll instance
+		_epoll_fd = _spawnPollingInstance(_serverMap);
 
-private:
-	// Main Methods
-	void _spawnServerMap(std::vector<ServerConfig> &serverConfigs);
+		// Spawn a buffer for the epoll events
+		std::vector<epoll_event> events(64);
 
-	// Utility Methods
-	std::vector<Server> _spawnServers(std::vector<ServerConfig> &serverConfigs);
-	void _spawnServerKeys(std::vector<Server> &servers);
-	void _populateServerMap(std::vector<Server> &servers);
+		// main polling loop
+		while (true)
+		{
+			// -1 denotes witing forever this may be a problem if the server is not ready to accept connections
+			int ready_events = epoll_wait(_epoll_fd, events.data(), events.size(), -1);
+			if (ready_events == -1)
+			{
+				// TODO: Check if this is the correct way to handle signals
+				// if it is this may be where to mass send server shutdown signals
+				if (errno == EINTR)
+				{
+					Logger::log(Logger::INFO, "Epoll wait interrupted by signal");
+					continue;
+				}
+			}
+			else if (ready_events == 0)
+			{
+				Logger::log(Logger::INFO, "Epoll wait returned 0, no events ready");
+				continue;
+			}
+			else // Handle events if ready_events is greater than 0
+			{
+				for (int i = 0; i < ready_events; i++)
+				{
+					epoll_event &event = events[i];
+					if (event.events & EPOLLIN) // If the event is an input event
+					{
+						Logger::log(Logger::INFO, "Event ready");
+						int fd = event.data.fd;
+						// Pass on the fd to message handler class to pre process and route to the correct server
+						// TODO: Implement this
+						MessageHandler::handleEvent(fd);
+					}
+				}
+			}
+		}
+	}
+
+	static int _spawnPollingInstance(ServerMap &serverMap)
+	{
+		int epoll_fd = epoll_create1(EPOLL_CLOEXEC);
+		if (epoll_fd == -1)
+		{
+			Logger::log(Logger::ERROR, "Failed to create epoll instance");
+			throw std::runtime_error("Failed to create epoll instance");
+		}
+		{
+			std::stringstream ss;
+			ss << "Epoll instance created with fd: " << epoll_fd;
+			Logger::log(Logger::INFO, ss.str());
+		}
+
+		// Add server fds to epoll
+		std::map<int, std::pair<std::string, unsigned short> > fd_host_port_map = serverMap.getFd_host_port_map();
+		for (std::map<int, std::pair<std::string, unsigned short> >::iterator it = fd_host_port_map.begin(); it != fd_host_port_map.end(); ++it)
+		{
+			epoll_event event;
+			event.events = EPOLLIN;
+			event.data.fd = it->first;
+			epoll_ctl(epoll_fd, EPOLL_CTL_ADD, it->first, &event);
+			{
+				std::stringstream ss;
+				ss << "Server fd: " << it->first << " added to epoll";
+				Logger::log(Logger::INFO, ss.str());
+			}
+		}
+		return epoll_fd;
+	}
 };
 
 #endif /* *************************************************** SERVERMANAGER_H */
