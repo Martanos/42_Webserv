@@ -16,6 +16,18 @@ Server::Server()
 	_locations = std::map<std::string, Location>();
 }
 
+Server::Server(std::string serverName, std::pair<std::string, unsigned short> host_port, ServerConfig &serverConfig)
+{
+	_serverName = serverName;
+	_host_port = host_port;
+	_root = serverConfig.getRoot();
+	_indexes = serverConfig.getIndex();
+	_autoindex = serverConfig.getAutoindex();
+	_clientMaxBodySize = serverConfig.getClientMaxBodySize();
+	_statusPages = serverConfig.getStatusPages();
+	_locations = serverConfig.getLocations();
+}
+
 Server::Server(const Server &src)
 {
 	if (this != &src)

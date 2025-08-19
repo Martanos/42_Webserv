@@ -11,6 +11,7 @@
 // Location object contains all required information for location
 // Param validation is done during parser stage, not here
 // Exists as reference to what the location block should contain
+// Contains methods relevant to server operations
 class Location
 {
 private:

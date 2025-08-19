@@ -12,6 +12,7 @@
 // Main server object contains all required information for server
 // Param validation is done during parser stage, not here
 // Exists as reference to what the server block should contain
+// Contains methods relevant to server operations
 class Server
 {
 private:
@@ -29,7 +30,8 @@ private:
 
 public:
 	Server();
-	Server(Server const &src);
+	Server()
+		Server(Server const &src);
 	~Server();
 
 	Server &operator=(Server const &rhs);
