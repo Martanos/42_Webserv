@@ -6,8 +6,8 @@
 
 ServerMap::ServerMap()
 {
-	_fd_host_port_map = std::map<int, std::pair<std::string, unsigned short> >();
-	_serverMap = std::map<std::pair<std::string, unsigned short>, std::vector<Server> >();
+	_fd_host_port_map = std::map<int, std::pair<std::string, unsigned short>>();
+	_serverMap = std::map<std::pair<std::string, unsigned short>, std::vector<Server>>();
 }
 
 ServerMap::ServerMap(const ServerMap &src)
@@ -22,7 +22,7 @@ ServerMap::ServerMap(const ServerMap &src)
 
 ServerMap::~ServerMap()
 {
-	for (std::map<int, std::pair<std::string, unsigned short> >::iterator it = _fd_host_port_map.begin(); it != _fd_host_port_map.end(); ++it)
+	for (std::map<int, std::pair<std::string, unsigned short>>::iterator it = _fd_host_port_map.begin(); it != _fd_host_port_map.end(); ++it)
 		close(it->first);
 }
 
@@ -68,7 +68,7 @@ std::vector<Server> ServerMap::_spawnServers(std::vector<ServerConfig> &serverCo
 		for (std::vector<std::string>::iterator serverName = it->getServerNames().begin(); serverName != it->getServerNames().end(); ++serverName)
 		{
 			// Iterate through each host + port pair
-			for (std::vector<std::pair<std::string, unsigned short> >::iterator host_port = it->getHosts_ports().begin(); host_port != it->getHosts_ports().end(); ++host_port)
+			for (std::vector<std::pair<std::string, unsigned short>>::iterator host_port = it->getHosts_ports().begin(); host_port != it->getHosts_ports().end(); ++host_port)
 			{
 				// Spawn a server
 				servers.push_back(Server(*serverName, *host_port, *it));
@@ -90,14 +90,14 @@ void ServerMap::_spawnServerKeys(std::vector<Server> &servers)
 	}
 
 	// Attempt to bind the server keys
-	for (std::map<std::pair<std::string, unsigned short>, std::vector<Server> >::iterator it = _serverMap.begin(); it != _serverMap.end(); ++it)
+	for (std::map<std::pair<std::string, unsigned short>, std::vector<Server>>::iterator it = _serverMap.begin(); it != _serverMap.end(); ++it)
 	{
 		// Check if the number of server keys is less that the max number of server keys
 		if (_fd_host_port_map.size() >= FD_SETSIZE)
 		{
 			std::stringstream ss;
 			ss << "ServerMap: Max number of server keys reached ignoring all remaining server keys, FD_SETSIZE: " << FD_SETSIZE;
-			Logger::error(ss.str());
+			Logger::log(Logger::INFO, ss.str());
 			break;
 		}
 
@@ -107,7 +107,7 @@ void ServerMap::_spawnServerKeys(std::vector<Server> &servers)
 		{
 			std::stringstream ss;
 			ss << "ServerMap: Failed to create socket for server key " << it->second.first << ":" << it->second.second << " errno: " << strerror(errno);
-			Logger::error(ss.str());
+			Logger::log(Logger::INFO, ss.str());
 			continue;
 		}
 
@@ -116,7 +116,7 @@ void ServerMap::_spawnServerKeys(std::vector<Server> &servers)
 		{
 			std::stringstream ss;
 			ss << "ServerMap: Failed to make socket non-blocking for server key " << it->first << ":" << it->second.first << ":" << it->second.second << " errno: " << strerror(errno);
-			Logger::error(ss.str());
+			Logger::log(Logger::INFO, ss.str());
 			close(fd);
 			continue;
 		}
@@ -126,7 +126,7 @@ void ServerMap::_spawnServerKeys(std::vector<Server> &servers)
 		{
 			std::stringstream ss;
 			ss << "ServerMap: Failed to bind server key " << it->first << ":" << it->second.first << ":" << it->second.second << " errno: " << strerror(errno);
-			Logger::error(ss.str());
+			Logger::log(Logger::INFO, ss.str());
 			close(fd);
 			continue;
 		}
@@ -136,7 +136,7 @@ void ServerMap::_spawnServerKeys(std::vector<Server> &servers)
 		{
 			std::stringstream ss;
 			ss << "ServerMap: Failed to listen on server key " << it->first << ":" << it->second.first << ":" << it->second.second << " errno: " << strerror(errno);
-			Logger::error(ss.str());
+			Logger::log(Logger::INFO, ss.str());
 			close(fd);
 			continue;
 		}
@@ -160,7 +160,7 @@ void ServerMap::_populateServerMap(std::vector<Server> &servers)
 	for (std::vector<Server>::iterator server_object_it = servers.begin(); server_object_it != servers.end(); ++server_object_it)
 	{
 		// Attempt to match the server object o a key in the server map
-		for (std::map<std::pair<std::string, unsigned short>, std::vector<Server> >::iterator it = _serverMap.begin(); it != _serverMap.end(); ++it)
+		for (std::map<std::pair<std::string, unsigned short>, std::vector<Server>>::iterator it = _serverMap.begin(); it != _serverMap.end(); ++it)
 		{
 			// If the server object matches the key
 			if (it->first == server_object_it->getHost_port())
@@ -190,7 +190,7 @@ void ServerMap::_populateServerMap(std::vector<Server> &servers)
 
 const Server &ServerMap::getServer(const std::string &host, const unsigned short &port, const std::string &serverName)
 {
-	for (std::map<std::pair<std::string, unsigned short>, std::vector<Server> >::iterator it = _serverMap.begin(); it != _serverMap.end(); ++it)
+	for (std::map<std::pair<std::string, unsigned short>, std::vector<Server>>::iterator it = _serverMap.begin(); it != _serverMap.end(); ++it)
 	{
 		for (std::vector<Server>::iterator server = it->second.begin(); server != it->second.end(); ++server)
 		{
@@ -210,7 +210,7 @@ const Server &ServerMap::getServer(const int &fd, const std::string &serverName)
 {
 	std::pair<std::string, unsigned short> host_port;
 	// Find the corresponding host:port pair
-	for (std::map<int, std::pair<std::string, unsigned short> >::iterator it = _fd_host_port_map.begin(); it != _fd_host_port_map.end(); ++it)
+	for (std::map<int, std::pair<std::string, unsigned short>>::iterator it = _fd_host_port_map.begin(); it != _fd_host_port_map.end(); ++it)
 	{
 		if (it->first == fd)
 			host_port = it->second;
