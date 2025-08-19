@@ -3,15 +3,15 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: malee <malee@student.42singapore.sg>       +#+  +:+       +#+        */
+/*   By: seayeo <seayeo@42.sg>                      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/24 18:16:26 by malee             #+#    #+#             */
-/*   Updated: 2025/08/03 20:38:55 by malee            ###   ########.fr       */
+/*   Updated: 2025/08/13 14:17:43 by seayeo           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "ConfigParser.hpp"
-#include "ServerConfig.hpp"
+#include "configparser/Parser_classes/ConfigParser.hpp"
+#include "configparser/Parser_classes/ServerConfig.hpp"
 #include "Logger.hpp"
 
 int main(int argc, char **argv)
@@ -22,23 +22,30 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	// Pseudo code structure
-	// 1. Parse the config file
-	ConfigParser parser(argv[1]);
+	try {
+		// Pseudo code structure
+		// 1. Parse the config file
+		ConfigParser parser(argv[1]);
 
-	// const std::vector<ServerConfig>& servers = parser.getServerConfigs();
-	// for (size_t i = 0; i < servers.size(); ++i) {
-	//     const std::vector<int>& ports = servers[i].getPorts();
-	//     for (size_t j = 0; j < ports.size(); ++j) {
-	//         std::cout << "Server listening on port: " << ports[j] << std::endl;
-	//     }
-	// }
+		// const std::vector<ServerConfig>& servers = parser.getServerConfigs();
+		// for (size_t i = 0; i < servers.size(); ++i) {
+		//     const std::vector<int>& ports = servers[i].getPorts();
+		//     for (size_t j = 0; j < ports.size(); ++j) {
+		//         std::cout << "Server listening on port: " << ports[j] << std::endl;
+		//     }
+		// }
 
-	parser.printAllConfigs();
-	// 2. Setup the listening sockets
-	// 3. Setup the poll_fds
-	// 4. Wait for events
-	// 5. Handle the events
-	// 6. Close the sockets
-	// 7. Exit
+		parser.printAllConfigs();
+		// 2. Setup the listening sockets
+		// 3. Setup the poll_fds
+		// 4. Wait for events
+		// 5. Handle the events
+		// 6. Close the sockets
+		// 7. Exit
+	}
+	catch (const std::exception& e) {
+		return 1;
+	}
+	
+	return 0;
 }

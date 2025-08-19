@@ -1,9 +1,13 @@
 #include "ServerConfig.hpp"
+#include <set>
+#include <stdexcept>
+#include <string>
+#include <sstream>
 
 
-ServerConfig::ServerConfig() : _host("localhost"), _root("/var/www"), _clientMaxBodySize(1048576),
+ServerConfig::ServerConfig() : _root("/var/www"), _clientMaxBodySize(1048576),
 _accessLog(""), _errorLog("") {
-    _ports.clear();
+    _listenDirectives.clear();
     _serverNames.clear();
     _errorPages.clear();
     _index.clear();
@@ -12,8 +16,22 @@ _accessLog(""), _errorLog("") {
 ServerConfig::~ServerConfig() {}
 
 //getters
-const std::string& ServerConfig::getHost() const { return _host; }
-const std::vector<int>& ServerConfig::getPorts() const { return _ports; }
+const std::string& ServerConfig::getHost() const { 
+    static std::string defaultHost = "localhost";
+    if (!_listenDirectives.empty() && !_listenDirectives[0].host.empty()) {
+        return _listenDirectives[0].host;
+    }
+    return defaultHost;
+}
+const std::vector<int>& ServerConfig::getPorts() const { 
+    static std::vector<int> ports;
+    ports.clear();
+    for (std::vector<ListenDirective>::const_iterator it = _listenDirectives.begin(); it != _listenDirectives.end(); ++it) {
+        ports.push_back(it->port);
+    }
+    return ports;
+}
+const std::vector<ListenDirective>& ServerConfig::getListenDirectives() const { return _listenDirectives; }
 const std::string& ServerConfig::getRoot() const { return _root; }
 const std::vector<std::string>& ServerConfig::getIndex() const { return _index; }
 unsigned long ServerConfig::getClientMaxBodySize() const { return _clientMaxBodySize; }
@@ -25,12 +43,21 @@ const std::string& ServerConfig::getErrorLog() const { return _errorLog; }
 
 
 //setters
-void ServerConfig::setHost(const std::string& host) { _host = host; }
+void ServerConfig::setHost(const std::string& host) { 
+    if (!_listenDirectives.empty()) {
+        _listenDirectives[0].host = host;
+    } else {
+        _listenDirectives.push_back(ListenDirective(host, 80)); // default port
+    }
+}
 void ServerConfig::setRoot(const std::string& root) { _root = root; }
 void ServerConfig::setIndex(const std::vector<std::string>& index) { _index = index; }
 void ServerConfig::setClientMaxBodySize(unsigned long size) { _clientMaxBodySize = size; }
 void ServerConfig::addPort(int port) {
-    _ports.push_back(port);
+    _listenDirectives.push_back(ListenDirective("", port)); // empty host means default
+}
+void ServerConfig::addListenDirective(const std::string& host, int port) {
+    _listenDirectives.push_back(ListenDirective(host, port));
 }
 void ServerConfig::addLocation(const LocationConfig& location) { _locations.push_back(location); }
 void ServerConfig::addServerName(const std::string& serverName) { _serverNames.push_back(serverName); }
@@ -47,12 +74,14 @@ void ServerConfig::setErrorLog(const std::string& logPath) { _errorLog = logPath
 
 void ServerConfig::printConfig() const {
     std::cout << "Server Configuration:" << std::endl;
-    std::cout << "Host: " << _host << std::endl;
-    std::cout << "Ports: ";
-    for (size_t i = 0; i < _ports.size(); ++i) {
-        std::cout << _ports[i] << (i == _ports.size() - 1 ? "" : ", ");
+    
+    if (!_listenDirectives.empty()) {
+        std::cout << "Listen Directives:" << std::endl;
+        for (std::vector<ListenDirective>::const_iterator it = _listenDirectives.begin(); it != _listenDirectives.end(); ++it) {
+            std::cout << "  " << (it->host.empty() ? "*" : it->host) << ":" << it->port << std::endl;
+        }
     }
-    std::cout << std::endl;
+    
     std::cout << "Root: " << _root << std::endl;
     std::cout << "Index: ";
     for (size_t i = 0; i < _index.size(); ++i) {
@@ -88,5 +117,26 @@ void ServerConfig::printConfig() const {
     }
     if (!_errorLog.empty()) {
         std::cout << "Error Log: " << _errorLog << std::endl;
+    }
+}
+
+// Validation function for server name and port uniqueness
+void validateServerNamePortUniqueness(const std::vector<ServerConfig>& servers) {
+    std::set<std::pair<std::string, int> > seen;
+
+    for (std::vector<ServerConfig>::const_iterator serverIt = servers.begin(); serverIt != servers.end(); ++serverIt) {
+        const std::vector<std::string>& serverNames = serverIt->getServerNames();
+        for (std::vector<std::string>::const_iterator nameIt = serverNames.begin(); nameIt != serverNames.end(); ++nameIt) {
+            const std::vector<ListenDirective>& listenDirectives = serverIt->getListenDirectives();
+            for (std::vector<ListenDirective>::const_iterator listenIt = listenDirectives.begin(); listenIt != listenDirectives.end(); ++listenIt) {
+                std::pair<std::string, int> key(*nameIt, listenIt->port);
+
+                if (!seen.insert(key).second) {
+                    std::stringstream ss;
+                    ss << listenIt->port;
+                    throw std::runtime_error("Duplicate server_name:port detected: " + *nameIt + ":" + ss.str());
+                }
+            }
+        }
     }
 }

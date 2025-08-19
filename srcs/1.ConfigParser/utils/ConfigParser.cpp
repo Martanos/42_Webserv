@@ -1,5 +1,166 @@
 #include "ConfigParser.hpp"
 
+// Constructor/Destructor
+ConfigParser::ConfigParser() {}
+
+ConfigParser::ConfigParser(const std::string& filename) {
+    parseConfig(filename);
+}
+
+ConfigParser::~ConfigParser() {}
+
+// Public member functions
+bool ConfigParser::parseConfig(const std::string& filename) {
+    
+    std::ifstream file(filename.c_str());
+    if (!file.is_open()) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return false;
+    }
+
+    // Load entire file into stringstream for efficient parsing
+    std::stringstream buffer;
+    buffer << file.rdbuf();  // Single system call - much faster!
+    file.close();
+
+    std::string line;
+    bool foundHttp = false;
+    bool insideHttp = false;
+    
+    while (std::getline(buffer, line)) {
+        line = _trim(line);
+
+        if (line.empty() || line[0] == '#') {
+            continue; // Skip empty lines and comments
+        }
+
+        // Check for http block start
+        if (line == "http {" || line == "http{") {
+            if (foundHttp) {
+                std::cerr << "Error: Multiple http blocks found. Only one http block is allowed." << std::endl;
+                return false;
+            }
+            foundHttp = true;
+            insideHttp = true;
+            continue;
+        }
+
+        // Check for http block end
+        if (insideHttp && line == "}") {
+            insideHttp = false;
+            continue;
+        }
+
+        // Check for server blocks
+        if (line == "server {" || line == "server{") {
+            if (!insideHttp) {
+                std::cerr << "Error: 'server' directive is not allowed here. Server blocks must be inside an http block." << std::endl;
+                return false;
+            }
+            _parseServerBlock(buffer);
+        }
+        
+        // Check for server blocks outside http
+        if (!insideHttp && !foundHttp && (line.find("server") != std::string::npos)) {
+            std::cerr << "Error: Configuration must be wrapped in an http block." << std::endl;
+            return false;
+        }
+    }
+    
+    // If no http block was found but server blocks were expected
+    if (!foundHttp && _serverConfigs.empty()) {
+        std::cerr << "Error: No http block found. Configuration must be wrapped in an http block." << std::endl;
+        return false;
+    }
+    
+    // If no servers were parsed, create default
+    if (_serverConfigs.empty()) {
+        std::cerr << "No valid server blocks found, terminating parser" << std::endl;
+    }
+    
+    return true;
+}
+
+const std::vector<ServerConfig>& ConfigParser::getServerConfigs() const {
+    return _serverConfigs;
+}
+
+void ConfigParser::printAllConfigs() const {
+    std::cout << "Number of server configurations: " << _serverConfigs.size() << std::endl;
+    std::vector<ServerConfig>::const_iterator it = _serverConfigs.begin();
+    int i = 0;
+    for (; it != _serverConfigs.end(); ++it, ++i) {
+        std::cout << "\n Server " << (i + 1) << std::endl;
+        it->printConfig();
+    }
+}
+
+// Private utility functions
+std::string ConfigParser::_trim(const std::string &str) const {
+    // First, remove inline comments
+    std::string cleaned = str;
+    size_t commentPos = cleaned.find('#');
+    if (commentPos != std::string::npos) {
+        cleaned = cleaned.substr(0, commentPos);
+    }
+    
+    size_t first = cleaned.find_first_not_of(" \t\n\r");
+    if (first == std::string::npos) return ""; // No non-whitespace characters
+    size_t last = cleaned.find_last_not_of(" \t\n\r");
+    return cleaned.substr(first, (last - first + 1));
+}
+
+std::vector<std::string> ConfigParser::_split(const std::string &str) const {
+    std::vector<std::string> tokens;
+    std::istringstream stream(str);
+    std::string token;
+    
+    while (stream >> token) {
+        tokens.push_back(token);
+    }
+    
+    return tokens;
+}
+
+bool ConfigParser::_isValidPort(const std::string &portStr) const {
+    if (portStr.empty()) return false;
+    
+    size_t start = 0;
+    if (portStr[0] == '-' || portStr[0] == '+') {
+        start = 1; // Skip the sign
+        if (portStr.length() == 1) return false; // Just a sign is not valid
+    }
+    
+    for (size_t i = start; i < portStr.length(); ++i) {
+        if (!std::isdigit(portStr[i])) return false; // Non-digit character found
+    }
+    
+    long port = std::atol(portStr.c_str());
+    return (port >= 1 && port <= 65535); // Valid port range
+}
+
+bool ConfigParser::_isValidErrorCode(const std::string &errorCodeStr) const {
+    if (errorCodeStr.empty()) return false;
+    
+    for (size_t i = 0; i < errorCodeStr.length(); ++i) {
+        if (!std::isdigit(errorCodeStr[i])) return false; // Non-digit character found
+    }
+    
+    long errorCode = std::atol(errorCodeStr.c_str());
+    return (errorCode >= 100 && errorCode <= 999); // Valid HTTP error code range
+}
+
+bool ConfigParser::_isWhitespaceOnly(const std::string &str) const {
+    if (str.empty()) return true;
+    
+    for (size_t i = 0; i < str.length(); ++i) {
+        if (!std::isspace(str[i])) return false; // Non-whitespace character found
+    }
+    
+    return true; // String contains only whitespace
+}
+
+// Helper methods for directive type identification
 ConfigParser::ServerDirectiveType ConfigParser::_getServerDirectiveType(const std::string& directive) const {
     if (directive == "listen") return SERVER_LISTEN;
     if (directive == "root") return SERVER_ROOT;
@@ -26,235 +187,7 @@ ConfigParser::LocationDirectiveType ConfigParser::_getLocationDirectiveType(cons
     return LOCATION_UNKNOWN;
 }
 
-bool ConfigParser::_isValidPort(const std::string &portStr) const {
-    if (portStr.empty()) return false;
-    
-    size_t start = 0;
-    if (portStr[0] == '-' || portStr[0] == '+') {
-        start = 1; // Skip the sign
-        if (portStr.length() == 1) return false; // Just a sign is not valid
-    }
-    
-    for (size_t i = start; i < portStr.length(); ++i) {
-        if (!std::isdigit(portStr[i])) return false; // Non-digit character found
-    }
-    
-    return true; // Valid numeric value
-}
-
-bool ConfigParser::_isWhitespaceOnly(const std::string &str) const {
-    if (str.empty()) return true;
-    
-    for (size_t i = 0; i < str.length(); ++i) {
-        if (!std::isspace(str[i])) return false; // Non-whitespace character found
-    }
-    
-    return true; // String contains only whitespace
-}
-
-bool ConfigParser::_isValidErrorCode(const std::string &errorCodeStr) const {
-    if (errorCodeStr.empty()) return false;
-    
-    for (size_t i = 0; i < errorCodeStr.length(); ++i) {
-        if (!std::isdigit(errorCodeStr[i])) return false; // Non-digit character found
-    }
-    
-    int errorCode = std::atoi(errorCodeStr.c_str());
-    return (errorCode);
-}
-
-void ConfigParser::_parseAccessLogDirective(const std::vector<std::string>& tokens, ServerConfig& currentServer) {
-    if (tokens.size() > 1) {
-        currentServer.setAccessLog(tokens[1]);
-    }
-}
-
-void ConfigParser::_parseErrorLogDirective(const std::vector<std::string>& tokens, ServerConfig& currentServer) {
-    if (tokens.size() > 1) {
-        currentServer.setErrorLog(tokens[1]);
-    }
-}
-
-bool ConfigParser::_getNextDirective(std::ifstream& file, std::vector<std::string>& tokens) {
-    std::string line;
-    while (std::getline(file, line)) {
-        line = _trim(line);
-
-        if (line.empty() || line[0] == '#') {
-            continue;
-        }
-
-        if (line == "}") {
-            return false; // End of block
-        }
-
-        tokens = _split(line);
-        if (tokens.empty()) {
-            continue;
-        }
-
-        // Remove semicolon from last token if present
-        if (!tokens.back().empty() && tokens.back()[tokens.back().length() - 1] == ';') {
-            tokens.back() = tokens.back().substr(0, tokens.back().length() - 1);
-        }
-        return true; // Directive found
-    }
-    return false; // End of file
-}
-
-// Overloaded version for stringstream - more efficient
-bool ConfigParser::_getNextDirective(std::stringstream& stream, std::vector<std::string>& tokens) {
-    std::string line;
-    while (std::getline(stream, line)) {
-        line = _trim(line);
-
-        if (line.empty() || line[0] == '#') {
-            continue;
-        }
-
-        if (line == "}") {
-            return false; // End of block
-        }
-
-        tokens = _split(line);
-        if (tokens.empty()) {
-            continue;
-        }
-
-        // Remove semicolon from last token if present
-        if (!tokens.back().empty() && tokens.back()[tokens.back().length() - 1] == ';') {
-            tokens.back() = tokens.back().substr(0, tokens.back().length() - 1);
-        }
-        return true; // Directive found
-    }
-    return false; // End of file
-}
-
-void ConfigParser::_parseServerBlock(std::ifstream& file) {
-    ServerConfig currentServer;
-    std::vector<std::string> tokens;
-
-    while (_getNextDirective(file, tokens)) {
-        std::string directive = tokens[0];
-        
-        // Handle location blocks separately since they need special processing
-        if (directive == "location") {
-            std::string path = "";
-            if (tokens.size() > 2) {
-                for (size_t i = 1; i < tokens.size() - 1; ++i) {
-                    path += tokens[i] + (i == tokens.size() - 2 ? "" : " ");
-                }
-            } else if (tokens.size() > 1) {
-                path = tokens[1];
-            }
-            _parseLocationBlock(file, currentServer, path);
-        }
-        // Use switch for server directives
-        else {
-            switch (_getServerDirectiveType(directive)) {
-                case SERVER_LISTEN:
-                    _parseListenDirective(tokens, currentServer);
-                    break;
-                case SERVER_ROOT:
-                    _parseRootDirective(tokens, currentServer);
-                    break;
-                case SERVER_NAME:
-                    _parseServerNameDirective(tokens, currentServer);
-                    break;
-                case SERVER_ERROR_PAGE:
-                    _parseErrorPageDirective(tokens, currentServer);
-                    break;
-                case SERVER_INDEX:
-                    _parseIndexDirective(tokens, currentServer);
-                    break;
-                case SERVER_CLIENT_MAX_BODY_SIZE:
-                    _parseClientMaxBodySizeDirective(tokens, currentServer);
-                    break;
-                case SERVER_ACCESS_LOG:
-                    _parseAccessLogDirective(tokens, currentServer);
-                    break;
-                case SERVER_ERROR_LOG:
-                    _parseErrorLogDirective(tokens, currentServer);
-                    break;
-                case SERVER_UNKNOWN:
-                default:
-                    // Log unknown server directives
-                    std::cerr << "Warning: Unknown server directive '" << directive << "' ignored" << std::endl;
-                    break;
-            }
-        }
-    }
-    
-    // Set default port if none specified
-    if (currentServer.getPorts().empty()) {
-        currentServer.addPort(8080);
-    }
-    _serverConfigs.push_back(currentServer);
-}
-
-// Efficient stringstream version
-void ConfigParser::_parseServerBlock(std::stringstream& stream) {
-    ServerConfig currentServer;
-    std::vector<std::string> tokens;
-
-    while (_getNextDirective(stream, tokens)) {
-        std::string directive = tokens[0];
-        
-        // Handle location blocks separately since they need special processing
-        if (directive == "location") {
-            std::string path = "";
-            if (tokens.size() > 2) {
-                for (size_t i = 1; i < tokens.size() - 1; ++i) {
-                    path += tokens[i] + (i == tokens.size() - 2 ? "" : " ");
-                }
-            } else if (tokens.size() > 1) {
-                path = tokens[1];
-            }
-            _parseLocationBlock(stream, currentServer, path);
-        }
-        // Use switch for server directives
-        else {
-            switch (_getServerDirectiveType(directive)) {
-                case SERVER_LISTEN:
-                    _parseListenDirective(tokens, currentServer);
-                    break;
-                case SERVER_ROOT:
-                    _parseRootDirective(tokens, currentServer);
-                    break;
-                case SERVER_NAME:
-                    _parseServerNameDirective(tokens, currentServer);
-                    break;
-                case SERVER_ERROR_PAGE:
-                    _parseErrorPageDirective(tokens, currentServer);
-                    break;
-                case SERVER_INDEX:
-                    _parseIndexDirective(tokens, currentServer);
-                    break;
-                case SERVER_CLIENT_MAX_BODY_SIZE:
-                    _parseClientMaxBodySizeDirective(tokens, currentServer);
-                    break;
-                case SERVER_ACCESS_LOG:
-                    _parseAccessLogDirective(tokens, currentServer);
-                    break;
-                case SERVER_ERROR_LOG:
-                    _parseErrorLogDirective(tokens, currentServer);
-                    break;
-                case SERVER_UNKNOWN:
-                default:
-                    // Log unknown server directives
-                    std::cerr << "Warning: Unknown server directive '" << directive << "' ignored" << std::endl;
-                    break;
-            }
-        }
-    }
-    
-    // Set default port if none specified
-    if (currentServer.getPorts().empty()) {
-        currentServer.addPort(8080);
-    }
-    _serverConfigs.push_back(currentServer);
-}
-
+// Parse directive functions
 void ConfigParser::_parseListenDirective(const std::vector<std::string>& tokens, ServerConfig& currentServer) const {
     if (tokens.size() < 2) {
         return; // Invalid listen directive, need at least "listen" and a value
@@ -269,16 +202,13 @@ void ConfigParser::_parseListenDirective(const std::vector<std::string>& tokens,
             std::string host = listenValue.substr(0, colonPos);
             std::string port = listenValue.substr(colonPos + 1);
             
-            if (!host.empty()) {
-                currentServer.setHost(host);
-            }
             if (_isValidPort(port)) {
-                currentServer.addPort(std::atoi(port.c_str()));
+                currentServer.addListenDirective(host, static_cast<int>(std::atol(port.c_str())));
             }
         }
         // Handle port-only format
         else if (_isValidPort(listenValue)) {
-            currentServer.addPort(std::atoi(listenValue.c_str()));
+            currentServer.addListenDirective("", static_cast<int>(std::atol(listenValue.c_str())));
         }
     }
 }
@@ -375,7 +305,7 @@ void ConfigParser::_parseErrorPageDirective(const std::vector<std::string>& toke
     for (size_t i = 1; i < endIndex; ++i) {
         if (tokens[i] != "=") {
             if (_isValidErrorCode(tokens[i])) {
-                errorCodes.push_back(std::atoi(tokens[i].c_str()));
+                errorCodes.push_back(static_cast<int>(std::atol(tokens[i].c_str())));
                 hasValidErrorCode = true;
             } else {
                 std::cerr << "Error: Invalid error code '" << tokens[i] << "' in error_page directive" << std::endl;
@@ -424,7 +354,143 @@ void ConfigParser::_parseClientMaxBodySizeDirective(const std::vector<std::strin
     }
 }
 
-// location block
+void ConfigParser::_parseAccessLogDirective(const std::vector<std::string>& tokens, ServerConfig& currentServer) {
+    if (tokens.size() > 1) {
+        currentServer.setAccessLog(tokens[1]);
+    }
+}
+
+void ConfigParser::_parseErrorLogDirective(const std::vector<std::string>& tokens, ServerConfig& currentServer) {
+    if (tokens.size() > 1) {
+        currentServer.setErrorLog(tokens[1]);
+    }
+}
+
+// Parse block functions
+void ConfigParser::_parseServerBlock(std::ifstream& file) {
+    ServerConfig currentServer;
+    std::vector<std::string> tokens;
+
+    while (_getNextDirective(file, tokens)) {
+        std::string directive = tokens[0];
+        
+        // Handle location blocks separately since they need special processing
+        if (directive == "location") {
+            std::string path = "";
+            if (tokens.size() > 2) {
+                for (size_t i = 1; i < tokens.size() - 1; ++i) {
+                    path += tokens[i] + (i == tokens.size() - 2 ? "" : " ");
+                }
+            } else if (tokens.size() > 1) {
+                path = tokens[1];
+            }
+            _parseLocationBlock(file, currentServer, path);
+        }
+        // Use switch for server directives
+        else {
+            switch (_getServerDirectiveType(directive)) {
+                case SERVER_LISTEN:
+                    _parseListenDirective(tokens, currentServer);
+                    break;
+                case SERVER_ROOT:
+                    _parseRootDirective(tokens, currentServer);
+                    break;
+                case SERVER_NAME:
+                    _parseServerNameDirective(tokens, currentServer);
+                    break;
+                case SERVER_ERROR_PAGE:
+                    _parseErrorPageDirective(tokens, currentServer);
+                    break;
+                case SERVER_INDEX:
+                    _parseIndexDirective(tokens, currentServer);
+                    break;
+                case SERVER_CLIENT_MAX_BODY_SIZE:
+                    _parseClientMaxBodySizeDirective(tokens, currentServer);
+                    break;
+                case SERVER_ACCESS_LOG:
+                    _parseAccessLogDirective(tokens, currentServer);
+                    break;
+                case SERVER_ERROR_LOG:
+                    _parseErrorLogDirective(tokens, currentServer);
+                    break;
+                case SERVER_UNKNOWN:
+                default:
+                    // Log unknown server directives
+                    std::cerr << "Warning: Unknown server directive '" << directive << "' ignored" << std::endl;
+                    break;
+            }
+        }
+    }
+    
+    // Set default port if none specified
+    if (currentServer.getListenDirectives().empty()) {
+        currentServer.addListenDirective("", 8080);
+    }
+    _serverConfigs.push_back(currentServer);
+}
+
+void ConfigParser::_parseServerBlock(std::stringstream& stream) {
+    ServerConfig currentServer;
+    std::vector<std::string> tokens;
+
+    while (_getNextDirective(stream, tokens)) {
+        std::string directive = tokens[0];
+        
+        // Handle location blocks separately since they need special processing
+        if (directive == "location") {
+            std::string path = "";
+            if (tokens.size() > 2) {
+                for (size_t i = 1; i < tokens.size() - 1; ++i) {
+                    path += tokens[i] + (i == tokens.size() - 2 ? "" : " ");
+                }
+            } else if (tokens.size() > 1) {
+                path = tokens[1];
+            }
+            _parseLocationBlock(stream, currentServer, path);
+        }
+        // Use switch for server directives
+        else {
+            switch (_getServerDirectiveType(directive)) {
+                case SERVER_LISTEN:
+                    _parseListenDirective(tokens, currentServer);
+                    break;
+                case SERVER_ROOT:
+                    _parseRootDirective(tokens, currentServer);
+                    break;
+                case SERVER_NAME:
+                    _parseServerNameDirective(tokens, currentServer);
+                    break;
+                case SERVER_ERROR_PAGE:
+                    _parseErrorPageDirective(tokens, currentServer);
+                    break;
+                case SERVER_INDEX:
+                    _parseIndexDirective(tokens, currentServer);
+                    break;
+                case SERVER_CLIENT_MAX_BODY_SIZE:
+                    _parseClientMaxBodySizeDirective(tokens, currentServer);
+                    break;
+                case SERVER_ACCESS_LOG:
+                    _parseAccessLogDirective(tokens, currentServer);
+                    break;
+                case SERVER_ERROR_LOG:
+                    _parseErrorLogDirective(tokens, currentServer);
+                    break;
+                case SERVER_UNKNOWN:
+                default:
+                    // Log unknown server directives
+                    std::cerr << "Warning: Unknown server directive '" << directive << "' ignored" << std::endl;
+                    break;
+            }
+        }
+    }
+    
+    // Set default port if none specified
+    if (currentServer.getListenDirectives().empty()) {
+        currentServer.addListenDirective("", 8080);
+    }
+    _serverConfigs.push_back(currentServer);
+}
+
 void ConfigParser::_parseLocationBlock(std::ifstream& file, ServerConfig& currentServer, const std::string& path) {
     LocationConfig newLocation;
     newLocation.setPath(path);
@@ -474,7 +540,6 @@ void ConfigParser::_parseLocationBlock(std::ifstream& file, ServerConfig& curren
     currentServer.addLocation(newLocation);
 }
 
-// Efficient stringstream version
 void ConfigParser::_parseLocationBlock(std::stringstream& stream, ServerConfig& currentServer, const std::string& path) {
     LocationConfig newLocation;
     newLocation.setPath(path);
@@ -524,12 +589,58 @@ void ConfigParser::_parseLocationBlock(std::stringstream& stream, ServerConfig& 
     currentServer.addLocation(newLocation);
 }
 
-void ConfigParser::_parseTryFilesDirective(const std::vector<std::string>& tokens, LocationConfig& newLocation) {
-    if (tokens.size() > 1) {
-        for (size_t i = 1; i < tokens.size(); ++i) {
-            newLocation.addTryFile(tokens[i]);
+bool ConfigParser::_getNextDirective(std::ifstream& file, std::vector<std::string>& tokens) {
+    std::string line;
+    while (std::getline(file, line)) {
+        line = _trim(line);
+
+        if (line.empty() || line[0] == '#') {
+            continue;
         }
+
+        if (line == "}") {
+            return false; // End of block
+        }
+
+        tokens = _split(line);
+        if (tokens.empty()) {
+            continue;
+        }
+
+        // Remove semicolon from last token if present
+        if (!tokens.back().empty() && tokens.back()[tokens.back().length() - 1] == ';') {
+            tokens.back() = tokens.back().substr(0, tokens.back().length() - 1);
+        }
+        return true; // Directive found
     }
+    return false; // End of file
+}
+
+bool ConfigParser::_getNextDirective(std::stringstream& stream, std::vector<std::string>& tokens) {
+    std::string line;
+    while (std::getline(stream, line)) {
+        line = _trim(line);
+
+        if (line.empty() || line[0] == '#') {
+            continue;
+        }
+
+        if (line == "}") {
+            return false; // End of block
+        }
+
+        tokens = _split(line);
+        if (tokens.empty()) {
+            continue;
+        }
+
+        // Remove semicolon from last token if present
+        if (!tokens.back().empty() && tokens.back()[tokens.back().length() - 1] == ';') {
+            tokens.back() = tokens.back().substr(0, tokens.back().length() - 1);
+        }
+        return true; // Directive found
+    }
+    return false; // End of file
 }
 
 void ConfigParser::_parseLocationRootDirective(const std::vector<std::string>& tokens, LocationConfig& newLocation) {
@@ -605,7 +716,6 @@ void ConfigParser::_parseFastCgiIndexDirective(const std::vector<std::string>& t
     }
 }
 
-// truncating whitespaces like tab
 void ConfigParser::_parseUploadPathDirective(const std::vector<std::string>& tokens, LocationConfig& newLocation) {
     if (tokens.size() > 1) {
         if (tokens[1].empty() || _isWhitespaceOnly(tokens[1])) {
@@ -615,5 +725,13 @@ void ConfigParser::_parseUploadPathDirective(const std::vector<std::string>& tok
 
         newLocation.setUploadPath(tokens[1]);
        
+    }
+}
+
+void ConfigParser::_parseTryFilesDirective(const std::vector<std::string>& tokens, LocationConfig& newLocation) {
+    if (tokens.size() > 1) {
+        for (size_t i = 1; i < tokens.size(); ++i) {
+            newLocation.addTryFile(tokens[i]);
+        }
     }
 }
