@@ -8,7 +8,6 @@
 #include <vector>
 #include <map>
 #include <queue>
-
 #include "Logger.hpp"
 #include "ServerMap.hpp"
 
@@ -67,7 +66,7 @@ public:
 						int fd = event.data.fd;
 						// Pass on the fd to message handler class to pre process and route to the correct server
 						// TODO: Implement this
-						MessageHandler::handleEvent(fd);
+						ClientManager::handleEvent(fd);
 					}
 				}
 			}

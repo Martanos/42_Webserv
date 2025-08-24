@@ -1,14 +1,14 @@
-#include "ServerManager.hpp"
+#include "HttpReponse.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-ServerManager::ServerManager()
+HttpReponse::HttpReponse()
 {
 }
 
-ServerManager::ServerManager( const ServerManager & src )
+HttpReponse::HttpReponse( const HttpReponse & src )
 {
 }
 
@@ -17,7 +17,7 @@ ServerManager::ServerManager( const ServerManager & src )
 ** -------------------------------- DESTRUCTOR --------------------------------
 */
 
-ServerManager::~ServerManager()
+HttpReponse::~HttpReponse()
 {
 }
 
@@ -26,7 +26,7 @@ ServerManager::~ServerManager()
 ** --------------------------------- OVERLOAD ---------------------------------
 */
 
-ServerManager &				ServerManager::operator=( ServerManager const & rhs )
+HttpReponse &				HttpReponse::operator=( HttpReponse const & rhs )
 {
 	//if ( this != &rhs )
 	//{
@@ -35,7 +35,7 @@ ServerManager &				ServerManager::operator=( ServerManager const & rhs )
 	return *this;
 }
 
-std::ostream &			operator<<( std::ostream & o, ServerManager const & i )
+std::ostream &			operator<<( std::ostream & o, HttpReponse const & i )
 {
 	//o << "Value = " << i.getValue();
 	return o;

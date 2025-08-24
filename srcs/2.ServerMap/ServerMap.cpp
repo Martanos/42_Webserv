@@ -145,6 +145,8 @@ void ServerMap::_spawnServerKeys(std::vector<Server> &servers)
 		}
 		else
 		{
+			// TODO: inet_pton is not allowed find an alternative to validate ip address
+			// May not be necessary as parser already handles ip validation
 			if (inet_pton(AF_INET, it->first.first.c_str(), &server_addr.sin_addr) <= 0)
 			{
 				std::stringstream ss;
