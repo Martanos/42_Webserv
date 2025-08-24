@@ -11,6 +11,10 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sstream>
+#include <cstring>
+#include <cstdlib>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "Server.hpp"
 #include "ServerConfig.hpp"
 #include "Logger.hpp"
@@ -24,8 +28,8 @@
 class ServerMap
 {
 private:
-	std::map<int, std::pair<std::string, unsigned short>> _fd_host_port_map;
-	std::map<std::pair<std::string, unsigned short>, std::vector<Server>> _serverMap;
+	std::map<int, std::pair<std::string, unsigned short> > _fd_host_port_map;
+	std::map<std::pair<std::string, unsigned short>, std::vector<Server> > _serverMap;
 
 public:
 	ServerMap();
@@ -35,8 +39,8 @@ public:
 	~ServerMap();
 
 	// Getters
-	const std::map<int, std::pair<std::string, unsigned short>> &getFd_host_port_map() const;
-	const std::map<std::pair<std::string, unsigned short>, std::vector<Server>> &getServerMap() const;
+	const std::map<int, std::pair<std::string, unsigned short> > &getFd_host_port_map() const;
+	const std::map<std::pair<std::string, unsigned short>, std::vector<Server> > &getServerMap() const;
 	const Server &getServer(const std::string &host, const unsigned short &port, const std::string &serverName);
 	const Server &getServer(std::string &host, unsigned short &port, std::string &serverName);
 	const Server &getServer(const int &fd, const std::string &serverName);

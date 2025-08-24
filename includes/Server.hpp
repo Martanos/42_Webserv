@@ -7,6 +7,7 @@
 #include <map>
 #include "Logger.hpp"
 #include "Location.hpp"
+#include "ServerConfig.hpp"
 #include "DefaultStatusMap.hpp"
 
 // Main server object contains all required information for server
@@ -31,6 +32,7 @@ private:
 public:
 	Server();
 	Server(Server const &src);
+	Server(const std::string &serverName, const std::pair<std::string, unsigned short> &host_port, const ServerConfig &serverConfig);
 	~Server();
 
 	Server &operator=(Server const &rhs);

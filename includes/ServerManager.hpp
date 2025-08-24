@@ -32,8 +32,9 @@ public:
 		// Spawn epoll instance
 		_epoll_fd = _spawnPollingInstance(_serverMap);
 
-		// Spawn a buffer for the epoll events
-		std::vector<epoll_event> events(64);
+		// Spawn a buffer for epoll events
+		int buffer_size = 64;
+		std::vector<epoll_event> events(buffer_size);
 
 		// main polling loop
 		while (true)
