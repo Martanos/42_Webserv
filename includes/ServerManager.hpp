@@ -23,6 +23,18 @@ public:
 
 private:
 	// Internal members
+
+	typedef struct epoll_data
+	{
+		int fd;
+		Client *client;
+		Server *server;
+		const std::vector<Server> *servers;
+
+		epoll_data() : fd(0), servers(NULL), client(NULL), server(NULL) {};
+		epoll_data(int fd, const std::vector<Server> *servers, Client *client, Server *server) : fd(fd), servers(servers), client(client), server(server) {};
+	} epoll_data;
+
 	ServerMap _serverMap; // Map to servers via their host_port/connection fd
 	// TODO: create a client manager class to handle client connections
 	std::map<int, Client> _clients; // clients that are currently active
@@ -52,8 +64,13 @@ private:
 		for (std::map<int, std::pair<std::string, unsigned short> >::iterator it = fd_host_port_map.begin(); it != fd_host_port_map.end(); ++it)
 		{
 			epoll_event event;
+			epoll_data data;
+			data.fd = it->first;
+			data.servers = &serverMap.getServers(it->first);
+			data.client = NULL;
+			data.server = NULL;
 			event.events = EPOLLIN;
-			event.data.fd = it->first;
+			event.data.ptr = &data;
 			epoll_ctl(epoll_fd, EPOLL_CTL_ADD, it->first, &event);
 		}
 	}

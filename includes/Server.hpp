@@ -28,6 +28,7 @@ private:
 	double _clientMaxBodySize;
 	std::map<int, std::vector<std::string> > _statusPages;
 	std::map<std::string, Location> _locations;
+	bool _keepAlive;
 
 public:
 	Server();
