@@ -6,17 +6,20 @@
 #include <map>
 #include <vector>
 #include <sstream>
+#include "Logger.hpp"
 
+// This class is used to contain request data as it comes in
+// Data is dynamically parsed as it comes in
 class HttpRequest
 {
 public:
 	enum ParseState
 	{
-		PARSE_REQUEST_LINE,
-		PARSE_HEADERS,
-		PARSE_BODY,
-		PARSE_COMPLETE,
-		PARSE_ERROR
+		PARSE_REQUEST_LINE = 0,
+		PARSE_HEADERS = 1,
+		PARSE_BODY = 2,
+		PARSE_COMPLETE = 3,
+		PARSE_ERROR = 4
 	};
 
 private:

@@ -10,20 +10,57 @@
 #include <queue>
 #include "Logger.hpp"
 #include "ServerMap.hpp"
+#include "Client.hpp"
 
-// Static class that contains main epoll loop and handles all server operations
+// This class facilitates the main epoll loop and delegates to the appropriate classes to handle connections
 class ServerManager
 {
-private:
-	static ServerMap _serverMap;
-	static int _epoll_fd;
+public:
 	ServerManager();
 	ServerManager(ServerManager const &src);
 	~ServerManager();
 	ServerManager &operator=(ServerManager const &rhs);
 
+private:
+	// Internal members
+	ServerMap _serverMap; // Map to servers via their host_port/connection fd
+	// TODO: create a client manager class to handle client connections
+	std::map<int, Client> _clients; // clients that are currently active
+	int _epoll_fd;					// epoll instance fd
+
+private:
+	// Private methods
+	int _spawnPollingInstance(ServerMap &serverMap)
+	{
+		int epoll_fd = epoll_create1(EPOLL_CLOEXEC);
+		if (epoll_fd == -1)
+		{
+			Logger::log(Logger::ERROR, "Failed to create epoll instance");
+			throw std::runtime_error("Failed to create epoll instance");
+		}
+		{
+			std::stringstream ss;
+			ss << "Epoll instance created with fd: " << epoll_fd;
+			Logger::log(Logger::INFO, ss.str());
+		}
+		return epoll_fd;
+	}
+
+	void _addServerFdsToEpoll(int epoll_fd, ServerMap &serverMap)
+	{
+		std::map<int, std::pair<std::string, unsigned short> > fd_host_port_map = serverMap.getFd_host_port_map();
+		for (std::map<int, std::pair<std::string, unsigned short> >::iterator it = fd_host_port_map.begin(); it != fd_host_port_map.end(); ++it)
+		{
+			epoll_event event;
+			event.events = EPOLLIN;
+			event.data.fd = it->first;
+			epoll_ctl(epoll_fd, EPOLL_CTL_ADD, it->first, &event);
+		}
+	}
+
 public:
-	static void run(std::vector<ServerConfig> &serverConfigs)
+	void
+	run(std::vector<ServerConfig> &serverConfigs)
 	{
 		// Spawn server map based on server configs
 		_serverMap = ServerMap(serverConfigs);
@@ -31,8 +68,14 @@ public:
 		// Spawn epoll instance
 		_epoll_fd = _spawnPollingInstance(_serverMap);
 
+		// Add server fds to epoll
+		_addServerFdsToEpoll(_epoll_fd, _serverMap);
+
+		// Spawn a buffer for client connections
+		std::vector<Client> clients(64);
+
 		// Spawn a buffer for epoll events
-		int buffer_size = 64;
+		int buffer_size = 128; // Arbitrary buffer size
 		std::vector<epoll_event> events(buffer_size);
 
 		// main polling loop
@@ -55,54 +98,17 @@ public:
 				Logger::log(Logger::INFO, "Epoll wait returned 0, no events ready");
 				continue;
 			}
-			else // Handle events if ready_events is greater than 0
+			else
 			{
 				for (int i = 0; i < ready_events; i++)
 				{
 					epoll_event &event = events[i];
-					if (event.events & EPOLLIN) // If the event is an input event
-					{
-						Logger::log(Logger::INFO, "Event ready");
-						int fd = event.data.fd;
-						// Pass on the fd to message handler class to pre process and route to the correct server
-						// TODO: Implement this
-						ClientManager::handleEvent(fd);
-					}
 				}
 			}
 		}
 	}
-
-	static int _spawnPollingInstance(ServerMap &serverMap)
-	{
-		int epoll_fd = epoll_create1(EPOLL_CLOEXEC);
-		if (epoll_fd == -1)
-		{
-			Logger::log(Logger::ERROR, "Failed to create epoll instance");
-			throw std::runtime_error("Failed to create epoll instance");
-		}
-		{
-			std::stringstream ss;
-			ss << "Epoll instance created with fd: " << epoll_fd;
-			Logger::log(Logger::INFO, ss.str());
-		}
-
-		// Add server fds to epoll
-		std::map<int, std::pair<std::string, unsigned short> > fd_host_port_map = serverMap.getFd_host_port_map();
-		for (std::map<int, std::pair<std::string, unsigned short> >::iterator it = fd_host_port_map.begin(); it != fd_host_port_map.end(); ++it)
-		{
-			epoll_event event;
-			event.events = EPOLLIN;
-			event.data.fd = it->first;
-			epoll_ctl(epoll_fd, EPOLL_CTL_ADD, it->first, &event);
-			{
-				std::stringstream ss;
-				ss << "Server fd: " << it->first << " added to epoll";
-				Logger::log(Logger::INFO, ss.str());
-			}
-		}
-		return epoll_fd;
-	}
-};
+}
+}
+;
 
 #endif /* *************************************************** SERVERMANAGER_H */

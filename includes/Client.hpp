@@ -5,7 +5,6 @@
 #include <string>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include "Server.hpp"
@@ -13,6 +12,7 @@
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
 
+// This class is used to handle the client connection and process the HTTP request
 class Client
 {
 public:
@@ -37,9 +37,6 @@ private:
 	std::string _readBuffer;
 	time_t _lastActivity;
 	bool _keepAlive;
-
-	static const size_t MAX_BUFFER_SIZE = 8192;
-	static const time_t CLIENT_TIMEOUT = 30;
 
 public:
 	Client();

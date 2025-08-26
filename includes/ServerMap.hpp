@@ -46,6 +46,7 @@ public:
 	const Server &getServer(std::string &host, unsigned short &port, std::string &serverName);
 	const Server &getServer(const int &fd, const std::string &serverName);
 	const Server &getServer(int &fd, std::string &serverName);
+	bool hasFd(int &fd);
 
 private:
 	// Main Methods

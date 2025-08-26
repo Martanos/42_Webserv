@@ -138,24 +138,9 @@ void ServerMap::_spawnServerKeys(std::vector<Server> &servers)
 		server_addr.sin_family = AF_INET;
 		server_addr.sin_port = htons(it->first.second);
 
-		// Handle different host formats
+		// If the host is 0.0.0.0 or empty, bind to INADDR_ANY effectively binding to all interfaces
 		if (it->first.first == "0.0.0.0" || it->first.first.empty())
-		{
 			server_addr.sin_addr.s_addr = INADDR_ANY;
-		}
-		else
-		{
-			// TODO: inet_pton is not allowed find an alternative to validate ip address
-			// May not be necessary as parser already handles ip validation
-			if (inet_pton(AF_INET, it->first.first.c_str(), &server_addr.sin_addr) <= 0)
-			{
-				std::stringstream ss;
-				ss << "ServerMap: Invalid IP address: " << it->first.first;
-				Logger::log(Logger::ERROR, ss.str());
-				close(fd);
-				continue;
-			}
-		}
 
 		// Bind socket
 		if (bind(fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
@@ -268,6 +253,11 @@ const Server &ServerMap::getServer(const int &fd, const std::string &serverName)
 const Server &ServerMap::getServer(int &fd, std::string &serverName)
 {
 	return getServer(static_cast<const int>(fd), static_cast<const std::string>(serverName));
+}
+
+bool ServerMap::hasFd(int &fd)
+{
+	return _fd_host_port_map.find(fd) != _fd_host_port_map.end();
 }
 
 /* ************************************************************************** */
