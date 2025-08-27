@@ -42,7 +42,6 @@ public:
 	// Getters
 	const std::map<int, std::pair<std::string, unsigned short> > &getFd_host_port_map() const;
 	const std::map<std::pair<std::string, unsigned short>, std::vector<Server> > &getServerMap() const;
-	const std::vector<Server> &getServers(int fd) const;
 	const Server &getServer(const std::string &host, const unsigned short &port, const std::string &serverName);
 	const Server &getServer(std::string &host, unsigned short &port, std::string &serverName);
 	const Server &getServer(const int &fd, const std::string &serverName);
