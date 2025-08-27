@@ -22,9 +22,9 @@ private:
 
 	DefaultStatusMap &operator=(DefaultStatusMap const &rhs);
 
-	static std::map<int, std::vector<std::string> > &getDefaultStatusMap()
+	static std::map<int, std::string> &getDefaultStatusMap()
 	{
-		static std::map<int, std::vector<std::string> > instance;
+		static std::map<int, std::string> instance;
 		return (instance);
 	}
 
@@ -183,14 +183,13 @@ private:
 	}
 
 	// Status info generation
-	static std::vector<std::string> generateStatusInfo(const int &status, const std::string &message, bool can_have_body, bool generate_body)
+	static std::string generateStatusInfo(const int &status, const std::string &message, bool can_have_body, bool generate_body)
 	{
-		std::vector<std::string> message_body;
-		message_body.push_back(message);
+		std::string message_body = message;
 		if (can_have_body && generate_body)
-			message_body.push_back(generateHTMLBody(status, message));
+			message_body += generateHTMLBody(status, message);
 		else if (can_have_body && !generate_body)
-			message_body.push_back("");
+			message_body += "";
 		{
 			std::stringstream ss;
 			ss << "Generated status info for " << status << " with message " << message << " and body " << (can_have_body && generate_body ? "true" : "false");
@@ -200,7 +199,7 @@ private:
 	}
 
 public:
-	static std::vector<std::string> getStatusInfo(const int &status)
+	static std::string getStatusInfo(const int &status)
 	{
 		initDefaultStatusMap();
 		if (getDefaultStatusMap().find(status) == getDefaultStatusMap().end())
@@ -213,17 +212,17 @@ public:
 		initDefaultStatusMap();
 		if (getDefaultStatusMap().find(status) == getDefaultStatusMap().end())
 			return ("Internal Server Error");
-		return (getDefaultStatusMap()[status][0]);
+		return (getDefaultStatusMap()[status]);
 	}
 
 	static std::string getStatusBody(const int &status)
 	{
 		initDefaultStatusMap();
 		if (getDefaultStatusMap().find(status) == getDefaultStatusMap().end())
-			return (getDefaultStatusMap()[501][1]);
+			return (getDefaultStatusMap()[501]);
 		else if (getDefaultStatusMap()[status].size() < 2)
 			return ("");
-		return (getDefaultStatusMap()[status][1]);
+		return (getDefaultStatusMap()[status]);
 	}
 
 	static bool hasStatusBody(const int &status)

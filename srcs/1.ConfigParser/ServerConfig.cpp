@@ -3,8 +3,8 @@
 // Constructors
 ServerConfig::ServerConfig()
 {
-    _clientMaxBodySize = 1048576; // default value of 1MB
-    _autoindex = false; // default value
+    _clientMaxBodySize = DEFAULT_CLIENT_MAX_BODY_SIZE;
+    _autoindex = DEFAULT_AUTOINDEX;
 }
 
 // Destructor
@@ -19,7 +19,7 @@ ServerConfig::ServerConfig(const ServerConfig &other)
     _indexes = other._indexes;
     _autoindex = other._autoindex;
     _clientMaxBodySize = other._clientMaxBodySize;
-    _errorPages = other._errorPages;
+    _statusPages = other._statusPages;
     _locations = other._locations;
     _accessLog = other._accessLog;
     _errorLog = other._errorLog;
@@ -36,7 +36,7 @@ ServerConfig &ServerConfig::operator=(const ServerConfig &other)
         _indexes = other._indexes;
         _autoindex = other._autoindex;
         _clientMaxBodySize = other._clientMaxBodySize;
-        _errorPages = other._errorPages;
+        _statusPages = other._statusPages;
         _locations = other._locations;
         _accessLog = other._accessLog;
         _errorLog = other._errorLog;
@@ -51,7 +51,7 @@ const std::string &ServerConfig::getRoot() const { return _root; }
 const std::vector<std::string> &ServerConfig::getIndexes() const { return _indexes; }
 bool ServerConfig::getAutoindex() const { return _autoindex; }
 double ServerConfig::getClientMaxBodySize() const { return _clientMaxBodySize; }
-const std::map<int, std::string> &ServerConfig::getErrorPages() const { return _errorPages; }
+const std::map<int, std::string> &ServerConfig::getStatusPages() const { return _statusPages; }
 const std::vector<LocationConfig> &ServerConfig::getLocations() const { return _locations; }
 const std::string &ServerConfig::getAccessLog() const { return _accessLog; }
 const std::string &ServerConfig::getErrorLog() const { return _errorLog; }
@@ -68,36 +68,40 @@ const std::string &ServerConfig::getErrorLog() const { return _errorLog; }
 // void ServerConfig::setAccessLog(const std::string &accessLog) { _accessLog = accessLog; }
 // void ServerConfig::setErrorLog(const std::string &errorLog) { _errorLog = errorLog; }
 
-std::string _trim(const std::string &str)  {
+std::string _trim(const std::string &str)
+{
     // First, remove inline comments
     std::string cleaned = str;
     size_t commentPos = cleaned.find('#');
-    if (commentPos != std::string::npos) {
+    if (commentPos != std::string::npos)
+    {
         cleaned = cleaned.substr(0, commentPos);
     }
-    
+
     size_t first = cleaned.find_first_not_of(" \t\n\r");
-    if (first == std::string::npos) return ""; // No non-whitespace characters
+    if (first == std::string::npos)
+        return ""; // No non-whitespace characters
     size_t last = cleaned.find_last_not_of(" \t\n\r");
     return cleaned.substr(first, (last - first + 1));
 }
 
-std::vector<std::string> _split(const std::string &str) {
+std::vector<std::string> _split(const std::string &str)
+{
     std::vector<std::string> tokens;
     std::istringstream stream(str);
     std::string token;
-    
-    while (stream >> token) {
+
+    while (stream >> token)
+    {
         tokens.push_back(token);
     }
-    
+
     return tokens;
 }
 // Parsing methods
 void ServerConfig::addServerName(std::string line, double lineNumber)
 {
     lineValidation(line, lineNumber);
-
 
     std::stringstream serverNameStream(line);
     std::string token;
@@ -200,7 +204,7 @@ void ServerConfig::addHosts_ports(std::string line, double lineNumber)
             // std::cout << "Valid port only: " << token << std::endl;
             host_port = std::make_pair("0.0.0.0", std::strtol(token.c_str(), NULL, 10));
             tokenProcessed = true;
-        }      
+        }
         // If none of the above worked, it's an invalid token
         if (!tokenProcessed)
         {
@@ -208,7 +212,7 @@ void ServerConfig::addHosts_ports(std::string line, double lineNumber)
             Logger::log(Logger::ERROR, errorMessage.str());
             throw std::runtime_error(errorMessage.str());
         }
-        
+
         // Check for duplicates and add to the list
         if (std::find(this->_hosts_ports.begin(), this->_hosts_ports.end(), host_port) != this->_hosts_ports.end())
         {
@@ -264,7 +268,7 @@ void ServerConfig::addIndexes(std::string line, double lineNumber)
     }
 }
 
-void ServerConfig::addErrorPages(std::string line, double lineNumber)
+void ServerConfig::addStatusPages(std::string line, double lineNumber)
 {
     lineValidation(line, lineNumber);
 
@@ -281,14 +285,14 @@ void ServerConfig::addErrorPages(std::string line, double lineNumber)
 
     std::vector<int> errorCodes;
     std::string filePath;
-    
+
     // Parse tokens: collect error codes first, then file path
     while (errorPagesStream >> token)
     {
         // Try to parse as error code
-        char* endPtr;
+        char *endPtr;
         long code = std::strtol(token.c_str(), &endPtr, 10);
-        
+
         if (*endPtr == '\0' && code >= 300 && code <= 599)
         {
             // Valid error code
@@ -306,7 +310,7 @@ void ServerConfig::addErrorPages(std::string line, double lineNumber)
             filePath = token;
         }
     }
-    
+
     // Validation
     if (errorCodes.empty())
     {
@@ -320,11 +324,11 @@ void ServerConfig::addErrorPages(std::string line, double lineNumber)
         errorMessage << "Invalid error_page directive at line " << lineNumber << ": No file path specified";
         Logger::log(Logger::ERROR, errorMessage.str());
         throw std::runtime_error(errorMessage.str());
-    }    
+    }
     // Store the error pages
     for (std::vector<int>::const_iterator it = errorCodes.begin(); it != errorCodes.end(); ++it)
     {
-        _errorPages[*it] = filePath;
+        _statusPages[*it] = filePath;
     }
 }
 
@@ -379,13 +383,16 @@ void ServerConfig::addClientMaxBodySize(std::string line, double lineNumber)
     std::stringstream ss(token);
     unsigned long size = 0;
     ss >> size;
-    if (lastChar == 'k' || lastChar == 'K') {
+    if (lastChar == 'k' || lastChar == 'K')
+    {
         size *= 1024;
     }
-    else if (lastChar == 'm' || lastChar == 'M') {
+    else if (lastChar == 'm' || lastChar == 'M')
+    {
         size *= 1024 * 1024;
     }
-    else if (lastChar == 'g' || lastChar == 'G') {
+    else if (lastChar == 'g' || lastChar == 'G')
+    {
         size *= 1024 * 1024 * 1024;
     }
     _clientMaxBodySize = size;
@@ -414,7 +421,6 @@ void ServerConfig::addAutoindex(std::string line, double lineNumber)
     }
     _autoindex = (token == "on");
 }
-
 
 // TODO: Move access log validation here
 void ServerConfig::addAccessLog(std::string line, double lineNumber)
@@ -494,10 +500,10 @@ void ServerConfig::printConfig() const
         std::cout << std::endl;
     }
 
-    if (!_errorPages.empty())
+    if (!_statusPages.empty())
     {
         std::cout << "Error Pages:" << std::endl;
-        for (std::map<int, std::string>::const_iterator it = _errorPages.begin(); it != _errorPages.end(); ++it)
+        for (std::map<int, std::string>::const_iterator it = _statusPages.begin(); it != _statusPages.end(); ++it)
         {
             std::cout << "  " << it->first << " -> " << it->second << std::endl;
         }

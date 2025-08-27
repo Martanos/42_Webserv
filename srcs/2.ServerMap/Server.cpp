@@ -7,24 +7,26 @@
 Server::Server()
 {
 	_serverName = "";
-	_host_port = std::make_pair("localhost", 80);
-	_root = "www/";
-	_indexes = std::vector<std::string>();
-	_autoindex = false;
-	_clientMaxBodySize = 1000000;
-	_statusPages = std::map<int, std::vector<std::string> >();
+	_host = DEFAULT_HOST;
+	_port = DEFAULT_PORT;
+	_root = DEFAULT_ROOT;
+	_indexes = std::vector<std::string>(1, DEFAULT_INDEX);
+	_autoindex = DEFAULT_AUTOINDEX;
+	_clientMaxBodySize = DEFAULT_CLIENT_MAX_BODY_SIZE;
+	_statusPages = std::map<int, std::string>();
 	_locations = std::map<std::string, Location>();
 }
 
-Server::Server(const std::string &serverName, const std::pair<std::string, unsigned short> &host_port, const ServerConfig &serverConfig)
+Server::Server(const std::string &serverName, const std::string &host, const unsigned short &port, const ServerConfig &serverConfig)
 {
 	_serverName = serverName;
-	_host_port = host_port;
+	_host = host;
+	_port = port;
 	_root = serverConfig.getRoot();
 	_indexes = serverConfig.getIndexes();
 	_autoindex = serverConfig.getAutoindex();
 	_clientMaxBodySize = serverConfig.getClientMaxBodySize();
-	_statusPages = serverConfig.getErrorPages();
+	_statusPages = serverConfig.getStatusPages();
 	_locations = std::map<std::string, Location>();
 }
 
@@ -33,7 +35,8 @@ Server::Server(const Server &src)
 	if (this != &src)
 	{
 		_serverName = src._serverName;
-		_host_port = src._host_port;
+		_host = src._host;
+		_port = src._port;
 		_root = src._root;
 		_indexes = src._indexes;
 		_autoindex = src._autoindex;
@@ -60,7 +63,8 @@ Server &Server::operator=(Server const &rhs)
 	if (this != &rhs)
 	{
 		_serverName = rhs._serverName;
-		_host_port = rhs._host_port;
+		_host = rhs._host;
+		_port = rhs._port;
 		_root = rhs._root;
 		_indexes = rhs._indexes;
 		_autoindex = rhs._autoindex;
@@ -75,7 +79,7 @@ std::ostream &operator<<(std::ostream &o, Server const &i)
 {
 	o << "--------------------------------" << std::endl;
 	o << "Server name: " << i.getServerName() << std::endl;
-	o << "Host/port: " << i.getHost_port().first << ":" << i.getHost_port().second << std::endl;
+	o << "Host/port: " << i.getHost() << ":" << i.getPort() << std::endl;
 	o << "Root: " << i.getRoot() << std::endl;
 	o << "Indexes: ";
 	for (std::vector<std::string>::const_iterator it = i.getIndexes().begin(); it != i.getIndexes().end(); ++it)
@@ -84,8 +88,8 @@ std::ostream &operator<<(std::ostream &o, Server const &i)
 	o << "Autoindex: " << (i.getAutoindex() ? "true" : "false") << std::endl;
 	o << "Client max body size: " << i.getClientMaxBodySize() << std::endl;
 	o << "Status pages: ";
-	for (std::map<int, std::vector<std::string> >::const_iterator it = i.getStatusPages().begin(); it != i.getStatusPages().end(); ++it)
-		o << it->first << ": " << it->second.at(0) << " ";
+	for (std::map<int, std::string>::const_iterator it = i.getStatusPages().begin(); it != i.getStatusPages().end(); ++it)
+		o << it->first << ": " << it->second << " ";
 	o << std::endl;
 	o << "Locations: ";
 	for (std::map<std::string, Location>::const_iterator it = i.getLocations().begin(); it != i.getLocations().end(); ++it)
@@ -108,9 +112,14 @@ const std::string &Server::getServerName() const
 	return _serverName;
 }
 
-const std::pair<std::string, unsigned short> &Server::getHost_port() const
+const std::string &Server::getHost() const
 {
-	return _host_port;
+	return _host;
+}
+
+const unsigned short &Server::getPort() const
+{
+	return _port;
 }
 
 const std::string &Server::getRoot() const
@@ -133,7 +142,7 @@ const double &Server::getClientMaxBodySize() const
 	return _clientMaxBodySize;
 }
 
-const std::map<int, std::vector<std::string> > &Server::getStatusPages() const
+const std::map<int, std::string> &Server::getStatusPages() const
 {
 	return _statusPages;
 }
@@ -143,7 +152,7 @@ const std::map<std::string, Location> &Server::getLocations() const
 	return _locations;
 }
 
-const std::vector<std::string> &Server::getStatusPage(int &status) const
+const std::string &Server::getStatusPage(const int &status) const
 {
 	if (_statusPages.find(status) == _statusPages.end())
 		return DefaultStatusMap::getStatusInfo(status);
@@ -166,9 +175,14 @@ void Server::setServerName(const std::string &serverName)
 	_serverName = serverName;
 }
 
-void Server::setHost_port(const std::pair<std::string, unsigned short> &host_port)
+void Server::setHost(const std::string &host)
 {
-	_host_port = host_port;
+	_host = host;
+}
+
+void Server::setPort(const unsigned short &port)
+{
+	_port = port;
 }
 
 void Server::setRoot(const std::string &root)
@@ -191,7 +205,7 @@ void Server::setClientMaxBodySize(const double &clientMaxBodySize)
 	_clientMaxBodySize = clientMaxBodySize;
 }
 
-void Server::setStatusPages(const std::map<int, std::vector<std::string> > &statusPages)
+void Server::setStatusPages(const std::map<int, std::string> &statusPages)
 {
 	_statusPages = statusPages;
 }
@@ -221,10 +235,10 @@ void Server::addLocation(const Location &location)
 		Logger::log(Logger::WARNING, "Location " + location.getPath() + " already exists in server " + _serverName + " ignoring duplicate");
 }
 
-void Server::addStatusPage(const int &status, const std::vector<std::string> &paths)
+void Server::addStatusPage(const int &status, const std::string &path)
 {
 	if (_statusPages.find(status) == _statusPages.end())
-		_statusPages[status] = paths;
+		_statusPages[status] = path;
 	else
 	{
 		std::stringstream ss;

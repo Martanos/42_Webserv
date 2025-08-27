@@ -20,17 +20,7 @@ Location::Location()
 Location::Location(const Location &src)
 {
 	if (this != &src)
-	{
-		_path = src._path;
-		_root = src._root;
-		_allowedMethods = src._allowedMethods;
-		_redirect = src._redirect;
-		_autoIndex = src._autoIndex;
-		_index = src._index;
-		_cgiPath = src._cgiPath;
-		_cgiParams = src._cgiParams;
-		_uploadPath = src._uploadPath;
-	}
+		*this = src;
 }
 
 /*

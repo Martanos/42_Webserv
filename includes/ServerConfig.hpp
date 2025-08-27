@@ -15,6 +15,12 @@
 #include "Logger.hpp"
 #include "LocationConfig.hpp"
 
+// TODO: Make these configurable
+#define DEFAULT_ROOT "www/"
+#define DEFAULT_INDEX "index.html"
+#define DEFAULT_AUTOINDEX false
+#define DEFAULT_CLIENT_MAX_BODY_SIZE 1000000
+
 // Temp container to gather all config data
 class ServerConfig
 {
@@ -28,7 +34,7 @@ private:
     std::vector<std::string> _indexes;
     bool _autoindex;
     double _clientMaxBodySize;
-    std::map<int, std::string> _errorPages;
+    std::map<int, std::string> _statusPages;
     std::vector<LocationConfig> _locations;
     std::string _accessLog;
     std::string _errorLog;
@@ -46,7 +52,7 @@ public:
     const std::vector<std::string> &getIndexes() const;
     bool getAutoindex() const;
     double getClientMaxBodySize() const;
-    const std::map<int, std::string> &getErrorPages() const;
+    const std::map<int, std::string> &getStatusPages() const;
     const std::vector<LocationConfig> &getLocations() const;
     const std::string &getAccessLog() const;
     const std::string &getErrorLog() const;
@@ -67,7 +73,7 @@ public:
     void addServerName(std::string line, double lineNumber);
     void addHosts_ports(std::string line, double lineNumber);
     void addIndexes(std::string line, double lineNumber);
-    void addErrorPages(std::string line, double lineNumber);
+    void addStatusPages(std::string line, double lineNumber);
     void addRoot(std::string line, double lineNumber);
     void addClientMaxBodySize(std::string line, double lineNumber);
     void addAutoindex(std::string line, double lineNumber);

@@ -20,6 +20,7 @@
 #include "ServerConfig.hpp"
 #include "Logger.hpp"
 #include "Server.hpp"
+#include "ServerKey.hpp"
 
 // The job of this class is to divide up the information taken from the config into manageble maps for later server operations
 // 1. Divide up ServerConfigs into Server classes (This reduces navigation complexity as well as makes it clearer which class is doing what)
@@ -29,8 +30,16 @@
 class ServerMap
 {
 private:
-	std::map<int, std::pair<std::string, unsigned short> > _fd_host_port_map;
-	std::map<std::pair<std::string, unsigned short>, std::vector<Server> > _serverMap;
+	// Server key struct
+	std::map<ServerKey, std::vector<Server> > _serverMap;
+
+	// Main Methods
+	void _spawnServerMap(std::vector<ServerConfig> &serverConfigs);
+
+	// Utility Methods
+	std::vector<Server> _spawnServers(std::vector<ServerConfig> &serverConfigs);
+	void _spawnServerKeys(std::vector<Server> &servers);
+	void _populateServerMap(std::vector<Server> &servers);
 
 public:
 	ServerMap();
@@ -40,22 +49,16 @@ public:
 	~ServerMap();
 
 	// Getters
-	const std::map<int, std::pair<std::string, unsigned short> > &getFd_host_port_map() const;
-	const std::map<std::pair<std::string, unsigned short>, std::vector<Server> > &getServerMap() const;
-	const Server &getServer(const std::string &host, const unsigned short &port, const std::string &serverName);
-	const Server &getServer(std::string &host, unsigned short &port, std::string &serverName);
-	const Server &getServer(const int &fd, const std::string &serverName);
-	const Server &getServer(int &fd, std::string &serverName);
-	bool hasFd(int &fd);
+	const std::map<ServerKey, std::vector<Server> > &getServerMap() const;
 
-private:
-	// Main Methods
-	void _spawnServerMap(std::vector<ServerConfig> &serverConfigs);
+	// Server vectors
+	const std::vector<Server> &getServers(ServerKey &key) const;
+
+	// Individual servers
+	const Server &getServer(ServerKey &key, std::string &serverName) const;
 
 	// Utility Methods
-	std::vector<Server> _spawnServers(std::vector<ServerConfig> &serverConfigs);
-	void _spawnServerKeys(std::vector<Server> &servers);
-	void _populateServerMap(std::vector<Server> &servers);
+	bool hasFd(int &fd) const;
 };
 
 #endif /* *************************************************** SERVERMANAGER_H */
