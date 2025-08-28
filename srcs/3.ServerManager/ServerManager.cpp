@@ -6,6 +6,9 @@
 
 ServerManager::ServerManager()
 {
+	_epollManager = EpollManager();
+	_serverMap = ServerMap();
+	_clients = std::map<FileDescriptor, Client>();
 }
 
 ServerManager::ServerManager(const ServerManager &src)
@@ -19,11 +22,6 @@ ServerManager::ServerManager(const ServerManager &src)
 
 ServerManager::~ServerManager()
 {
-	for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
-	{
-		close(it->first);
-	}
-	close(_epoll_fd);
 }
 
 /*
@@ -40,123 +38,108 @@ ServerManager &ServerManager::operator=(ServerManager const &rhs)
 ** --------------------------------- METHODS ----------------------------------
 */
 
-int ServerManager::_spawnPollingInstance()
-{
-	int epoll_fd = epoll_create1(EPOLL_CLOEXEC);
-	if (epoll_fd == -1)
-	{
-		std::stringstream ss;
-		ss << "ServerManager: Failed to create epoll instance: " << strerror(errno);
-		Logger::log(Logger::ERROR, ss.str());
-		throw std::runtime_error(ss.str());
-	}
-	return epoll_fd;
-}
-
-void ServerManager::_addFdToEpoll(int fd)
-{
-	epoll_event event;
-	event.events = EPOLLIN;
-	event.data.fd = fd;
-	if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, fd, &event) == -1)
-	{
-		std::stringstream ss;
-		ss << "ServerManager: Failed to add fd to epoll: " << strerror(errno);
-		Logger::log(Logger::ERROR, ss.str());
-		throw std::runtime_error(ss.str());
-	}
-}
-
 void ServerManager::_addServerFdsToEpoll(ServerMap &serverMap)
 {
-	for (std::map<ServerKey, std::vector<Server> >::const_iterator it = serverMap.getServerMap().begin(); it != serverMap.getServerMap().end(); ++it)
+	for (std::map<ListeningSocket, std::vector<Server> >::const_iterator it = serverMap.getServerMap().begin(); it != serverMap.getServerMap().end(); ++it)
 	{
-		_addFdToEpoll(it->first.getFd());
+		_epollManager.addFd(it->first.getFd());
 	}
 }
 
-void ServerManager::_handleServerListening(int ready_events, ServerMap &serverMap, std::vector<epoll_event> &events)
+void ServerManager::_handleEpollEvents(int ready_events, ServerMap &serverMap, std::vector<epoll_event> &events)
 {
 	for (int i = 0; i < ready_events; ++i)
 	{
 		epoll_event &event = events[i];
-		// New connections are handled here
-		else if (event.events & EPOLLIN && serverMap.hasFd(event.data.fd))
+		if (event.events && _serverMap.hasFd(event.data.fd))
 		{
-			struct sockaddr_in client_addr;
-			socklen_t client_addr_len = sizeof(client_addr);
-			int client_fd = accept(event.data.fd, (struct sockaddr *)&client_addr, &client_addr_len);
-			if (client_fd == -1)
+			for (std::map<ListeningSocket, std::vector<Server> >::const_iterator it = serverMap.getServerMap().begin(); it != serverMap.getServerMap().end(); ++it)
 			{
-				std::stringstream ss;
-				ss << "ServerManager: Failed to accept client connection: " << strerror(errno);
-				Logger::log(Logger::ERROR, ss.str());
-				continue;
-			}
-			try
-			{
-				_addFdToEpoll(client_fd);
-			}
-			catch (const std::exception &e)
-			{
-				close(client_fd);
-				continue;
-			}
-			Client client(client_fd, client_addr);
-			std::pair<std::map<int, Client>::iterator, bool> insert_result = _clients.insert(std::make_pair(client_fd, client));
-			if (!insert_result.second)
-			{
-				std::stringstream ss;
-				ss << "ServerManager: Failed to insert client into map: " << strerror(errno);
-				Logger::log(Logger::ERROR, ss.str());
-				epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, client_fd, NULL);
-				close(client_fd);
+				if (it->first.getFd() == event.data.fd)
+				{
+					FileDescriptor clientFd = it->first.accept();
+					if (clientFd.getFd() != -1)
+					{
+						_epollManager.addFd(clientFd.getFd());
+						_clients.insert(std::make_pair(clientFd, Client()));
+						Logger::log(Logger::INFO, "New client connected: " + clientFd.getFd());
+					}
+				}
 				continue;
 			}
 		}
-	}
-}
-
-void ServerManager::_handleClientConnections(int ready_events, ServerMap &serverMap, std::vector<epoll_event> &events)
-{
-	for (int i = 0; i < ready_events; ++i)
-	{
-		epoll_event &event = events[i];
-		if (event.events & EPOLLIN && _clients.find(event.data.fd) != _clients.end())
+		else if (event.events && _clients.find(FileDescriptor(event.data.fd)) != _clients.end())
 		{
-			_clients[event.data.fd].handleRead();
+			switch (event.events)
+			{
+			case EPOLLOUT:
+			{
+				// TODO: Handle writes
+				break;
+			}
+			case EPOLLIN:
+			{
+				// TODO: Handle reads
+				break;
+			}
+			case EPOLLHUP | EPOLLRDHUP | EPOLLERR | EPOLLPRI:
+			{
+				std::stringstream ss;
+				ss << "Client disconnected: " << event.data.fd;
+				Logger::log(Logger::INFO, ss.str());
+				_clients.erase(FileDescriptor(event.data.fd));
+				_epollManager.removeFd(event.data.fd);
+				break;
+			}
+			default:
+				std::stringstream ss;
+				ss << "Unknown event: " << event.events << " for client: " << event.data.fd;
+				Logger::log(Logger::INFO, ss.str());
+				_clients.erase(FileDescriptor(event.data.fd));
+				_epollManager.removeFd(event.data.fd);
+				break;
+			}
+		}
+		else
+		{
+			std::stringstream ss;
+			ss << "Unknown event: " << event.events << " for client: " << event.data.fd;
+			Logger::log(Logger::INFO, ss.str());
+			continue;
 		}
 	}
 }
 
 void ServerManager::run(std::vector<ServerConfig> &serverConfigs)
 {
+	// TODO:SETUP SIGNAL HANDLING
+
 	// Spawn server map based on server configs
 	_serverMap = ServerMap(serverConfigs);
 
 	// Spawn epoll instance
-	_epoll_fd = _spawnPollingInstance();
+	_epollManager = EpollManager();
 
 	// Add server fds to epoll
 	_addServerFdsToEpoll(_serverMap);
 
 	// Spawn a buffer for epoll events
 	std::vector<epoll_event> events;
-	events.reserve(128); // Arbitrary buffer size
 
 	// main polling loop
 	while (true)
 	{
-		// -1 denotes witing forever this may be a problem if the server is not ready to accept connections
-		int ready_events = epoll_wait(_epoll_fd, events.data(), events.size(), -1);
+		// TODO: -1 denotes witing forever this may be a problem if the server is not ready to accept connections
+		int ready_events = _epollManager.wait(events, -1);
 		if (ready_events == -1)
 		{
 			// TODO: Check if this is the correct way to handle signals
-			// if it is this may be where to mass send server shutdown signals
 			if (errno == EINTR)
 			{
-				Logger::log(Logger::INFO, "Epoll wait interrupted by signal");
-				continue;
+				std::stringstream ss;
+				ss << "Epoll wait interrupted by signal: " << strerror(errno);
+				Logger::log(Logger::INFO, ss.str());
+				throw std::runtime_error(ss.str());
 			}
 		}
 		else if (ready_events == 0)
@@ -165,10 +148,7 @@ void ServerManager::run(std::vector<ServerConfig> &serverConfigs)
 			continue;
 		}
 		else
-		{
-			_handleServerListening(ready_events, _serverMap, events);
-			_handleClientConnections(ready_events, _serverMap, events);
-		}
+			_handleEpollEvents(ready_events, _serverMap, events);
 	}
 }
 

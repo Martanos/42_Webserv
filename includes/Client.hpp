@@ -11,6 +11,8 @@
 #include "Logger.hpp"
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
+#include "FileDescriptor.hpp"
+#include "SocketAddress.hpp"
 
 // This class is used to handle the client connection and process the HTTP request
 class Client
@@ -18,16 +20,16 @@ class Client
 public:
 	enum State
 	{
-		CLIENT_READING_REQUEST,
-		CLIENT_PROCESSING_REQUEST,
-		CLIENT_SENDING_RESPONSE,
-		CLIENT_DONE,
-		CLIENT_ERROR
+		CLIENT_READING_REQUEST = 0,
+		CLIENT_PROCESSING_REQUEST = 1,
+		CLIENT_SENDING_RESPONSE = 2,
+		CLIENT_DONE = 3,
+		CLIENT_ERROR = 4
 	};
 
 private:
-	int _socketFd;
-	struct sockaddr_in _clientAddr;
+	FileDescriptor _socketFd;
+	SocketAddress _clientAddr;
 	State _currentState;
 
 	HttpRequest _request;
@@ -40,7 +42,7 @@ private:
 
 public:
 	Client();
-	Client(int socketFd, const struct sockaddr_in &clientAddr);
+	Client(FileDescriptor socketFd, SocketAddress clientAddr);
 	Client(const Client &other);
 	Client &operator=(const Client &other);
 	~Client();

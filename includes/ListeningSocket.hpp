@@ -16,19 +16,27 @@ class ListeningSocket
 {
 private:
 	ListeningSocket();
+	ListeningSocket(const ListeningSocket &src);
+	ListeningSocket &operator=(const ListeningSocket &rhs);
+
 	FileDescriptor _socket;
 	SocketAddress _address;
 
 public:
 	// Constructor
-	ListeningSocket(const std::string &host, unsigned short port);
-
-	// Non-copyable
-	ListeningSocket(const ListeningSocket &);
-	ListeningSocket &operator=(const ListeningSocket &);
+	ListeningSocket(const std::string &host, const unsigned short port);
+	~ListeningSocket();
 
 	// Accept connection
-	FileDescriptor accept();
+	FileDescriptor accept() const;
+
+	// Comparator overloads
+	bool operator<(const ListeningSocket &rhs) const;
+	bool operator>(const ListeningSocket &rhs) const;
+	bool operator<=(const ListeningSocket &rhs) const;
+	bool operator>=(const ListeningSocket &rhs) const;
+	bool operator==(const ListeningSocket &rhs) const;
+	bool operator!=(const ListeningSocket &rhs) const;
 
 	int getFd() const;
 	const SocketAddress &getAddress() const;

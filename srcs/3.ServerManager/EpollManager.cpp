@@ -4,6 +4,20 @@
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
+EpollManager::EpollManager(const EpollManager &src)
+{
+	throw std::runtime_error("EpollManager: Copy constructor called");
+}
+
+EpollManager &EpollManager::operator=(const EpollManager &rhs)
+{
+	if (this != &rhs)
+	{
+		_epollFd = rhs._epollFd;
+	}
+	return *this;
+}
+
 EpollManager::EpollManager() : _epollFd(epoll_create1(EPOLL_CLOEXEC))
 {
 	if (!_epollFd.isValid())

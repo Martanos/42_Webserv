@@ -15,11 +15,11 @@ private:
 
 	// Non-copyable
 	EpollManager(const EpollManager &);
-	EpollManager &operator=(const EpollManager &);
 
 public:
 	// Constructor
 	EpollManager();
+	EpollManager &operator=(const EpollManager &);
 
 	void addFd(int fd, uint32_t events = EPOLLIN);
 	void modifyFd(int fd, uint32_t events);

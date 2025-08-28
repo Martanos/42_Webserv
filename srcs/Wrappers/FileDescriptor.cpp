@@ -77,7 +77,7 @@ std::ostream &operator<<(std::ostream &o, FileDescriptor const &i)
 
 void FileDescriptor::closeDescriptor()
 {
-	if (_isOpen && _fd != -1)
+	if (_isOpen && _fd != -1 && _fd != 0)
 	{
 		if (close(_fd) == -1)
 		{
@@ -208,6 +208,40 @@ void FileDescriptor::unsetReuseAddr()
 		Logger::log(Logger::ERROR, ss.str());
 		throw std::runtime_error(ss.str());
 	}
+}
+
+/*
+** --------------------------------- COMPARATOR ---------------------------------
+*/
+
+bool FileDescriptor::operator==(const FileDescriptor &rhs) const
+{
+	return _fd == rhs._fd;
+}
+
+bool FileDescriptor::operator!=(const FileDescriptor &rhs) const
+{
+	return _fd != rhs._fd;
+}
+
+bool FileDescriptor::operator<(const FileDescriptor &rhs) const
+{
+	return _fd < rhs._fd;
+}
+
+bool FileDescriptor::operator>(const FileDescriptor &rhs) const
+{
+	return _fd > rhs._fd;
+}
+
+bool FileDescriptor::operator<=(const FileDescriptor &rhs) const
+{
+	return _fd <= rhs._fd;
+}
+
+bool FileDescriptor::operator>=(const FileDescriptor &rhs) const
+{
+	return _fd >= rhs._fd;
 }
 
 /*

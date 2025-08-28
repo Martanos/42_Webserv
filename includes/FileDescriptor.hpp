@@ -53,6 +53,14 @@ public:
 	// overloads
 	operator int() const;
 
+	// Comparator overloads
+	bool operator==(const FileDescriptor &rhs) const;
+	bool operator!=(const FileDescriptor &rhs) const;
+	bool operator<(const FileDescriptor &rhs) const;
+	bool operator>(const FileDescriptor &rhs) const;
+	bool operator<=(const FileDescriptor &rhs) const;
+	bool operator>=(const FileDescriptor &rhs) const;
+
 	// TODO: File operations
 };
 

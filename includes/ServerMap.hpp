@@ -20,7 +20,7 @@
 #include "ServerConfig.hpp"
 #include "Logger.hpp"
 #include "Server.hpp"
-#include "ServerKey.hpp"
+#include "ListeningSocket.hpp"
 
 // The job of this class is to divide up the information taken from the config into manageble maps for later server operations
 // 1. Divide up ServerConfigs into Server classes (This reduces navigation complexity as well as makes it clearer which class is doing what)
@@ -31,31 +31,27 @@ class ServerMap
 {
 private:
 	// Server key struct
-	std::map<ServerKey, std::vector<Server> > _serverMap;
-
-	// Main Methods
-	void _spawnServerMap(std::vector<ServerConfig> &serverConfigs);
+	std::map<ListeningSocket, std::vector<Server> > _serverMap;
 
 	// Utility Methods
 	std::vector<Server> _spawnServers(std::vector<ServerConfig> &serverConfigs);
-	void _spawnServerKeys(std::vector<Server> &servers);
 	void _populateServerMap(std::vector<Server> &servers);
 
 public:
 	ServerMap();
-	ServerMap(ServerMap const &src);
 	ServerMap(std::vector<ServerConfig> &serverConfigs);
+	ServerMap(const ServerMap &src);
 	ServerMap &operator=(ServerMap const &rhs);
 	~ServerMap();
 
 	// Getters
-	const std::map<ServerKey, std::vector<Server> > &getServerMap() const;
+	const std::map<ListeningSocket, std::vector<Server> > &getServerMap() const;
 
 	// Server vectors
-	const std::vector<Server> &getServers(ServerKey &key) const;
+	const std::vector<Server> &getServers(ListeningSocket &key) const;
 
 	// Individual servers
-	const Server &getServer(ServerKey &key, std::string &serverName) const;
+	const Server &getServer(ListeningSocket &key, std::string &serverName) const;
 
 	// Utility Methods
 	bool hasFd(int &fd) const;

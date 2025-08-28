@@ -9,7 +9,7 @@ ListeningSocket::ListeningSocket()
 	throw std::runtime_error("Default constructor not implemented");
 }
 
-ListeningSocket::ListeningSocket(const std::string &host, unsigned short port)
+ListeningSocket::ListeningSocket(const std::string &host, const unsigned short port)
 	: _socket(socket(AF_INET, SOCK_STREAM, 0)), _address(host, port)
 {
 
@@ -81,7 +81,7 @@ std::ostream &operator<<(std::ostream &o, ListeningSocket const &i)
 ** --------------------------------- METHODS ----------------------------------
 */
 
-FileDescriptor ListeningSocket::accept()
+FileDescriptor ListeningSocket::accept() const
 {
 	struct sockaddr_in clientAddr;
 	socklen_t clientAddrLen = sizeof(clientAddr);
@@ -101,6 +101,40 @@ FileDescriptor ListeningSocket::accept()
 	}
 
 	return FileDescriptor(clientFd);
+}
+
+/*
+** --------------------------------- COMPARATOR ---------------------------------
+*/
+
+bool ListeningSocket::operator<(const ListeningSocket &rhs) const
+{
+	return _socket.getFd() < rhs._socket.getFd();
+}
+
+bool ListeningSocket::operator>(const ListeningSocket &rhs) const
+{
+	return _socket.getFd() > rhs._socket.getFd();
+}
+
+bool ListeningSocket::operator<=(const ListeningSocket &rhs) const
+{
+	return _socket.getFd() <= rhs._socket.getFd();
+}
+
+bool ListeningSocket::operator>=(const ListeningSocket &rhs) const
+{
+	return _socket.getFd() >= rhs._socket.getFd();
+}
+
+bool ListeningSocket::operator==(const ListeningSocket &rhs) const
+{
+	return _socket.getFd() == rhs._socket.getFd();
+}
+
+bool ListeningSocket::operator!=(const ListeningSocket &rhs) const
+{
+	return _socket.getFd() != rhs._socket.getFd();
 }
 
 /*
