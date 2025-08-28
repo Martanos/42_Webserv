@@ -4,6 +4,8 @@
 #include <iostream>
 #include <string>
 
+// TODO: Implement this
+// This class is used to generate the response to the client
 class HttpResponse
 {
 

@@ -2,14 +2,14 @@
 #ifndef HTTPREQUEST_HPP
 #define HTTPREQUEST_HPP
 
+// TODO: Implement this
 #include <string>
 #include <map>
 #include <vector>
 #include <sstream>
 #include "Logger.hpp"
 
-// This class is used to contain request data as it comes in
-// Data is dynamically parsed as it comes in
+// This class is used to parse the request line, headers, and body
 class HttpRequest
 {
 public:

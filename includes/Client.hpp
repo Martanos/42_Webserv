@@ -60,10 +60,10 @@ public:
 	void updateActivity();
 
 	// Getters
-	int getSocketFd() const { return _socketFd; }
+	int getSocketFd() const;
 	const std::string &getClientIP() const;
-	const Server *getServer() const { return _server; }
-	void setServer(const Server *server) { _server = server; }
+	const Server *getServer() const;
+	void setServer(const Server *server);
 
 private:
 	void _processHTTPRequest();
