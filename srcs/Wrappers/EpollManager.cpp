@@ -21,7 +21,6 @@ EpollManager::EpollManager() : _epollFd(epoll_create1(EPOLL_CLOEXEC))
 
 EpollManager::~EpollManager()
 {
-	_epollFd.closeDescriptor();
 }
 
 /*
