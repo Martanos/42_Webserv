@@ -13,16 +13,7 @@ ServerConfig::~ServerConfig() {}
 // Copy constructor
 ServerConfig::ServerConfig(const ServerConfig &other)
 {
-    _serverNames = other._serverNames;
-    _hosts_ports = other._hosts_ports;
-    _root = other._root;
-    _indexes = other._indexes;
-    _autoindex = other._autoindex;
-    _clientMaxBodySize = other._clientMaxBodySize;
-    _statusPages = other._statusPages;
-    _locations = other._locations;
-    _accessLog = other._accessLog;
-    _errorLog = other._errorLog;
+    *this = other;
 }
 
 // Assignment operator
@@ -40,6 +31,7 @@ ServerConfig &ServerConfig::operator=(const ServerConfig &other)
         _locations = other._locations;
         _accessLog = other._accessLog;
         _errorLog = other._errorLog;
+        _keepAlive = other._keepAlive;
     }
     return *this;
 }

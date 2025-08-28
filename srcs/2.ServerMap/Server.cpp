@@ -28,22 +28,12 @@ Server::Server(const std::string &serverName, const std::string &host, const uns
 	_clientMaxBodySize = serverConfig.getClientMaxBodySize();
 	_statusPages = serverConfig.getStatusPages();
 	_locations = std::map<std::string, Location>();
+	_keepAlive = serverConfig.getKeepAlive();
 }
 
 Server::Server(const Server &src)
 {
-	if (this != &src)
-	{
-		_serverName = src._serverName;
-		_host = src._host;
-		_port = src._port;
-		_root = src._root;
-		_indexes = src._indexes;
-		_autoindex = src._autoindex;
-		_clientMaxBodySize = src._clientMaxBodySize;
-		_statusPages = src._statusPages;
-		_locations = src._locations;
-	}
+	*this = src;
 }
 
 /*
@@ -71,6 +61,7 @@ Server &Server::operator=(Server const &rhs)
 		_clientMaxBodySize = rhs._clientMaxBodySize;
 		_statusPages = rhs._statusPages;
 		_locations = rhs._locations;
+		_keepAlive = rhs._keepAlive;
 	}
 	return *this;
 }
@@ -87,6 +78,7 @@ std::ostream &operator<<(std::ostream &o, Server const &i)
 	o << std::endl;
 	o << "Autoindex: " << (i.getAutoindex() ? "true" : "false") << std::endl;
 	o << "Client max body size: " << i.getClientMaxBodySize() << std::endl;
+	o << "Keep alive: " << (i.getKeepAlive() ? "true" : "false") << std::endl;
 	o << "Status pages: ";
 	for (std::map<int, std::string>::const_iterator it = i.getStatusPages().begin(); it != i.getStatusPages().end(); ++it)
 		o << it->first << ": " << it->second << " ";
@@ -106,6 +98,11 @@ std::ostream &operator<<(std::ostream &o, Server const &i)
 /*
 ** --------------------------------- GETTERS ---------------------------------
 */
+
+const bool &Server::getKeepAlive() const
+{
+	return _keepAlive;
+}
 
 const std::string &Server::getServerName() const
 {
@@ -169,6 +166,11 @@ const Location &Server::getLocation(const std::string &path) const
 /*
 ** --------------------------------- SETTERS ---------------------------------
 */
+
+void Server::setKeepAlive(const bool &keepAlive)
+{
+	_keepAlive = keepAlive;
+}
 
 void Server::setServerName(const std::string &serverName)
 {

@@ -38,6 +38,7 @@ private:
     std::vector<LocationConfig> _locations;
     std::string _accessLog;
     std::string _errorLog;
+    bool _keepAlive;
 
 public:
     ServerConfig();
@@ -56,6 +57,7 @@ public:
     const std::vector<LocationConfig> &getLocations() const;
     const std::string &getAccessLog() const;
     const std::string &getErrorLog() const;
+    bool getKeepAlive() const;
 
     // Setters
     // void setServerNames(const std::vector<std::string> &serverNames);

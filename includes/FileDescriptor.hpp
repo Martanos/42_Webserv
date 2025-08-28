@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/socket.h>
+#include <sys/types.h>
 #include "Logger.hpp"
 
 // Class wrapper for file descriptors
@@ -62,6 +63,8 @@ public:
 	bool operator>=(const FileDescriptor &rhs) const;
 
 	// TODO: File operations
+	ssize_t readFile(std::string &buffer);
+	ssize_t writeFile(const std::string &buffer);
 };
 
 std::ostream &operator<<(std::ostream &o, FileDescriptor const &i);

@@ -7,12 +7,14 @@
 #include <netinet/in.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/epoll.h>
 #include "Server.hpp"
 #include "Logger.hpp"
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
 #include "FileDescriptor.hpp"
 #include "SocketAddress.hpp"
+#include "ServerMap.hpp"
 
 // This class is used to handle the client connection and process the HTTP request
 class Client
@@ -20,11 +22,10 @@ class Client
 public:
 	enum State
 	{
-		CLIENT_READING_REQUEST = 0,
-		CLIENT_PROCESSING_REQUEST = 1,
-		CLIENT_SENDING_RESPONSE = 2,
-		CLIENT_DONE = 3,
-		CLIENT_ERROR = 4
+		CLIENT_WAITING_FOR_REQUEST = 0,
+		CLIENT_READING_REQUEST = 1,
+		CLIENT_PROCESSING_REQUEST = 2,
+		CLIENT_SENDING_RESPONSE = 3
 	};
 
 private:
@@ -34,7 +35,7 @@ private:
 
 	HttpRequest _request;
 	HttpResponse _response;
-	const Server *_server;
+	Server *_server;
 
 	std::string _readBuffer;
 	time_t _lastActivity;
@@ -48,13 +49,13 @@ public:
 	~Client();
 
 	// Core operations
-	void handleRead();
-	void handleWrite();
-	void processRequest();
+	void handleEvent(epoll_event event);
+	void readRequest();
+	void sendResponse();
 
 	// State management
-	State getCurrentState() const { return _currentState; }
-	void setState(State newState) { _currentState = newState; }
+	State getCurrentState() const;
+	void setState(State newState);
 	bool isTimedOut() const;
 	void updateActivity();
 
@@ -63,10 +64,6 @@ public:
 	const std::string &getClientIP() const;
 	const Server *getServer() const { return _server; }
 	void setServer(const Server *server) { _server = server; }
-
-	// Connection management
-	bool shouldClose() const;
-	void closeConnection();
 
 private:
 	void _processHTTPRequest();

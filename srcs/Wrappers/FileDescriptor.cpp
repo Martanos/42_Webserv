@@ -307,4 +307,39 @@ FileDescriptor::operator int() const
 	return _fd;
 }
 
+/*
+** --------------------------------- FILE OPERATIONS ---------------------------------
+*/
+
+ssize_t FileDescriptor::readFile(std::string &buffer)
+{
+	ssize_t bytesRead = read(_fd, &buffer, buffer.size());
+	if (bytesRead == -1)
+	{
+		std::stringstream ss;
+		ss << "FileDescriptor: Failed to read file: " << strerror(errno);
+		Logger::log(Logger::ERROR, ss.str());
+		throw std::runtime_error(ss.str());
+	}
+	return bytesRead;
+}
+
+ssize_t FileDescriptor::writeFile(const std::string &buffer)
+{
+	ssize_t bytesWritten = 0;
+	for (std::string::const_iterator it = buffer.begin(); it != buffer.end(); ++it)
+	{
+		bool success = write(_fd, &*it, 1);
+		if (!success)
+		{
+			std::stringstream ss;
+			ss << "FileDescriptor: Failed to write file: " << strerror(errno);
+			Logger::log(Logger::ERROR, ss.str());
+			throw std::runtime_error(ss.str());
+		}
+		bytesWritten += success;
+	}
+	return bytesWritten;
+}
+
 /* ************************************************************************** */

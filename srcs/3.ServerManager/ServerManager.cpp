@@ -48,6 +48,7 @@ void ServerManager::_addServerFdsToEpoll(ServerMap &serverMap)
 
 void ServerManager::_handleEpollEvents(int ready_events, ServerMap &serverMap, std::vector<epoll_event> &events)
 {
+	// TODO: Fit everything into a switch statement
 	for (int i = 0; i < ready_events; ++i)
 	{
 		epoll_event &event = events[i];
@@ -70,41 +71,22 @@ void ServerManager::_handleEpollEvents(int ready_events, ServerMap &serverMap, s
 		}
 		else if (event.events && _clients.find(FileDescriptor(event.data.fd)) != _clients.end())
 		{
-			switch (event.events)
+			try
 			{
-			case EPOLLOUT:
-			{
-				// TODO: Handle writes
-				break;
+				_clients[FileDescriptor(event.data.fd)].handleEvent(event);
+				if (_clients[FileDescriptor(event.data.fd)].getServer()->getKeepAlive() == false && _clients[FileDescriptor(event.data.fd)].getCurrentState() == Client::CLIENT_WAITING_FOR_REQUEST)
+				{
+					_clients.erase(FileDescriptor(event.data.fd));
+					_epollManager.removeFd(event.data.fd);
+					Logger::log(Logger::INFO, "Client disconnected: " + event.data.fd);
+				}
 			}
-			case EPOLLIN:
+			catch (...)
 			{
-				// TODO: Handle reads
-				break;
-			}
-			case EPOLLHUP | EPOLLRDHUP | EPOLLERR | EPOLLPRI:
-			{
-				std::stringstream ss;
-				ss << "Client disconnected: " << event.data.fd;
-				Logger::log(Logger::INFO, ss.str());
 				_clients.erase(FileDescriptor(event.data.fd));
 				_epollManager.removeFd(event.data.fd);
-				break;
+				Logger::log(Logger::INFO, "Client disconnected: " + event.data.fd);
 			}
-			default:
-				std::stringstream ss;
-				ss << "Unknown event: " << event.events << " for client: " << event.data.fd;
-				Logger::log(Logger::INFO, ss.str());
-				_clients.erase(FileDescriptor(event.data.fd));
-				_epollManager.removeFd(event.data.fd);
-				break;
-			}
-		}
-		else
-		{
-			std::stringstream ss;
-			ss << "Unknown event: " << event.events << " for client: " << event.data.fd;
-			Logger::log(Logger::INFO, ss.str());
 			continue;
 		}
 	}

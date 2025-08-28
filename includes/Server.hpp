@@ -37,6 +37,7 @@ private:
 	double _clientMaxBodySize;
 	std::map<int, std::string> _statusPages;
 	std::map<std::string, Location> _locations;
+	bool _keepAlive;
 
 public:
 	Server();
@@ -58,8 +59,10 @@ public:
 	const std::string &getStatusPage(const int &status) const;
 	const std::map<std::string, Location> &getLocations() const;
 	const Location &getLocation(const std::string &path) const;
+	const bool &getKeepAlive() const;
 
 	// Setters
+	void setKeepAlive(const bool &keepAlive);
 	void setServerName(const std::string &serverName);
 	void setHost(const std::string &host);
 	void setPort(const unsigned short &port);
