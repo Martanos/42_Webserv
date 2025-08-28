@@ -15,6 +15,7 @@
 #include <netdb.h>
 #include "Logger.hpp"
 #include "IPAddressParser.hpp"
+#include "AddrInfo.hpp"
 
 // Class wrapper for socket addresses c structs
 class SocketAddress
@@ -131,7 +132,7 @@ public:
 		{
 			// For hostname resolution, still need getaddrinfo (it's in allowed functions)
 			// This is the only way to resolve hostnames without banned functions
-			addrinfo addrInfo(host, "80"); // Use port 80 as dummy
+			AddrInfo addrInfo(host, "80"); // Use port 80 as dummy
 			const struct addrinfo *info = addrInfo.get();
 
 			if (info->ai_family == AF_INET)

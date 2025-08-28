@@ -1,24 +1,39 @@
 #ifndef ADDRINFO_HPP
-# define ADDRINFO_HPP
+#define ADDRINFO_HPP
 
-# include <iostream>
-# include <string>
+#include <iostream>
+#include <string>
+#include <cstring>
+#include <netdb.h>
+
+#include "Logger.hpp"
 
 class AddrInfo
 {
+private:
+	struct addrinfo *_result;
 
-	public:
+public:
+	// Constructor
+	AddrInfo();
+	AddrInfo(const std::string &host, const std::string &port, int family = AF_UNSPEC);
 
-		AddrInfo();
-		AddrInfo( AddrInfo const & src );
-		~AddrInfo();
+	// Destructor
+	~AddrInfo();
 
-		AddrInfo &		operator=( AddrInfo const & rhs );
+	// Non-copyable
+	AddrInfo(const AddrInfo &);
+	AddrInfo &operator=(const AddrInfo &);
 
-	private:
+	// Access
+	const struct addrinfo *get() const;
+	const struct addrinfo *operator->() const;
 
+	// Iterator-like access for multiple results
+	const struct addrinfo *begin() const;
+	const struct addrinfo *next(const struct addrinfo *current) const;
 };
 
-std::ostream &			operator<<( std::ostream & o, AddrInfo const & i );
+std::ostream &operator<<(std::ostream &o, AddrInfo const &i);
 
 #endif /* ******************************************************** ADDRINFO_H */

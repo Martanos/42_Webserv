@@ -28,9 +28,9 @@ private:
 
 	static std::string getCurrentTime()
 	{
-		time_t now = time(0);
+		std::time_t now = std::time(0);
 		char buf[80];
-		strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", localtime(&now));
+		std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
 		return std::string(buf);
 	}
 
