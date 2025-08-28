@@ -52,6 +52,8 @@ public:
 
 	// overloads
 	operator int() const;
+
+	// TODO: File operations
 };
 
 std::ostream &operator<<(std::ostream &o, FileDescriptor const &i);
