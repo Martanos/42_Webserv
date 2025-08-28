@@ -131,7 +131,7 @@ public:
 		{
 			// For hostname resolution, still need getaddrinfo (it's in allowed functions)
 			// This is the only way to resolve hostnames without banned functions
-			AddrInfo addrInfo(host, "80"); // Use port 80 as dummy
+			addrinfo addrInfo(host, "80"); // Use port 80 as dummy
 			const struct addrinfo *info = addrInfo.get();
 
 			if (info->ai_family == AF_INET)

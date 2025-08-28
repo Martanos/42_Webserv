@@ -1,0 +1,111 @@
+#include "EpollManager.hpp"
+
+/*
+** ------------------------------- CONSTRUCTOR --------------------------------
+*/
+
+EpollManager::EpollManager() : _epollFd(epoll_create1(EPOLL_CLOEXEC))
+{
+	if (!_epollFd.isValid())
+	{
+		std::stringstream ss;
+		ss << "Failed to create epoll instance";
+		Logger::log(Logger::ERROR, ss.str());
+		throw std::runtime_error(ss.str());
+	}
+}
+
+/*
+** -------------------------------- DESTRUCTOR --------------------------------
+*/
+
+EpollManager::~EpollManager()
+{
+	_epollFd.closeDescriptor();
+}
+
+/*
+** --------------------------------- OVERLOAD ---------------------------------
+*/
+
+std::ostream &operator<<(std::ostream &o, EpollManager const &i)
+{
+	o << "EpollManager(" << i.getFd() << ")";
+	return o;
+}
+
+/*
+** --------------------------------- METHODS ----------------------------------
+*/
+
+void EpollManager::addFd(int fd, uint32_t events)
+{
+	epoll_event event;
+	event.events = events;
+	event.data.fd = fd;
+
+	if (epoll_ctl(_epollFd, EPOLL_CTL_ADD, fd, &event) == -1)
+	{
+		std::stringstream ss;
+		ss << "epoll_ctl ADD failed for fd: " << fd;
+		Logger::log(Logger::ERROR, ss.str());
+		throw std::runtime_error(ss.str());
+	}
+}
+
+void EpollManager::modifyFd(int fd, uint32_t events)
+{
+	epoll_event event;
+	event.events = events;
+	event.data.fd = fd;
+
+	if (epoll_ctl(_epollFd, EPOLL_CTL_MOD, fd, &event) == -1)
+	{
+		std::stringstream ss;
+		ss << "epoll_ctl MOD failed for fd: " << fd;
+		Logger::log(Logger::ERROR, ss.str());
+		throw std::runtime_error(ss.str());
+	}
+}
+
+void EpollManager::removeFd(int fd)
+{
+	if (epoll_ctl(_epollFd, EPOLL_CTL_DEL, fd, NULL) == -1)
+	{
+		std::stringstream ss;
+		ss << "epoll_ctl DEL failed for fd: " << fd;
+		Logger::log(Logger::ERROR, ss.str());
+	}
+}
+
+int EpollManager::wait(std::vector<epoll_event> &events, int timeout = -1)
+{
+	if (events.empty())
+	{
+		events.resize(128); // Default buffer size
+	}
+
+	int readyCount = epoll_wait(_epollFd, &events[0], events.size(), timeout);
+	if (readyCount == -1)
+	{
+		if (errno == EINTR)
+		{
+			return 0;
+		}
+		std::stringstream ss;
+		ss << "epoll_wait failed: " << strerror(errno);
+		Logger::log(Logger::ERROR, ss.str());
+		throw std::runtime_error(ss.str());
+	}
+	return readyCount;
+}
+
+/*
+** --------------------------------- ACCESSOR ---------------------------------
+*/
+int EpollManager::getFd() const
+{
+	return _epollFd.getFd();
+}
+
+/* ************************************************************************** */

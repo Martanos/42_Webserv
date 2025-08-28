@@ -14,6 +14,9 @@ class IPAddressParser
 private:
 	// Non-instantiable utility class
 	IPAddressParser();
+	IPAddressParser(IPAddressParser const &src);
+	IPAddressParser &operator=(IPAddressParser const &rhs);
+	~IPAddressParser();
 
 	// Helper function to convert string to integer (replaces atoi)
 	static long stringToLong(const std::string &str, bool &isValid)
