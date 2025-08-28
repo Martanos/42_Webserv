@@ -79,42 +79,39 @@ void ServerManager::_handleServerListening(int ready_events, ServerMap &serverMa
 {
 	for (int i = 0; i < ready_events; ++i)
 	{
-		// New connections are handled here
 		epoll_event &event = events[i];
-		if (event.events & EPOLLIN && serverMap.hasFd(event.data.fd))
+		// New connections are handled here
+		else if (event.events & EPOLLIN && serverMap.hasFd(event.data.fd))
 		{
-			while (true)
+			struct sockaddr_in client_addr;
+			socklen_t client_addr_len = sizeof(client_addr);
+			int client_fd = accept(event.data.fd, (struct sockaddr *)&client_addr, &client_addr_len);
+			if (client_fd == -1)
 			{
-				struct sockaddr_in client_addr;
-				socklen_t client_addr_len = sizeof(client_addr);
-				int client_fd = accept(event.data.fd, (struct sockaddr *)&client_addr, &client_addr_len);
-				if (client_fd == -1)
-				{
-					std::stringstream ss;
-					ss << "ServerManager: Failed to accept client connection: " << strerror(errno);
-					Logger::log(Logger::ERROR, ss.str());
-					continue;
-				}
-				try
-				{
-					_addFdToEpoll(client_fd);
-				}
-				catch (const std::exception &e)
-				{
-					close(client_fd);
-					continue;
-				}
-				Client client(client_fd, client_addr);
-				std::pair<std::map<int, Client>::iterator, bool> insert_result = _clients.insert(std::make_pair(client_fd, client));
-				if (!insert_result.second)
-				{
-					std::stringstream ss;
-					ss << "ServerManager: Failed to insert client into map: " << strerror(errno);
-					Logger::log(Logger::ERROR, ss.str());
-					epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, client_fd, NULL);
-					close(client_fd);
-					continue;
-				}
+				std::stringstream ss;
+				ss << "ServerManager: Failed to accept client connection: " << strerror(errno);
+				Logger::log(Logger::ERROR, ss.str());
+				continue;
+			}
+			try
+			{
+				_addFdToEpoll(client_fd);
+			}
+			catch (const std::exception &e)
+			{
+				close(client_fd);
+				continue;
+			}
+			Client client(client_fd, client_addr);
+			std::pair<std::map<int, Client>::iterator, bool> insert_result = _clients.insert(std::make_pair(client_fd, client));
+			if (!insert_result.second)
+			{
+				std::stringstream ss;
+				ss << "ServerManager: Failed to insert client into map: " << strerror(errno);
+				Logger::log(Logger::ERROR, ss.str());
+				epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, client_fd, NULL);
+				close(client_fd);
+				continue;
 			}
 		}
 	}
