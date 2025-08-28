@@ -19,6 +19,11 @@ ServerManager::ServerManager(const ServerManager &src)
 
 ServerManager::~ServerManager()
 {
+	for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+	{
+		close(it->first);
+	}
+	close(_epoll_fd);
 }
 
 /*
@@ -74,6 +79,7 @@ void ServerManager::_handleServerListening(int ready_events, ServerMap &serverMa
 {
 	for (int i = 0; i < ready_events; ++i)
 	{
+		// New connections are handled here
 		epoll_event &event = events[i];
 		if (event.events & EPOLLIN && serverMap.hasFd(event.data.fd))
 		{

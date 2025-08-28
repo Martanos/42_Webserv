@@ -27,11 +27,9 @@ ServerMap::~ServerMap()
 {
 	for (std::map<ServerKey, std::vector<Server> >::iterator it = _serverMap.begin(); it != _serverMap.end(); ++it)
 	{
-		for (std::vector<Server>::iterator server = it->second.begin(); server != it->second.end(); ++server)
-		{
-			close(it->first.getFd());
-		}
+		close(it->first.getFd());
 	}
+	_serverMap.clear();
 }
 
 /*
