@@ -86,4 +86,78 @@ void HttpResponse::reset()
 ** --------------------------------- ACCESSOR ---------------------------------
 */
 
+int HttpResponse::getStatusCode() const
+{
+	return _statusCode;
+}
+
+std::string HttpResponse::getStatusMessage() const
+{
+	return _statusMessage;
+}
+
+std::string HttpResponse::getVersion() const
+{
+	return _version;
+}
+
+std::map<std::string, std::string> HttpResponse::getHeaders() const
+{
+	return _headers;
+}
+
+std::string HttpResponse::getBody() const
+{
+	return _body;
+}
+
+size_t HttpResponse::getBytesSent() const
+{
+	return _bytesSent;
+}
+
+std::string HttpResponse::getRawResponse() const
+{
+	return _rawResponse;
+}
+
+/*
+** --------------------------------- Mutator ---------------------------------
+*/
+
+void HttpResponse::setStatusCode(int code)
+{
+	_statusCode = code;
+}
+
+void HttpResponse::setStatusMessage(const std::string &message)
+{
+	_statusMessage = message;
+}
+
+void HttpResponse::setVersion(const std::string &version)
+{
+	_version = version;
+}
+
+void HttpResponse::setHeaders(const std::map<std::string, std::string> &headers)
+{
+	_headers = headers;
+}
+
+void HttpResponse::setBody(const std::string &body)
+{
+	_body = body;
+}
+
+void HttpResponse::setBytesSent(size_t bytesSent)
+{
+	_bytesSent = bytesSent;
+}
+
+void HttpResponse::setRawResponse(const std::string &rawResponse)
+{
+	_rawResponse = rawResponse;
+}
+
 /* ************************************************************************** */

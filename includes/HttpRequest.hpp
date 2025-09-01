@@ -2,7 +2,6 @@
 #ifndef HTTPREQUEST_HPP
 #define HTTPREQUEST_HPP
 
-// TODO: Implement this
 #include <string>
 #include <map>
 #include <vector>

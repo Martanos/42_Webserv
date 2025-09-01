@@ -61,7 +61,7 @@ public:
 	bool operator<=(const FileDescriptor &rhs) const;
 	bool operator>=(const FileDescriptor &rhs) const;
 
-	// TODO: File operations
+	// File operations
 	ssize_t readFile(std::string &buffer);
 	ssize_t writeFile(const std::string &buffer);
 };

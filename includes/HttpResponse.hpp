@@ -8,7 +8,6 @@
 #include "Logger.hpp"
 #include "StringUtils.hpp"
 
-// TODO:IMPLEMENT ACCESSORS AND MUTATORS
 //  This class is used to generate the response to the client
 class HttpResponse
 {
