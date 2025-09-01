@@ -50,6 +50,7 @@ public:
 
 	// Methods
 	std::string toString() const;
+	void reset();
 };
 
 #endif /* **************************************************** HTTPRESPONSE_H */

@@ -334,6 +334,51 @@ void GetMethodHandler::generateDirectoryListing(const std::string &dirPath,
 	response.setHeader("Content-Length", StringUtils::toString(htmlContent.length()));
 }
 
+// Format file size for display
+std::string GetMethodHandler::formatFileSize(off_t size) const
+{
+	std::stringstream ss;
+	if (size < 1024)
+	{
+		ss << size << " B";
+	}
+	else if (size < 1024 * 1024)
+	{
+		ss << std::fixed << std::setprecision(1) << (size / 1024.0) << " KB";
+	}
+	else if (size < 1024 * 1024 * 1024)
+	{
+		ss << std::fixed << std::setprecision(1) << (size / (1024.0 * 1024.0)) << " MB";
+	}
+	else
+	{
+		ss << std::fixed << std::setprecision(1) << (size / (1024.0 * 1024.0 * 1024.0)) << " GB";
+	}
+	return ss.str();
+}
+
+// URL encode a string
+std::string GetMethodHandler::urlEncode(const std::string &str) const
+{
+	std::stringstream encoded;
+	for (size_t i = 0; i < str.length(); ++i)
+	{
+		unsigned char c = str[i];
+		if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+			(c >= '0' && c <= '9') || c == '-' || c == '_' ||
+			c == '.' || c == '~')
+		{
+			encoded << c;
+		}
+		else
+		{
+			encoded << '%' << std::hex << std::uppercase << std::setw(2)
+					<< std::setfill('0') << static_cast<int>(c);
+		}
+	}
+	return encoded.str();
+}
+
 /*
 ** --------------------------------- ACCESSOR ---------------------------------
 */
