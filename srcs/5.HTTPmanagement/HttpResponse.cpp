@@ -68,7 +68,28 @@ void HttpResponse::setBody(const std::string &body)
 
 std::string HttpResponse::toString() const
 {
-	return _rawResponse;
+	std::stringstream response;
+
+	// Status line
+	response << "HTTP/1.1 " << _statusCode << " " << _statusMessage << "\r\n";
+
+	// Headers
+	for (std::map<std::string, std::string>::const_iterator it = _headers.begin();
+		 it != _headers.end(); ++it)
+	{
+		response << it->first << ": " << it->second << "\r\n";
+	}
+
+	// Empty line between headers and body
+	response << "\r\n";
+
+	// Body (if any)
+	if (!_body.empty())
+	{
+		response << _body;
+	}
+
+	return response.str();
 }
 
 void HttpResponse::reset()

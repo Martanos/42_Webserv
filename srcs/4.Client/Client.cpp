@@ -6,7 +6,7 @@
 /*   By: malee <malee@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/01 17:12:02 by malee             #+#    #+#             */
-/*   Updated: 2025/09/01 21:51:42 by malee            ###   ########.fr       */
+/*   Updated: 2025/09/01 22:15:11 by malee            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -293,32 +293,6 @@ void Client::_generateErrorResponse(int statusCode, const std::string &message)
 						StringUtils::toString(_response.getBody().length()));
 	_response.setHeader("Connection", _keepAlive ? "keep-alive" : "close");
 	_response.setHeader("Server", "42_Webserv/1.0");
-}
-
-std::string HttpResponse::toString() const
-{
-	std::stringstream response;
-
-	// Status line
-	response << "HTTP/1.1 " << _statusCode << " " << _statusMessage << "\r\n";
-
-	// Headers
-	for (std::map<std::string, std::string>::const_iterator it = _headers.begin();
-		 it != _headers.end(); ++it)
-	{
-		response << it->first << ": " << it->second << "\r\n";
-	}
-
-	// Empty line between headers and body
-	response << "\r\n";
-
-	// Body (if any)
-	if (!_body.empty())
-	{
-		response << _body;
-	}
-
-	return response.str();
 }
 
 /*
