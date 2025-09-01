@@ -4,17 +4,9 @@
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-FileDescriptor::FileDescriptor(int fd = -1) : _fd(fd), _isOpen(true)
+FileDescriptor::FileDescriptor(const FileDescriptor &src) : _fd(src._fd)
 {
-	if (fd == -1)
-	{
-		_isOpen = false;
-	}
-}
-
-FileDescriptor::FileDescriptor(const FileDescriptor &src) : _fd(src._fd), _isOpen(src._isOpen)
-{
-	if (src._isOpen && src._fd != -1)
+	if (isOpen() && src._fd != -1)
 	{
 		_fd = dup(src._fd);
 		if (_fd == -1)
@@ -24,7 +16,6 @@ FileDescriptor::FileDescriptor(const FileDescriptor &src) : _fd(src._fd), _isOpe
 			Logger::log(Logger::ERROR, ss.str());
 			throw std::runtime_error(ss.str());
 		}
-		_isOpen = true;
 	}
 }
 
@@ -34,7 +25,7 @@ FileDescriptor::FileDescriptor(const FileDescriptor &src) : _fd(src._fd), _isOpe
 
 FileDescriptor::~FileDescriptor()
 {
-	if (_isOpen && _fd != -1)
+	if (isOpen() && _fd != -1)
 	{
 		closeDescriptor();
 	}
@@ -49,7 +40,7 @@ FileDescriptor &FileDescriptor::operator=(const FileDescriptor &other)
 	if (this != &other)
 	{
 		closeDescriptor();
-		if (other._isOpen && other._fd != -1)
+		if (other.isOpen() && other._fd != -1)
 		{
 			_fd = dup(other.getFd());
 			if (_fd == -1)
@@ -59,7 +50,6 @@ FileDescriptor &FileDescriptor::operator=(const FileDescriptor &other)
 				Logger::log(Logger::ERROR, ss.str());
 				throw std::runtime_error(ss.str());
 			}
-			_isOpen = true;
 		}
 	}
 	return *this;
@@ -77,7 +67,7 @@ std::ostream &operator<<(std::ostream &o, FileDescriptor const &i)
 
 void FileDescriptor::closeDescriptor()
 {
-	if (_isOpen && _fd != -1 && _fd != 0)
+	if (isOpen() && _fd != -1 && _fd != 0)
 	{
 		if (close(_fd) == -1)
 		{
@@ -89,7 +79,6 @@ void FileDescriptor::closeDescriptor()
 				throw std::runtime_error(ss.str());
 			}
 			_fd = -1;
-			_isOpen = false;
 		}
 	}
 }
@@ -172,21 +161,10 @@ void FileDescriptor::unsetCloseOnExec()
 
 void FileDescriptor::setReuseAddr()
 {
-	int flags = fcntl(_fd, F_GETFL, 0);
-	if (flags == -1)
+	int opt = 1;
+	if (setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
 	{
-		std::stringstream ss;
-		ss << "FileDescriptor: Failed to get file descriptor flags: " << strerror(errno);
-		Logger::log(Logger::ERROR, ss.str());
-		throw std::runtime_error(ss.str());
-	}
-	flags |= SO_REUSEADDR;
-	if (fcntl(_fd, F_SETFL, flags) == -1)
-	{
-		std::stringstream ss;
-		ss << "FileDescriptor: Failed to set file descriptor to reuse addr: " << strerror(errno);
-		Logger::log(Logger::ERROR, ss.str());
-		throw std::runtime_error(ss.str());
+		throw std::runtime_error("Failed to set SO_REUSEADDR");
 	}
 }
 
@@ -250,37 +228,58 @@ bool FileDescriptor::operator>=(const FileDescriptor &rhs) const
 
 bool FileDescriptor::isSocket() const
 {
-	return _fd != -1 && S_ISSOCK(_fd);
+	struct stat st;
+	if (_fd == -1 || fstat(_fd, &st) == -1)
+		return false;
+	return S_ISSOCK(st.st_mode);
 }
 
 bool FileDescriptor::isPipe() const
 {
-	return _fd != -1 && S_ISFIFO(_fd);
+	struct stat st;
+	if (_fd == -1 || fstat(_fd, &st) == -1)
+		return false;
+	return S_ISFIFO(st.st_mode);
 }
 
 bool FileDescriptor::isFile() const
 {
-	return _fd != -1 && S_ISREG(_fd);
+	struct stat st;
+	if (_fd == -1 || fstat(_fd, &st) == -1)
+		return false;
+	return S_ISREG(st.st_mode);
 }
 
 bool FileDescriptor::isDirectory() const
 {
-	return _fd != -1 && S_ISDIR(_fd);
+	struct stat st;
+	if (_fd == -1 || fstat(_fd, &st) == -1)
+		return false;
+	return S_ISDIR(st.st_mode);
 }
 
 bool FileDescriptor::isRegularFile() const
 {
-	return _fd != -1 && S_ISREG(_fd);
+	struct stat st;
+	if (_fd == -1 || fstat(_fd, &st) == -1)
+		return false;
+	return S_ISREG(st.st_mode);
 }
 
 bool FileDescriptor::isSymbolicLink() const
 {
-	return _fd != -1 && S_ISLNK(_fd);
+	struct stat st;
+	if (_fd == -1 || fstat(_fd, &st) == -1)
+		return false;
+	return S_ISLNK(st.st_mode);
 }
 
 bool FileDescriptor::isValid() const
 {
-	return _fd != -1;
+	struct stat st;
+	if (_fd == -1 || fstat(_fd, &st) == -1)
+		return false;
+	return true;
 }
 
 /*
@@ -294,7 +293,9 @@ void FileDescriptor::setFd(int fd)
 
 bool FileDescriptor::isOpen() const
 {
-	return _isOpen;
+	if (_fd == -1)
+		return false;
+	return fcntl(_fd, F_GETFD) != -1 || errno != EBADF;
 }
 
 int FileDescriptor::getFd() const
@@ -313,7 +314,14 @@ FileDescriptor::operator int() const
 
 ssize_t FileDescriptor::readFile(std::string &buffer)
 {
-	ssize_t bytesRead = read(_fd, &buffer, buffer.size());
+	if (_fd == -1)
+	{
+		std::stringstream ss;
+		ss << "FileDescriptor: Failed to read file: Invalid file descriptor";
+		Logger::log(Logger::ERROR, ss.str());
+		throw std::runtime_error(ss.str());
+	}
+	ssize_t bytesRead = read(_fd, &buffer[0], buffer.size());
 	if (bytesRead == -1)
 	{
 		std::stringstream ss;

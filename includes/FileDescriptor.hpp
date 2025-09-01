@@ -19,7 +19,6 @@ class FileDescriptor
 {
 private:
 	int _fd;
-	bool _isOpen;
 
 public:
 	explicit FileDescriptor(int fd = -1);
