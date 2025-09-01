@@ -6,7 +6,7 @@
 /*   By: malee <malee@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/01 17:12:02 by malee             #+#    #+#             */
-/*   Updated: 2025/09/01 19:24:47 by malee            ###   ########.fr       */
+/*   Updated: 2025/09/01 21:51:42 by malee            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -213,26 +213,50 @@ void Client::sendResponse()
 
 void Client::_processHTTPRequest()
 {
-	// Basic request processing
-	std::string method = _request.getMethod();
-	std::string uri = _request.getUri();
+	// Create router instance
+	RequestRouter router;
 
-	if (method == "GET")
+	// Clear any previous response
+	_response.reset();
+
+	// Route the request through the handler system
+	router.route(_request, _response, _server);
+
+	// Check Connection header to determine keep-alive
+	std::string connectionHeader = _request.getHeader("connection");
+
+	// HTTP/1.1 defaults to keep-alive, HTTP/1.0 defaults to close
+	if (_request.getVersion() == "HTTP/1.1")
 	{
-		_handleGetRequest();
-	}
-	else if (method == "POST")
-	{
-		_handlePostRequest();
-	}
-	else if (method == "DELETE")
-	{
-		_handleDeleteRequest();
+		_keepAlive = (connectionHeader != "close");
 	}
 	else
 	{
-		_generateErrorResponse(405, "Method Not Allowed");
+		_keepAlive = (connectionHeader == "keep-alive");
 	}
+
+	// Override with server configuration if needed
+	if (_server && !_server->getKeepAlive())
+	{
+		_keepAlive = false;
+	}
+
+	// Ensure Connection header is set in response
+	if (!_keepAlive)
+	{
+		_response.setHeader("Connection", "close");
+	}
+
+	// Log the response
+	std::stringstream logMsg;
+	logMsg << "Response: " << _response.getStatusCode()
+		   << " " << _response.getStatusMessage()
+		   << " for " << _request.getMethod()
+		   << " " << _request.getUri();
+	Logger::log(Logger::INFO, logMsg.str());
+
+	// Transition to sending state
+	_currentState = CLIENT_SENDING_RESPONSE;
 }
 
 void Client::_generateErrorResponse(int statusCode, const std::string &message)
@@ -257,44 +281,44 @@ void Client::_generateErrorResponse(int statusCode, const std::string &message)
 	_response.setHeader("Content-Length", StringUtils::toString(errorBody.length()));
 }
 
-void Client::_generateFileResponse(const std::string &filePath)
+void Client::_generateErrorResponse(int statusCode, const std::string &message)
 {
-	// Simplified file response
-	_generateErrorResponse(501, "Not Implemented");
+	// This can be simplified to just set basic error response
+	// The router handles most error cases now
+	_response.reset();
+	_response.setStatus(statusCode, message);
+	_response.setBody(DefaultStatusMap::getStatusBody(statusCode));
+	_response.setHeader("Content-Type", "text/html");
+	_response.setHeader("Content-Length",
+						StringUtils::toString(_response.getBody().length()));
+	_response.setHeader("Connection", _keepAlive ? "keep-alive" : "close");
+	_response.setHeader("Server", "42_Webserv/1.0");
 }
 
-void Client::_generateDirectoryListing(const std::string &dirPath)
+std::string HttpResponse::toString() const
 {
-	// Simplified directory listing
-	_generateErrorResponse(501, "Not Implemented");
-}
+	std::stringstream response;
 
-void Client::_handleCGIRequest()
-{
-	// Simplified CGI handling
-	_generateErrorResponse(501, "Not Implemented");
-}
+	// Status line
+	response << "HTTP/1.1 " << _statusCode << " " << _statusMessage << "\r\n";
 
-void Client::_handleFileUpload()
-{
-	// Simplified file upload
-	_generateErrorResponse(501, "Not Implemented");
-}
-
-bool Client::_isMethodAllowed(const std::string &method) const
-{
-	// This would check against server/location configuration
-	// For now, allow basic methods
-	return (method == "GET" || method == "POST" || method == "DELETE");
-}
-
-std::string Client::_resolveFilePath(const std::string &uri) const
-{
-	if (_server)
+	// Headers
+	for (std::map<std::string, std::string>::const_iterator it = _headers.begin();
+		 it != _headers.end(); ++it)
 	{
-		return _server->getRoot() + uri;
+		response << it->first << ": " << it->second << "\r\n";
 	}
-	return "www" + uri; // Default fallback
+
+	// Empty line between headers and body
+	response << "\r\n";
+
+	// Body (if any)
+	if (!_body.empty())
+	{
+		response << _body;
+	}
+
+	return response.str();
 }
 
 /*
@@ -333,7 +357,7 @@ const Server *Client::getServer() const
 
 void Client::setServer(const Server *server)
 {
-	_server = server;
+	_server = const_cast<Server *>(server);
 }
 
 bool Client::isTimedOut() const

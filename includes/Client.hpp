@@ -16,7 +16,8 @@
 #include "SocketAddress.hpp"
 #include "ServerMap.hpp"
 #include "StringUtils.hpp"
-
+#include "RequestRouter.hpp"
+#include "DefaultStatusMap.hpp"
 // This class is used to handle the client connection and process the HTTP request
 class Client
 {
