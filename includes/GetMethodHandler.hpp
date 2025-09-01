@@ -1,14 +1,12 @@
 #ifndef GETMETHODHANDLER_HPP
 #define GETMETHODHANDLER_HPP
 
-#include <fstream>
-#include <sstream>
-#include <dirent.h>
+#include <vector>
 #include <sys/stat.h>
-#include <ctime>
+#include <dirent.h>
 #include <algorithm>
 #include <iomanip>
-#include "IMethodHandler.hpp"
+#include <ctime>
 #include "HttpResponse.hpp"
 #include "Server.hpp"
 #include "Location.hpp"
@@ -17,6 +15,7 @@
 #include "Logger.hpp"
 #include "DefaultStatusMap.hpp"
 #include "StringUtils.hpp"
+#include "IMethodHandler.hpp"
 
 class GetMethodHandler : public IMethodHandler
 {

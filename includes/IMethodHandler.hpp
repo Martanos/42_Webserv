@@ -6,6 +6,8 @@
 #include "HttpResponse.hpp"
 #include "Server.hpp"
 #include "Location.hpp"
+#include "FileDescriptor.hpp"
+#include "MimeTypes.hpp"
 
 class IMethodHandler
 {
@@ -34,7 +36,12 @@ protected:
 
 	static bool isPathAccessible(const std::string &path);
 
-	static std::string readFile(const std::string &filePath);
+	// Use FileDescriptor for safe file reading
+	static std::string readFileWithFd(const std::string &filePath);
+
+	// Write file using FileDescriptor
+	static bool writeFileWithFd(const std::string &filePath,
+								const std::string &content);
 
 	static void setCommonHeaders(HttpResponse &response,
 								 const std::string &contentType,

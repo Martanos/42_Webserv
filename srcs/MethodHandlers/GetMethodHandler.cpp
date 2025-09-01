@@ -35,6 +35,7 @@ GetMethodHandler &GetMethodHandler::operator=(GetMethodHandler const &rhs)
 ** --------------------------------- METHODS ----------------------------------
 */
 
+// Main handler method
 void GetMethodHandler::handle(const HttpRequest &request,
 							  HttpResponse &response,
 							  const Server *server,
@@ -146,39 +147,49 @@ void GetMethodHandler::handle(const HttpRequest &request,
 	}
 }
 
-// Serve a regular file
+// Serve a regular file using FileDescriptor for safe memory management
 void GetMethodHandler::serveFile(const std::string &filePath, HttpResponse &response) const
 {
-	// Open the file
-	std::ifstream file(filePath.c_str(), std::ios::binary);
-	if (!file.is_open())
+	// Use FileDescriptor for RAII file management
+	FileDescriptor fd(open(filePath.c_str(), O_RDONLY));
+
+	if (!fd.isValid())
 	{
 		Logger::log(Logger::ERROR, "Cannot open file: " + filePath);
 		response.setStatus(403, "Forbidden");
 		return;
 	}
 
-	// Read file content
-	std::string content;
-	file.seekg(0, std::ios::end);
-	size_t fileSize = file.tellg();
-	file.seekg(0, std::ios::beg);
-
-	// Check file size (prevent loading huge files into memory)
-	const size_t MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB limit
-	if (fileSize > MAX_FILE_SIZE)
+	// Get file size
+	struct stat fileStat;
+	if (fstat(fd.getFd(), &fileStat) != 0)
 	{
-		Logger::log(Logger::ERROR, "File too large: " + filePath);
-		response.setStatus(413, "Payload Too Large");
-		file.close();
+		Logger::log(Logger::ERROR, "Cannot stat file: " + filePath);
+		response.setStatus(500, "Internal Server Error");
 		return;
 	}
 
-	content.resize(fileSize);
-	file.read(&content[0], fileSize);
-	file.close();
+	// Check file size (prevent loading huge files into memory)
+	const size_t MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB limit
+	if (fileStat.st_size > MAX_FILE_SIZE)
+	{
+		Logger::log(Logger::ERROR, "File too large: " + filePath);
+		response.setStatus(413, "Payload Too Large");
+		return;
+	}
 
-	// TODO: if mime type is not found, set it to text/plain if extension is not found
+	// Read file content using FileDescriptor's readFile method
+	std::string content;
+	content.resize(fileStat.st_size);
+	ssize_t bytesRead = read(fd.getFd(), &content[0], fileStat.st_size);
+
+	if (bytesRead < 0 || bytesRead != fileStat.st_size)
+	{
+		Logger::log(Logger::ERROR, "Error reading file: " + filePath);
+		response.setStatus(500, "Internal Server Error");
+		return;
+	}
+
 	// Set response
 	response.setStatus(200, "OK");
 	response.setBody(content);
@@ -186,14 +197,12 @@ void GetMethodHandler::serveFile(const std::string &filePath, HttpResponse &resp
 	response.setHeader("Content-Length", StringUtils::toString(content.length()));
 
 	// Add Last-Modified header
-	struct stat fileStat;
-	if (stat(filePath.c_str(), &fileStat) == 0)
-	{
-		char buffer[100];
-		struct tm *tm = gmtime(&fileStat.st_mtime);
-		strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", tm);
-		response.setHeader("Last-Modified", std::string(buffer));
-	}
+	char buffer[100];
+	struct tm *tm = gmtime(&fileStat.st_mtime);
+	strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", tm);
+	response.setHeader("Last-Modified", std::string(buffer));
+
+	// FileDescriptor destructor will automatically close the file
 }
 
 // Try to serve index files from a directory
@@ -228,6 +237,9 @@ void GetMethodHandler::generateDirectoryListing(const std::string &dirPath,
 												const Server *server,
 												const Location *location) const
 {
+	(void)server;
+	(void)location;
+
 	DIR *dir = opendir(dirPath.c_str());
 	if (!dir)
 	{
@@ -382,6 +394,12 @@ std::string GetMethodHandler::urlEncode(const std::string &str) const
 /*
 ** --------------------------------- ACCESSOR ---------------------------------
 */
+
+// Check if file should be hidden
+bool GetMethodHandler::isHiddenFile(const std::string &filename) const
+{
+	return filename.empty() || filename[0] == '.' || filename == "." || filename == "..";
+}
 
 bool GetMethodHandler::canHandle(const std::string &method) const
 {
