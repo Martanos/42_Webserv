@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Client.cpp                                         :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: malee <malee@student.42singapore.sg>       +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/09/01 17:12:02 by malee             #+#    #+#             */
+/*   Updated: 2025/09/01 17:12:04 by malee            ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "Client.hpp"
 
 /*
@@ -278,18 +290,24 @@ void Client::_handleDeleteRequest()
 
 void Client::_generateErrorResponse(int statusCode, const std::string &message)
 {
-	// This is a simplified error response generation
-	// You'll need to implement HttpResponse properly
+	_response.reset();
+	_response.setStatus(statusCode, message.empty() ? DefaultStatusMap::getStatusMessage(statusCode) : message);
+	_response.setHeader("Content-Type", "text/html");
+	_response.setHeader("Connection", _keepAlive ? "keep-alive" : "close");
 
-	std::stringstream response;
-	response << "HTTP/1.1 " << statusCode << " " << message << "\r\n";
-	response << "Content-Type: text/html\r\n";
-	response << "Connection: close\r\n";
-	response << "\r\n";
-	response << "<html><body><h1>" << statusCode << " " << message << "</h1></body></html>";
+	// Get error page from server config or use default
+	std::string errorBody;
+	if (_server)
+	{
+		errorBody = _server->getStatusPage(statusCode);
+	}
+	if (errorBody.empty())
+	{
+		errorBody = DefaultStatusMap::getStatusBody(statusCode);
+	}
 
-	// Store response (you'll need to implement HttpResponse storage)
-	_keepAlive = false; // Close connection after error
+	_response.setBody(errorBody);
+	_response.setHeader("Content-Length", StringUtils::toString(errorBody.length()));
 }
 
 void Client::_generateFileResponse(const std::string &filePath)

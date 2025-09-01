@@ -1,22 +1,31 @@
 #ifndef MIMETYPES_HPP
-# define MIMETYPES_HPP
+#define MIMETYPES_HPP
 
-# include <Logger.hpp>
-# include <fstream>
-# include <iostream>
-# include <map>
-# include <sstream>
-# include <string>
-# include <sys/stat.h>
+#include <Logger.hpp>
+#include <fstream>
+#include <iostream>
+#include <map>
+#include <sstream>
+#include <string>
+#include <sys/stat.h>
 
 class MimeTypes
 {
-  private:
+private:
 	// OOC stuff
 	MimeTypes();
 	MimeTypes(MimeTypes const &src);
-	~MimeTypes();
-	MimeTypes &operator=(MimeTypes const &rhs);
+	MimeTypes &operator=(MimeTypes const &rhs)
+	{
+		if (this != &rhs)
+		{
+			getMimeTypesMap() = rhs.getMimeTypesMap();
+			getInitialized() = rhs.getInitialized();
+			getCurrentFilePathRef() = rhs.getCurrentFilePathRef();
+			getLastModifiedRef() = rhs.getLastModifiedRef();
+		}
+		return *this;
+	}
 
 	static std::map<std::string, std::string> &getMimeTypesMap()
 	{
@@ -60,7 +69,7 @@ class MimeTypes
 	static void initMimeTypes()
 	{
 		if (getInitialized() && !hasFileChanged())
-			return ;
+			return;
 		getInitialized() = true;
 		getMimeTypesMap().clear();
 		std::string userFile = "~/mime.types";
@@ -72,7 +81,7 @@ class MimeTypes
 		else
 		{
 			Logger::log(Logger::WARNING,
-				"User mime types file not defined using system mime types");
+						"User mime types file not defined using system mime types");
 			std::string systemFile = "/etc/mime.types";
 			file.open(systemFile.c_str());
 			if (file.is_open())
@@ -94,7 +103,7 @@ class MimeTypes
 		while (std::getline(file, line))
 		{
 			if (line.empty() || line[0] == '#')
-				continue ;
+				continue;
 			std::stringstream ss(line);
 			std::string mimeType;
 			std::string extension;
@@ -102,8 +111,7 @@ class MimeTypes
 			while (ss >> extension)
 			{
 				getMimeTypesMap()[extension] = mimeType;
-				Logger::log(Logger::DEBUG, "Added mime type: " + mimeType
-					+ " with extension: " + extension);
+				Logger::log(Logger::DEBUG, "Added mime type: " + mimeType + " with extension: " + extension);
 			}
 		}
 		file.close();
@@ -114,13 +122,21 @@ class MimeTypes
 		}
 	}
 
-  public:
+public:
+	~MimeTypes()
+	{
+		getMimeTypesMap().clear();
+		getInitialized() = false;
+		getCurrentFilePathRef().clear();
+		getLastModifiedRef() = 0;
+	}
+
 	// Returns mime type for extension, checks for file changes automatically
 	static std::string getMimeType(const std::string &extension)
 	{
 		initMimeTypes();
 		std::map<std::string,
-			std::string>::iterator it = getMimeTypesMap().find(extension);
+				 std::string>::iterator it = getMimeTypesMap().find(extension);
 		if (it != getMimeTypesMap().end())
 		{
 			return (it->second);

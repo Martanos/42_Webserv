@@ -83,7 +83,7 @@ std::ostream &operator<<(std::ostream &o, ListeningSocket const &i)
 
 FileDescriptor ListeningSocket::accept() const
 {
-	struct sockaddr_in clientAddr;
+	struct sockaddr_storage clientAddr;
 	socklen_t clientAddrLen = sizeof(clientAddr);
 
 	int clientFd = ::accept(_socket, reinterpret_cast<struct sockaddr *>(&clientAddr), &clientAddrLen);
