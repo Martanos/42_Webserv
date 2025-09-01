@@ -7,6 +7,8 @@
 #include <map>
 #include <vector>
 #include <sstream>
+#include <cstdlib>
+#include <algorithm>
 #include "Logger.hpp"
 
 // This class is used to parse the request line, headers, and body
@@ -54,13 +56,14 @@ public:
 	void reset();
 
 	// Getters
-	const std::string &getMethod() const { return _method; }
-	const std::string &getUri() const { return _uri; }
-	const std::string &getVersion() const { return _version; }
-	const std::map<std::string, std::string> &getHeaders() const { return _headers; }
+	const std::string &getMethod() const;
+	const std::string &getUri() const;
+	const std::string &getVersion() const;
+	const std::map<std::string, std::string> &getHeaders() const;
 	const std::string &getHeader(const std::string &name) const;
-	const std::string &getBody() const { return _body; }
-	size_t getContentLength() const { return _contentLength; }
+	const std::string &getBody() const;
+	size_t getContentLength() const;
+	bool isChunked() const;
 
 private:
 	ParseState _parseRequestLine(const std::string &line);
