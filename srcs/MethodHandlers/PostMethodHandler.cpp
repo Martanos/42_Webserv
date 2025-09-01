@@ -322,6 +322,20 @@ bool PostMethodHandler::validateContentLength(size_t contentLength,
 	return contentLength <= static_cast<size_t>(maxSize);
 }
 
+// TODO: More robust filename generation
+//  Generate unique filename to avoid overwrites
+std::string PostMethodHandler::generateUniqueFilename(const std::string &uploadPath,
+													  const std::string &originalName) const
+{
+	return uploadPath + "/" + originalName;
+}
+
+// Extract boundary from Content-Type header
+std::string PostMethodHandler::extractBoundary(const std::string &contentType) const
+{
+	return contentType.substr(contentType.find("boundary=") + 9);
+}
+
 /*
 ** --------------------------------- ACCESSOR ---------------------------------
 */
