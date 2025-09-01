@@ -18,7 +18,6 @@ class DefaultStatusMap
 private:
 	DefaultStatusMap();
 	DefaultStatusMap(DefaultStatusMap const &src);
-	~DefaultStatusMap();
 
 	DefaultStatusMap &operator=(DefaultStatusMap const &rhs);
 
@@ -199,6 +198,12 @@ private:
 	}
 
 public:
+	~DefaultStatusMap()
+	{
+		getDefaultStatusMap().clear();
+		getInitialized() = false;
+	}
+
 	static std::string getStatusInfo(const int &status)
 	{
 		initDefaultStatusMap();

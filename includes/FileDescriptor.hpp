@@ -20,7 +20,7 @@ private:
 	int _fd;
 
 public:
-	explicit FileDescriptor(int fd = -1);
+	FileDescriptor(int fd = -1);
 	FileDescriptor(FileDescriptor const &src);
 	~FileDescriptor();
 	FileDescriptor &operator=(FileDescriptor const &rhs);

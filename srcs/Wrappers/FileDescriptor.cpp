@@ -4,6 +4,10 @@
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
+FileDescriptor::FileDescriptor(int fd) : _fd(fd)
+{
+}
+
 FileDescriptor::FileDescriptor(const FileDescriptor &src) : _fd(src._fd)
 {
 	if (isOpen() && src._fd != -1)
@@ -67,19 +71,16 @@ std::ostream &operator<<(std::ostream &o, FileDescriptor const &i)
 
 void FileDescriptor::closeDescriptor()
 {
-	if (isOpen() && _fd != -1 && _fd != 0)
+	if (_fd != -1)
 	{
-		if (close(_fd) == -1)
+		if (close(_fd) == -1 && errno != EBADF)
 		{
-			if (errno != EBADF)
-			{
-				std::stringstream ss;
-				ss << "FileDescriptor: Failed to close file descriptor: " << strerror(errno);
-				Logger::log(Logger::ERROR, ss.str());
-				throw std::runtime_error(ss.str());
-			}
-			_fd = -1;
+			std::stringstream ss;
+			ss << "FileDescriptor: Failed to close file descriptor: " << strerror(errno);
+			Logger::log(Logger::ERROR, ss.str());
+			throw std::runtime_error(ss.str());
 		}
+		_fd = -1;
 	}
 }
 
@@ -164,25 +165,20 @@ void FileDescriptor::setReuseAddr()
 	int opt = 1;
 	if (setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
 	{
-		throw std::runtime_error("Failed to set SO_REUSEADDR");
+		std::stringstream ss;
+		ss << "FileDescriptor: Failed to set SO_REUSEADDR: " << strerror(errno);
+		Logger::log(Logger::ERROR, ss.str());
+		throw std::runtime_error(ss.str());
 	}
 }
 
 void FileDescriptor::unsetReuseAddr()
 {
-	int flags = fcntl(_fd, F_GETFL, 0);
-	if (flags == -1)
+	int opt = 0;
+	if (setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
 	{
 		std::stringstream ss;
-		ss << "FileDescriptor: Failed to get file descriptor flags: " << strerror(errno);
-		Logger::log(Logger::ERROR, ss.str());
-		throw std::runtime_error(ss.str());
-	}
-	flags &= ~SO_REUSEADDR;
-	if (fcntl(_fd, F_SETFL, flags) == -1)
-	{
-		std::stringstream ss;
-		ss << "FileDescriptor: Failed to unset file descriptor to reuse addr: " << strerror(errno);
+		ss << "FileDescriptor: Failed to unset SO_REUSEADDR: " << strerror(errno);
 		Logger::log(Logger::ERROR, ss.str());
 		throw std::runtime_error(ss.str());
 	}
@@ -314,13 +310,8 @@ FileDescriptor::operator int() const
 
 ssize_t FileDescriptor::readFile(std::string &buffer)
 {
-	if (_fd == -1)
-	{
-		std::stringstream ss;
-		ss << "FileDescriptor: Failed to read file: Invalid file descriptor";
-		Logger::log(Logger::ERROR, ss.str());
-		throw std::runtime_error(ss.str());
-	}
+	if (buffer.empty())
+		buffer.resize(4096);
 	ssize_t bytesRead = read(_fd, &buffer[0], buffer.size());
 	if (bytesRead == -1)
 	{
@@ -329,23 +320,19 @@ ssize_t FileDescriptor::readFile(std::string &buffer)
 		Logger::log(Logger::ERROR, ss.str());
 		throw std::runtime_error(ss.str());
 	}
+	buffer.resize(bytesRead);
 	return bytesRead;
 }
 
 ssize_t FileDescriptor::writeFile(const std::string &buffer)
 {
-	ssize_t bytesWritten = 0;
-	for (std::string::const_iterator it = buffer.begin(); it != buffer.end(); ++it)
+	ssize_t bytesWritten = write(_fd, buffer.data(), buffer.size());
+	if (bytesWritten == -1)
 	{
-		bool success = write(_fd, &*it, 1);
-		if (!success)
-		{
-			std::stringstream ss;
-			ss << "FileDescriptor: Failed to write file: " << strerror(errno);
-			Logger::log(Logger::ERROR, ss.str());
-			throw std::runtime_error(ss.str());
-		}
-		bytesWritten += success;
+		std::stringstream ss;
+		ss << "FileDescriptor: Failed to write file: " << strerror(errno);
+		Logger::log(Logger::ERROR, ss.str());
+		throw std::runtime_error(ss.str());
 	}
 	return bytesWritten;
 }

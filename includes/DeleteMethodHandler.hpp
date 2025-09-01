@@ -19,12 +19,9 @@ public:
 						const Server *server,
 						const Location *location = NULL);
 
-	virtual bool canHandle(const std::string &method) const
-	{
-		return method == "DELETE";
-	}
+	virtual bool canHandle(const std::string &method) const;
 
-	virtual std::string getMethod() const { return "DELETE"; }
+	virtual std::string getMethod() const;
 };
 
 #endif
