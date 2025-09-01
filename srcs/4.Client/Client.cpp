@@ -6,7 +6,7 @@
 /*   By: malee <malee@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/01 17:12:02 by malee             #+#    #+#             */
-/*   Updated: 2025/09/01 17:12:04 by malee            ###   ########.fr       */
+/*   Updated: 2025/09/01 17:56:51 by malee            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -233,59 +233,6 @@ void Client::_processHTTPRequest()
 	{
 		_generateErrorResponse(405, "Method Not Allowed");
 	}
-}
-
-void Client::_handleGetRequest()
-{
-	// Simplified GET handling
-	std::string uri = _request.getUri();
-
-	if (uri == "/")
-	{
-		uri = "/index.html";
-	}
-
-	// Check if method is allowed for this location
-	if (!_isMethodAllowed("GET"))
-	{
-		_generateErrorResponse(405, "Method Not Allowed");
-		return;
-	}
-
-	std::string filePath = _resolveFilePath(uri);
-	_generateFileResponse(filePath);
-}
-
-void Client::_handlePostRequest()
-{
-	// Check if method is allowed
-	if (!_isMethodAllowed("POST"))
-	{
-		_generateErrorResponse(405, "Method Not Allowed");
-		return;
-	}
-
-	// Check content length limits
-	if (_server && _request.getContentLength() > static_cast<size_t>(_server->getClientMaxBodySize()))
-	{
-		_generateErrorResponse(413, "Payload Too Large");
-		return;
-	}
-
-	// Handle file upload or other POST operations
-	_handleFileUpload();
-}
-
-void Client::_handleDeleteRequest()
-{
-	if (!_isMethodAllowed("DELETE"))
-	{
-		_generateErrorResponse(405, "Method Not Allowed");
-		return;
-	}
-
-	// Implement DELETE logic
-	_generateErrorResponse(501, "Not Implemented");
 }
 
 void Client::_generateErrorResponse(int statusCode, const std::string &message)

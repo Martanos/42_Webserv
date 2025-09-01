@@ -115,6 +115,7 @@ HttpRequest::ParseState HttpRequest::parseBuffer(const std::string &buffer)
 			break;
 		}
 		case PARSE_COMPLETE:
+			break;
 		case PARSE_ERROR:
 			break;
 		}

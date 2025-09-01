@@ -8,10 +8,11 @@
 #include <algorithm>
 #include "Logger.hpp"
 
-// Location object contains all required information for location
-// Param validation is done during parser stage, not here
-// Exists as reference to what the location block should contain
-// Contains methods relevant to server operations
+// TODO: Add index vector, rewrite to use vector instead of string
+//  Location object contains all required information for location
+//  Param validation is done during parser stage, not here
+//  Exists as reference to what the location block should contain
+//  Contains methods relevant to server operations
 class Location
 {
 private:
@@ -39,6 +40,7 @@ public:
 	const std::string &getRedirect() const;
 	const bool &getAutoIndex() const;
 	const std::string &getIndex() const;
+	const std::vector<std::string> &getIndexes() const;
 	const std::string &getCgiPath() const;
 	const std::map<std::string, std::string> &getCgiParams() const;
 	const std::string &getUploadPath() const;

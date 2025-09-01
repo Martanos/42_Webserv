@@ -8,7 +8,8 @@
 #include "Logger.hpp"
 #include "StringUtils.hpp"
 
-// This class is used to generate the response to the client
+// TODO:IMPLEMENT ACCESSORS AND MUTATORS
+//  This class is used to generate the response to the client
 class HttpResponse
 {
 private:
@@ -26,13 +27,29 @@ public:
 	~HttpResponse();
 	HttpResponse &operator=(HttpResponse const &rhs);
 
-	// Methods needed based on Client.cpp usage:
-	void reset();
+	// Accessors
+	int getStatusCode() const;
+	std::string getStatusMessage() const;
+	std::string getVersion() const;
+	std::map<std::string, std::string> getHeaders() const;
+	std::string getBody() const;
+	size_t getBytesSent() const;
+	std::string getRawResponse() const;
 	bool isEmpty() const;
-	void setStatus(int code, const std::string &message);
+
+	// Mutators
 	void setHeader(const std::string &name, const std::string &value);
+	void setStatusCode(int code);
+	void setStatusMessage(const std::string &message);
+	void setStatus(int code, const std::string &message);
+	void setVersion(const std::string &version);
+	void setHeaders(const std::map<std::string, std::string> &headers);
 	void setBody(const std::string &body);
-	std::string toString() const; // Generate full HTTP response
+	void setBytesSent(size_t bytesSent);
+	void setRawResponse(const std::string &rawResponse);
+
+	// Methods
+	std::string toString() const;
 };
 
 #endif /* **************************************************** HTTPRESPONSE_H */
