@@ -70,12 +70,6 @@ public:
 private:
 	void _processHTTPRequest();
 	void _generateErrorResponse(int statusCode, const std::string &message = "");
-	void _generateFileResponse(const std::string &filePath);
-	void _generateDirectoryListing(const std::string &dirPath);
-	bool _isMethodAllowed(const std::string &method) const;
-	std::string _resolveFilePath(const std::string &uri) const;
-	void _handleCGIRequest();
-	void _handleFileUpload();
 };
 
 #endif /* ********************************************************** CLIENT_H */
