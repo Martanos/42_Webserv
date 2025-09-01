@@ -14,7 +14,6 @@
 #include "Logger.hpp"
 
 // Class wrapper for file descriptors
-// TODO: Better FD state detection
 class FileDescriptor
 {
 private:
