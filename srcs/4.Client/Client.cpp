@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Client.cpp                                         :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: malee <malee@student.42singapore.sg>       +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2025/09/01 16:20:25 by malee             #+#    #+#             */
+/*   Updated: 2025/09/01 16:22:32 by malee            ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "Client.hpp"
 
 /*
@@ -6,6 +18,11 @@
 
 Client::Client()
 {
+	_currentState = CLIENT_WAITING_FOR_REQUEST;
+	_server = NULL;
+	_keepAlive = true;
+	_lastActivity = time(NULL);
+	_readBuffer = "";
 }
 
 Client::Client(const Client &src)
@@ -17,13 +34,11 @@ Client::Client(FileDescriptor socketFd, SocketAddress clientAddr)
 {
 	_socketFd = socketFd;
 	_clientAddr = clientAddr;
-	_currentState = CLIENT_READING_REQUEST;
+	_currentState = CLIENT_WAITING_FOR_REQUEST;
 	_server = NULL;
 	_keepAlive = true;
 	_lastActivity = time(NULL);
 	_readBuffer = "";
-	_request = HttpRequest();
-	_response = HttpResponse();
 }
 
 /*
@@ -32,14 +47,7 @@ Client::Client(FileDescriptor socketFd, SocketAddress clientAddr)
 
 Client::~Client()
 {
-	switch (_currentState)
-	{
-	case CLIENT_WAITING_FOR_REQUEST:
-		break;
-	case CLIENT_READING_REQUEST:
-		break;
-	}
-	// TODO: Use current state to determine error response
+	// Clean up resources based on current state if needed
 }
 
 /*
@@ -63,82 +71,286 @@ Client &Client::operator=(Client const &rhs)
 	return *this;
 }
 
-// TODO: Implement this
 std::ostream &operator<<(std::ostream &o, Client const &i)
 {
-	// o << "Value = " << i.getValue();
+	o << "Client(fd=" << i.getSocketFd() << ", state=" << i.getCurrentState() << ")";
 	return o;
 }
 
 /*
-** --------------------------------- METHODS ----------------------------------
+** --------------------------------- EVENT HANDLING ----------------------------------
 */
 
 void Client::handleEvent(epoll_event event)
 {
-	switch (event.events)
-	{
-	case EPOLLIN:
-		readRequest();
-		break;
-	case EPOLLOUT:
-		sendResponse();
-		break;
-	case EPOLLHUP | EPOLLRDHUP | EPOLLERR | EPOLLPRI:
+	updateActivity();
+
+	if (event.events & (EPOLLHUP | EPOLLRDHUP | EPOLLERR))
 	{
 		std::stringstream ss;
 		ss << "Client disconnected: " << _socketFd.getFd();
 		Logger::log(Logger::INFO, ss.str());
 		_socketFd.closeDescriptor();
-		throw std::runtime_error(ss.str());
+		throw std::runtime_error("Client disconnected");
 	}
-	default:
+
+	if (event.events & EPOLLIN)
 	{
-		std::stringstream ss;
-		ss << "Unknown event: " << event.events;
-		Logger::log(Logger::ERROR, ss.str());
-		throw std::runtime_error(ss.str());
+		readRequest();
 	}
+
+	if (event.events & EPOLLOUT)
+	{
+		sendResponse();
 	}
 }
 
 void Client::readRequest()
 {
-	// Check if client is in the correct state
-	if (_currentState != CLIENT_READING_REQUEST && _currentState != CLIENT_WAITING_FOR_REQUEST)
+	static const size_t BUFFER_SIZE = 4096;
+	char buffer[BUFFER_SIZE];
+
+	ssize_t bytesRead = recv(_socketFd.getFd(), buffer, BUFFER_SIZE - 1, 0);
+
+	if (bytesRead < 0)
 	{
+		if (errno == EWOULDBLOCK || errno == EAGAIN)
+		{
+			// No more data available right now
+			return;
+		}
 		std::stringstream ss;
-		ss << "error reading request client expected state: CLIENT_READING_REQUEST"
-		   << " current state: " << _currentState;
+		ss << "Error reading from client: " << strerror(errno);
 		Logger::log(Logger::ERROR, ss.str());
-		throw std::runtime_error(ss.str());
+		throw std::runtime_error("Read error");
 	}
-	_socketFd.readFile(_readBuffer);
-	if (_readBuffer.find("\r\n\r\n") == std::string::npos)
+	else if (bytesRead == 0)
 	{
-		_currentState = CLIENT_PROCESSING_REQUEST;
-		_request.parse(_readBuffer, _currentState);
-		// TODO: Request routing and server selection
-		_currentState = CLIENT_SENDING_RESPONSE;
+		// Client closed connection
+		Logger::log(Logger::INFO, "Client closed connection");
+		throw std::runtime_error("Client closed connection");
 	}
-	else
+
+	// Null-terminate and add to buffer
+	buffer[bytesRead] = '\0';
+	_readBuffer.append(buffer, bytesRead);
+
+	// Parse the request
+	HttpRequest::ParseState parseResult = _request.parseBuffer(_readBuffer);
+
+	switch (parseResult)
+	{
+	case HttpRequest::PARSE_COMPLETE:
+		_currentState = CLIENT_PROCESSING_REQUEST;
+		_processHTTPRequest();
+		_currentState = CLIENT_SENDING_RESPONSE;
+		break;
+
+	case HttpRequest::PARSE_ERROR:
+		_generateErrorResponse(400, "Bad Request");
+		_currentState = CLIENT_SENDING_RESPONSE;
+		break;
+
+	case HttpRequest::PARSE_REQUEST_LINE:
+	case HttpRequest::PARSE_HEADERS:
+	case HttpRequest::PARSE_BODY:
 		_currentState = CLIENT_READING_REQUEST;
+		// Continue reading - need more data
+		break;
+	}
 }
 
 void Client::sendResponse()
 {
-	// Check if client is in the correct state
 	if (_currentState != CLIENT_SENDING_RESPONSE)
 	{
-		std::stringstream ss;
-		ss << "error sending response client expected state: CLIENT_SENDING_RESPONSE"
-		   << " current state: " << _currentState;
-		Logger::log(Logger::ERROR, ss.str());
-		throw std::runtime_error(ss.str());
+		return;
 	}
-	_response.generateResponse(_request);
-	_socketFd.writeFile(_response.getResponse());
-	_currentState = CLIENT_WAITING_FOR_REQUEST;
+
+	// Generate response if not already done
+	if (_response.isEmpty()) // You'll need to add this method to HttpResponse
+	{
+		_generateErrorResponse(500, "Internal Server Error");
+	}
+	std::stringstream ss;
+	ss << _response;
+	std::string responseData = ss.str(); // You'll need to add this method
+
+	ssize_t bytesSent = send(_socketFd.getFd(), responseData.c_str(), responseData.length(), 0);
+
+	if (bytesSent < 0)
+	{
+		if (errno == EWOULDBLOCK || errno == EAGAIN)
+		{
+			return; // Try again later
+		}
+		throw std::runtime_error("Send error");
+	}
+
+	// For simplicity, assuming we send the complete response at once
+	// In a real implementation, you'd track partial sends
+	if (static_cast<size_t>(bytesSent) == responseData.length())
+	{
+		if (_keepAlive)
+		{
+			// Reset for next request
+			_request.reset();
+			_response.reset(); // You'll need to add this method
+			_readBuffer.clear();
+			_currentState = CLIENT_WAITING_FOR_REQUEST;
+		}
+		else
+		{
+			// Close connection
+			throw std::runtime_error("Connection should be closed");
+		}
+	}
+}
+
+/*
+** --------------------------------- PRIVATE METHODS ----------------------------------
+*/
+
+void Client::_processHTTPRequest()
+{
+	// Basic request processing
+	std::string method = _request.getMethod();
+	std::string uri = _request.getUri();
+
+	if (method == "GET")
+	{
+		_handleGetRequest();
+	}
+	else if (method == "POST")
+	{
+		_handlePostRequest();
+	}
+	else if (method == "DELETE")
+	{
+		_handleDeleteRequest();
+	}
+	else
+	{
+		_generateErrorResponse(405, "Method Not Allowed");
+	}
+}
+
+void Client::_handleGetRequest()
+{
+	// Simplified GET handling
+	std::string uri = _request.getUri();
+
+	if (uri == "/")
+	{
+		uri = "/index.html";
+	}
+
+	// Check if method is allowed for this location
+	if (!_isMethodAllowed("GET"))
+	{
+		_generateErrorResponse(405, "Method Not Allowed");
+		return;
+	}
+
+	std::string filePath = _resolveFilePath(uri);
+	_generateFileResponse(filePath);
+}
+
+void Client::_handlePostRequest()
+{
+	// Check if method is allowed
+	if (!_isMethodAllowed("POST"))
+	{
+		_generateErrorResponse(405, "Method Not Allowed");
+		return;
+	}
+
+	// Check content length limits
+	if (_server && _request.getContentLength() > static_cast<size_t>(_server->getClientMaxBodySize()))
+	{
+		_generateErrorResponse(413, "Payload Too Large");
+		return;
+	}
+
+	// Handle file upload or other POST operations
+	_handleFileUpload();
+}
+
+void Client::_handleDeleteRequest()
+{
+	if (!_isMethodAllowed("DELETE"))
+	{
+		_generateErrorResponse(405, "Method Not Allowed");
+		return;
+	}
+
+	// Implement DELETE logic
+	_generateErrorResponse(501, "Not Implemented");
+}
+
+void Client::_generateErrorResponse(int statusCode, const std::string &message)
+{
+	// This is a simplified error response generation
+	// You'll need to implement HttpResponse properly
+
+	std::stringstream response;
+	response << "HTTP/1.1 " << statusCode << " " << message << "\r\n";
+	response << "Content-Type: text/html\r\n";
+	response << "Connection: close\r\n";
+	response << "\r\n";
+	response << "<html><body><h1>" << statusCode << " " << message << "</h1></body></html>";
+
+	// Store response (you'll need to implement HttpResponse storage)
+	_keepAlive = false; // Close connection after error
+}
+
+void Client::_generateFileResponse(const std::string &filePath)
+{
+	// Simplified file response
+	_generateErrorResponse(501, "Not Implemented");
+}
+
+void Client::_generateDirectoryListing(const std::string &dirPath)
+{
+	// Simplified directory listing
+	_generateErrorResponse(501, "Not Implemented");
+}
+
+void Client::_handleCGIRequest()
+{
+	// Simplified CGI handling
+	_generateErrorResponse(501, "Not Implemented");
+}
+
+void Client::_handleFileUpload()
+{
+	// Simplified file upload
+	_generateErrorResponse(501, "Not Implemented");
+}
+
+bool Client::_isMethodAllowed(const std::string &method) const
+{
+	// This would check against server/location configuration
+	// For now, allow basic methods
+	return (method == "GET" || method == "POST" || method == "DELETE");
+}
+
+std::string Client::_resolveFilePath(const std::string &uri) const
+{
+	if (_server)
+	{
+		return _server->getRoot() + uri;
+	}
+	return "www" + uri; // Default fallback
+}
+
+/*
+** --------------------------------- ACCESSOR METHODS ----------------------------------
+*/
+
+Client::State Client::getCurrentState() const
+{
+	return _currentState;
 }
 
 void Client::setState(State newState)
@@ -146,23 +358,19 @@ void Client::setState(State newState)
 	_currentState = newState;
 }
 
-Client::State Client::getCurrentState() const
-{
-	return _currentState;
-}
-
 void Client::updateActivity()
 {
 	_lastActivity = time(NULL);
 }
 
-/*
-** --------------------------------- ACCESSOR ---------------------------------
-*/
+int Client::getSocketFd() const
+{
+	return _socketFd.getFd();
+}
 
 const std::string &Client::getClientIP() const
 {
-	return _clientAddr.getIP();
+	return _clientAddr.getHostString();
 }
 
 const Server *Client::getServer() const
@@ -175,4 +383,8 @@ void Client::setServer(const Server *server)
 	_server = server;
 }
 
-/* ************************************************************************** */
+bool Client::isTimedOut() const
+{
+	const time_t TIMEOUT_SECONDS = 30;
+	return (time(NULL) - _lastActivity) > TIMEOUT_SECONDS;
+}

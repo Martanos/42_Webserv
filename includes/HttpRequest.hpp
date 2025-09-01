@@ -69,6 +69,7 @@ private:
 	ParseState _parseRequestLine(const std::string &line);
 	ParseState _parseHeaderLine(const std::string &line);
 	ParseState _parseBody();
+	void _prepareForBody();
 	bool _isValidMethod(const std::string &method) const;
 	std::string _toLowerCase(const std::string &str) const;
 };
