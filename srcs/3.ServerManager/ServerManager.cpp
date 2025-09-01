@@ -51,41 +51,45 @@ void ServerManager::_handleEpollEvents(int ready_events, ServerMap &serverMap, s
 	// TODO: Fit everything into a switch statement
 	for (int i = 0; i < ready_events; ++i)
 	{
-		epoll_event &event = events[i];
-		if (event.events && _serverMap.hasFd(event.data.fd))
+		int fd = events[i].data.fd;
+		if (_serverMap.hasFd(fd))
 		{
 			for (std::map<ListeningSocket, std::vector<Server> >::const_iterator it = serverMap.getServerMap().begin(); it != serverMap.getServerMap().end(); ++it)
 			{
-				if (it->first.getFd() == event.data.fd)
+				if (it->first.getFd() == fd)
 				{
 					FileDescriptor clientFd = it->first.accept();
-					if (clientFd.getFd() != -1)
+					if (clientFd.isValid())
 					{
+						clientFd.setNonBlocking();
+						SocketAddress clientAddr;
+						Client newClient(clientFd, clientAddr);
+						newClient.setServer(&(it->second[0]));
+						_clients[clientFd] = newClient;
 						_epollManager.addFd(clientFd.getFd());
-						_clients.insert(std::make_pair(clientFd, Client()));
 						Logger::log(Logger::INFO, "New client connected: " + clientFd.getFd());
 					}
+					break;
 				}
-				continue;
 			}
 		}
-		else if (event.events && _clients.find(FileDescriptor(event.data.fd)) != _clients.end())
+		else if (_clients.find(FileDescriptor(fd)) != _clients.end())
 		{
 			try
 			{
-				_clients[FileDescriptor(event.data.fd)].handleEvent(event);
-				if (_clients[FileDescriptor(event.data.fd)].getServer()->getKeepAlive() == false && _clients[FileDescriptor(event.data.fd)].getCurrentState() == Client::CLIENT_WAITING_FOR_REQUEST)
+				_clients[FileDescriptor(fd)].handleEvent(events[i]);
+				if (_clients[FileDescriptor(fd)].getServer()->getKeepAlive() == false && _clients[FileDescriptor(fd)].getCurrentState() == Client::CLIENT_WAITING_FOR_REQUEST)
 				{
-					_clients.erase(FileDescriptor(event.data.fd));
-					_epollManager.removeFd(event.data.fd);
-					Logger::log(Logger::INFO, "Client disconnected: " + event.data.fd);
+					_clients.erase(FileDescriptor(fd));
+					_epollManager.removeFd(fd);
+					Logger::log(Logger::INFO, "Client disconnected: " + fd);
 				}
 			}
 			catch (...)
 			{
-				_clients.erase(FileDescriptor(event.data.fd));
-				_epollManager.removeFd(event.data.fd);
-				Logger::log(Logger::INFO, "Client disconnected: " + event.data.fd);
+				_clients.erase(FileDescriptor(fd));
+				_epollManager.removeFd(fd);
+				Logger::log(Logger::INFO, "Client disconnected: " + fd);
 			}
 			continue;
 		}
