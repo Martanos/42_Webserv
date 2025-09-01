@@ -1,0 +1,48 @@
+#ifndef STRINGUTILS_HPP
+#define STRINGUTILS_HPP
+
+#include <iostream>
+#include <string>
+#include <algorithm>
+#include <cctype>
+#include <string.h>
+#include <cstdlib>
+#include <cstddef>
+#include <vector>
+#include <sstream>
+
+// Static class for string operations
+class StringUtils
+{
+private:
+	StringUtils();
+	StringUtils(StringUtils const &src);
+	~StringUtils();
+	StringUtils &operator=(StringUtils const &rhs);
+
+public:
+	static std::string toLowerCase(const std::string &str)
+	{
+		std::string result = str;
+		std::transform(result.begin(), result.end(), result.begin(), ::tolower);
+		return result;
+	}
+
+	static std::string toUpperCase(const std::string &str)
+	{
+		std::string result = str;
+		std::transform(result.begin(), result.end(), result.begin(), ::toupper);
+		return result;
+	}
+
+	static std::string toString(size_t value)
+	{
+		std::stringstream ss;
+		ss << value;
+		return ss.str();
+	}
+};
+
+std::ostream &operator<<(std::ostream &o, StringUtils const &i);
+
+#endif /* ***************************************************** STRINGUTILS_H */

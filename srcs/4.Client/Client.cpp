@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   Client.cpp                                         :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: malee <malee@student.42singapore.sg>       +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/09/01 16:20:25 by malee             #+#    #+#             */
-/*   Updated: 2025/09/01 16:22:32 by malee            ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "Client.hpp"
 
 /*
@@ -173,7 +161,7 @@ void Client::sendResponse()
 		_generateErrorResponse(500, "Internal Server Error");
 	}
 	std::stringstream ss;
-	ss << _response;
+	ss << _response.toString();
 	std::string responseData = ss.str(); // You'll need to add this method
 
 	ssize_t bytesSent = send(_socketFd.getFd(), responseData.c_str(), responseData.length(), 0);

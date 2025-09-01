@@ -6,12 +6,13 @@
 
 HttpResponse::HttpResponse()
 {
+	reset();
 }
 
-HttpResponse::HttpResponse( const HttpResponse & src )
+HttpResponse::HttpResponse(const HttpResponse &src)
 {
+	*this = src;
 }
-
 
 /*
 ** -------------------------------- DESTRUCTOR --------------------------------
@@ -21,35 +22,68 @@ HttpResponse::~HttpResponse()
 {
 }
 
-
 /*
 ** --------------------------------- OVERLOAD ---------------------------------
 */
 
-HttpResponse &				HttpResponse::operator=( HttpResponse const & rhs )
+HttpResponse &HttpResponse::operator=(HttpResponse const &rhs)
 {
-	//if ( this != &rhs )
-	//{
-		//this->_value = rhs.getValue();
-	//}
+	if (this != &rhs)
+	{
+		_statusCode = rhs._statusCode;
+		_statusMessage = rhs._statusMessage;
+		_version = rhs._version;
+		_headers = rhs._headers;
+		_body = rhs._body;
+		_bytesSent = rhs._bytesSent;
+		_rawResponse = rhs._rawResponse;
+	}
 	return *this;
 }
-
-std::ostream &			operator<<( std::ostream & o, HttpResponse const & i )
-{
-	//o << "Value = " << i.getValue();
-	return o;
-}
-
 
 /*
 ** --------------------------------- METHODS ----------------------------------
 */
 
+bool HttpResponse::isEmpty() const
+{
+	return _body.empty();
+}
+
+void HttpResponse::setStatus(int code, const std::string &message)
+{
+	_statusCode = code;
+	_statusMessage = message;
+}
+
+void HttpResponse::setHeader(const std::string &name, const std::string &value)
+{
+	_headers[name] = value;
+}
+
+void HttpResponse::setBody(const std::string &body)
+{
+	_body = body;
+}
+
+std::string HttpResponse::toString() const
+{
+	return _rawResponse;
+}
+
+void HttpResponse::reset()
+{
+	_statusCode = 0;
+	_statusMessage = "";
+	_version = "";
+	_headers.clear();
+	_body = "";
+	_bytesSent = 0;
+	_rawResponse = "";
+}
 
 /*
 ** --------------------------------- ACCESSOR ---------------------------------
 */
-
 
 /* ************************************************************************** */

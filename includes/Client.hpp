@@ -15,6 +15,7 @@
 #include "FileDescriptor.hpp"
 #include "SocketAddress.hpp"
 #include "ServerMap.hpp"
+#include "StringUtils.hpp"
 
 // This class is used to handle the client connection and process the HTTP request
 class Client
