@@ -35,17 +35,7 @@ Client::Client(FileDescriptor socketFd, SocketAddress clientAddr)
 
 Client::~Client()
 {
-	if (_currentState != CLIENT_DISCONNECTED && _clientFd.isOpen())
-	{
-		// Send status messages based on client state
-		switch (_currentState)
-		{
-		case CLIENT_WAITING_FOR_REQUEST:
-			break;
-		case CLIENT_READING_REQUEST:
-			break;
-		}
-	}
+	// TODO: Automatic failure messages based on state
 }
 
 /*
