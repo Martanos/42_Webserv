@@ -58,7 +58,7 @@ HttpRequest &HttpRequest::operator=(HttpRequest const &rhs)
 ** --------------------------------- PARSING METHODS ----------------------------------
 */
 
-HttpRequest::ParseState HttpRequest::parseBuffer(const std::string &buffer)
+HttpRequest::ParseState HttpRequest::parseBuffer(const std::string &buffer, size_t bodyBufferSize)
 {
 	_rawBuffer += buffer;
 
@@ -68,10 +68,17 @@ HttpRequest::ParseState HttpRequest::parseBuffer(const std::string &buffer)
 		{
 		case PARSE_REQUEST_LINE:
 		{
+			if (_rawBuffer.empty())
+			{
+				return _parseState;
+			}
+			else if (_rawBuffer.size() > sysconf(_SC_PAGE_SIZE))
+			{
+				return PARSE_PAYLOAD_TOO_LARGE_REQUEST_LINE;
+			}
 			size_t newlinePos = _rawBuffer.find("\r\n");
 			if (newlinePos == std::string::npos)
 			{
-				// Need more data for complete request line
 				return _parseState;
 			}
 			std::string requestLine = _rawBuffer.substr(0, newlinePos);
@@ -81,10 +88,17 @@ HttpRequest::ParseState HttpRequest::parseBuffer(const std::string &buffer)
 		}
 		case PARSE_HEADERS:
 		{
+			if (_rawBuffer.empty())
+			{
+				return _parseState;
+			}
+			else if (_rawBuffer.size() > bodyBufferSize)
+			{
+				return PARSE_PAYLOAD_TOO_LARGE_HEADERS;
+			}
 			size_t newlinePos = _rawBuffer.find("\r\n");
 			if (newlinePos == std::string::npos)
 			{
-				// Need more data for complete header line
 				return _parseState;
 			}
 			std::string headerLine = _rawBuffer.substr(0, newlinePos);
@@ -111,6 +125,10 @@ HttpRequest::ParseState HttpRequest::parseBuffer(const std::string &buffer)
 		}
 		case PARSE_BODY:
 		{
+			if (_rawBuffer.size() > bodyBufferSize)
+			{
+				return PARSE_PAYLOAD_TOO_LARGE_BODY;
+			}
 			_parseState = _parseBody();
 			break;
 		}
@@ -131,13 +149,13 @@ HttpRequest::ParseState HttpRequest::_parseRequestLine(const std::string &line)
 	if (!(iss >> method >> uri >> version))
 	{
 		Logger::log(Logger::ERROR, "Invalid request line: " + line);
-		return PARSE_ERROR;
+		return PARSE_ERROR_INVALID_REQUEST_LINE;
 	}
 
 	if (!_isValidMethod(method))
 	{
 		Logger::log(Logger::ERROR, "Invalid HTTP method: " + method);
-		return PARSE_ERROR;
+		return PARSE_ERROR_INVALID_METHOD;
 	}
 
 	_method = method;
@@ -149,6 +167,7 @@ HttpRequest::ParseState HttpRequest::_parseRequestLine(const std::string &line)
 
 HttpRequest::ParseState HttpRequest::_parseHeaderLine(const std::string &line)
 {
+	// Extract the header name and value
 	size_t colonPos = line.find(':');
 	if (colonPos == std::string::npos)
 	{
@@ -168,7 +187,11 @@ HttpRequest::ParseState HttpRequest::_parseHeaderLine(const std::string &line)
 	if (end != std::string::npos)
 		value = value.substr(0, end + 1);
 
-	_headers[_toLowerCase(name)] = value;
+	// Attempt to insert lowercase header name into headers map
+	if (_headers.insert(std::make_pair(_toLowerCase(name), value)).second)
+	{
+		return PARSE_ERROR_INTERNAL;
+	}
 
 	return PARSE_HEADERS;
 }

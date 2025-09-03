@@ -18,6 +18,7 @@
 #include "StringUtils.hpp"
 #include "RequestRouter.hpp"
 #include "DefaultStatusMap.hpp"
+#include "MimeTypes.hpp"
 // This class is used to handle the client connection and process the HTTP request
 class Client
 {
@@ -29,40 +30,29 @@ public:
 		CLIENT_PROCESSING_REQUEST = 2,
 		CLIENT_SENDING_RESPONSE = 3,
 		CLIENT_READING_FILE = 4,
-		CLIENT_WRITING_FILE = 5
-	};
-
-	enum FileOperationState
-	{
-		FILE_OP_NONE = 0,
-		FILE_OP_OPENING = 1,
-		FILE_OP_READING = 2,
-		FILE_OP_WRITING = 3,
-		FILE_OP_COMPLETE = 4,
-		FILE_OP_ERROR = 5
+		CLIENT_WRITING_FILE = 5,
+		CLIENT_CLOSING = 6,
+		CLIENT_DISCONNECTED = 7
 	};
 
 private:
-	FileDescriptor _socketFd;
+	FileDescriptor _clientFd;
+	int _socketFd;
 	SocketAddress _clientAddr;
 	State _currentState;
 
 	HttpRequest _request;
 	HttpResponse _response;
+	std::vector<Server> &_potentialServers;
 	Server *_server;
 
 	std::string _readBuffer;
 	time_t _lastActivity;
 	bool _keepAlive;
 
-	FileOperationState _fileOpState;
-	FileDescriptor _fileOpFd;
-	size_t _fileOffset;
-	size_t _responseBytesSent;
-	size_t _fileSize;
-	std::string _filePath;
-
-	static const size_t FILE_CHUNK_SIZE = 8192; // 8KB
+	void _processHTTPRequest();
+	void _generateErrorResponse(int statusCode, const std::string &message = "");
+	void _identifyServer();
 
 public:
 	Client();
@@ -82,20 +72,13 @@ public:
 	bool isTimedOut() const;
 	void updateActivity();
 
-	// File operations
-	void startFileOperation(const std::string &filePath);
-	void readFileChunk();
-	void finishFileOperation();
-
-	// Getters
+	// Accessors
 	int getSocketFd() const;
 	const std::string &getClientIP() const;
 	const Server *getServer() const;
+	const std::vector<Server> &getPotentialServers() const;
+	void setPotentialServers(const std::vector<Server> &potentialServers) const;
 	void setServer(const Server *server);
-
-private:
-	void _processHTTPRequest();
-	void _generateErrorResponse(int statusCode, const std::string &message = "");
 };
 
 #endif /* ********************************************************** CLIENT_H */

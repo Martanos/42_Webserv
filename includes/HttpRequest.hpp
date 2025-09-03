@@ -8,9 +8,11 @@
 #include <sstream>
 #include <cstdlib>
 #include <algorithm>
+#include <sys/types.h>
+#include <unistd.h>
 #include "Logger.hpp"
 
-// This class is used to parse the request line, headers, and body
+// This class is used to receive the raw data and parse it into a request object
 class HttpRequest
 {
 public:
@@ -20,7 +22,21 @@ public:
 		PARSE_HEADERS = 1,
 		PARSE_BODY = 2,
 		PARSE_COMPLETE = 3,
-		PARSE_ERROR = 4
+		PARSE_ERROR = 4,
+		PARSE_ERROR_INTERNAL = 5,
+		PARSE_ERROR_INVALID_METHOD = 6,
+		PARSE_ERROR_INVALID_REQUEST_LINE = 7,
+		PARSE_PAYLOAD_TOO_LARGE_BODY = 8,
+		PARSE_PAYLOAD_TOO_LARGE_HEADERS = 9,
+		PARSE_PAYLOAD_TOO_LARGE_REQUEST_LINE = 10
+	};
+
+	enum BodyState
+	{
+		BODY_STATE_CHUNKED = 0,
+		BODY_STATE_CONTENT_LENGTH = 1,
+		BODY_STATE_COMPLETE = 2,
+		BODY_STATE_ERROR = 3
 	};
 
 private:
@@ -49,7 +65,7 @@ public:
 	~HttpRequest();
 
 	// Parsing methods
-	ParseState parseBuffer(const std::string &buffer);
+	ParseState parseBuffer(const std::string &buffer, size_t bodyBufferSize);
 	bool isComplete() const;
 	bool hasError() const;
 	void reset();
@@ -61,6 +77,7 @@ public:
 	const std::map<std::string, std::string> &getHeaders() const;
 	const std::string &getHeader(const std::string &name) const;
 	const std::string &getBody() const;
+	const std::string &getServer() const;
 	size_t getContentLength() const;
 	bool isChunked() const;
 

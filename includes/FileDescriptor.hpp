@@ -64,6 +64,10 @@ public:
 	// File operations
 	ssize_t readFile(std::string &buffer);
 	ssize_t writeFile(const std::string &buffer);
+
+	// Socket operations
+	ssize_t receiveData(std::string &buffer);
+	ssize_t sendData(const std::string &buffer);
 };
 
 std::ostream &operator<<(std::ostream &o, FileDescriptor const &i);

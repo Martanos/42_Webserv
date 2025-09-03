@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: seayeo <seayeo@student.42.fr>              +#+  +:+       +#+         #
+#    By: malee <malee@student.42singapore.sg>       +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/07/24 16:54:44 by malee             #+#    #+#              #
-#    Updated: 2025/08/13 13:54:30 by seayeo           ###   ########.fr        #
+#    Updated: 2025/09/03 16:38:55 by malee            ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -20,13 +20,29 @@ INC_DIR = includes
 OBJ_DIR = obj/srcs
 # Source files
 SRC_FILES = main.cpp \
-			configparser/Parser_classes/ConfigParser.cpp \
-			configparser/Parser_classes/ServerConfig.cpp \
-			configparser/Parser_classes/LocationConfig.cpp \
-			
-# 			configparser/utils/ServerConfig.cpp \
-# 			configparser/utils/LocationConfig.cpp \
-			# Add other source files here as needed
+			1.ConfigParser/ConfigParser.cpp \
+			1.ConfigParser/ServerConfig.cpp \
+			1.ConfigParser/LocationConfig.cpp \
+			2.ServerMap/ServerMap.cpp \
+			2.ServerMap/Server.cpp \
+			2.ServerMap/Location.cpp \
+			3.ServerManager/ServerManager.cpp \
+			3.ServerManager/EpollManager.cpp \
+			3.ServerManager/ListeningSocket.cpp \
+			4.Client/Client.cpp \
+			5.HTTPmanagement/HttpRequest.cpp \
+			5.HTTPmanagement/HttpResponse.cpp \
+			MethodHandlers/IMethodHandler.cpp \
+			MethodHandlers/GetMethodHandler.cpp \
+			MethodHandlers/PostMethodHandler.cpp \
+			MethodHandlers/DeleteMethodHandler.cpp \
+			MethodHandlers/MethodHandlerFactory.cpp \
+			MethodHandlers/RequestRouter.cpp \
+			Wrappers/FileDescriptor.cpp \
+			Wrappers/SocketAddress.cpp \
+			Wrappers/AddrInfo.cpp \
+			cgiexec/CgiEnv.cpp
+
 # Object files with proper path
 OBJ = $(addprefix $(OBJ_DIR)/, $(SRC_FILES:.cpp=.o))
 # Dependency files

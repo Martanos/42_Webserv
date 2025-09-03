@@ -66,10 +66,7 @@ void ServerManager::_handleEpollEvents(int ready_events, ServerMap &serverMap, s
 						clientFd.setNonBlocking();
 						SocketAddress clientAddr;
 						Client newClient(clientFd, clientAddr);
-						newClient.setServer(&(it->second[0]));
-						_clients[clientFd] = newClient;
-
-						// Start monitoring client for read events
+						newClient.setPotentialServers(serverMap.getServers(const_cast<ListeningSocket &>(it->first)));
 						_epollManager.addFd(clientFd.getFd(), EPOLLIN | EPOLLET);
 
 						std::stringstream ss;

@@ -284,6 +284,10 @@ bool FileDescriptor::isValid() const
 
 void FileDescriptor::setFd(int fd)
 {
+	if (isOpen())
+	{
+		closeDescriptor();
+	}
 	_fd = fd;
 }
 
@@ -311,7 +315,14 @@ FileDescriptor::operator int() const
 ssize_t FileDescriptor::readFile(std::string &buffer)
 {
 	if (buffer.empty())
-		buffer.resize(4096);
+		buffer.resize(sysconf(_SC_PAGESIZE));
+	else if (!isRegularFile())
+	{
+		std::stringstream ss;
+		ss << "FileDescriptor: Failed to read file: Not a regular file";
+		Logger::log(Logger::ERROR, ss.str());
+		throw std::runtime_error(ss.str());
+	}
 	ssize_t bytesRead = read(_fd, &buffer[0], buffer.size());
 	if (bytesRead == -1)
 	{
@@ -326,6 +337,8 @@ ssize_t FileDescriptor::readFile(std::string &buffer)
 
 ssize_t FileDescriptor::writeFile(const std::string &buffer)
 {
+	if (buffer.empty())
+		return 0;
 	ssize_t bytesWritten = write(_fd, buffer.data(), buffer.size());
 	if (bytesWritten == -1)
 	{
@@ -335,6 +348,46 @@ ssize_t FileDescriptor::writeFile(const std::string &buffer)
 		throw std::runtime_error(ss.str());
 	}
 	return bytesWritten;
+}
+
+/*
+** --------------------------------- FILE OPERATIONS ---------------------------------
+*/
+
+ssize_t FileDescriptor::receiveData(std::string &buffer)
+{
+	if (buffer.empty())
+		buffer.resize(sysconf(_SC_PAGESIZE));
+	else if (!isSocket())
+	{
+		std::stringstream ss;
+		ss << "FileDescriptor: Failed to receive data: Not a socket";
+		Logger::log(Logger::ERROR, ss.str());
+		throw std::runtime_error(ss.str());
+	}
+	return recv(_fd, &buffer[0], buffer.size(), MSG_NOSIGNAL);
+}
+
+ssize_t FileDescriptor::sendData(const std::string &buffer)
+{
+	if (buffer.empty())
+		return 0;
+	else if (!isSocket())
+	{
+		std::stringstream ss;
+		ss << "FileDescriptor: Failed to send data: Not a socket";
+		Logger::log(Logger::ERROR, ss.str());
+		throw std::runtime_error(ss.str());
+	}
+	ssize_t bytesSent = send(_fd, &buffer[0], buffer.size(), 0);
+	if (bytesSent == -1)
+	{
+		std::stringstream ss;
+		ss << "FileDescriptor: Failed to send data: " << strerror(errno);
+		Logger::log(Logger::ERROR, ss.str());
+		throw std::runtime_error(ss.str());
+	}
+	return bytesSent;
 }
 
 /* ************************************************************************** */

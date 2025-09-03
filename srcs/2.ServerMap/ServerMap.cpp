@@ -108,7 +108,7 @@ const std::vector<Server> &ServerMap::getServers(ListeningSocket &key) const
 	return _serverMap.at(key);
 }
 
-const Server &ServerMap::getServer(ListeningSocket &key, std::string &serverName) const
+const Server &ServerMap::getServer(ListeningSocket &key, std::string &serverName)
 {
 	std::vector<Server> servers = getServers(key);
 	for (std::vector<Server>::const_iterator server = servers.begin(); server != servers.end(); ++server)

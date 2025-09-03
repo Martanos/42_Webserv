@@ -51,7 +51,7 @@ public:
 	const std::vector<Server> &getServers(ListeningSocket &key) const;
 
 	// Individual servers
-	const Server &getServer(ListeningSocket &key, std::string &serverName) const;
+	const Server &getServer(ListeningSocket &key, std::string &serverName);
 
 	// Utility Methods
 	bool hasFd(int &fd) const;
