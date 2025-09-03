@@ -51,9 +51,12 @@ void ServerManager::_handleEpollEvents(int ready_events, ServerMap &serverMap, s
 	for (int i = 0; i < ready_events; ++i)
 	{
 		int fd = events[i].data.fd;
+
 		if (_serverMap.hasFd(fd))
 		{
-			for (std::map<ListeningSocket, std::vector<Server> >::const_iterator it = serverMap.getServerMap().begin(); it != serverMap.getServerMap().end(); ++it)
+			// Handle new connection
+			for (std::map<ListeningSocket, std::vector<Server> >::const_iterator it = serverMap.getServerMap().begin();
+				 it != serverMap.getServerMap().end(); ++it)
 			{
 				if (it->first.getFd() == fd)
 				{
@@ -65,8 +68,13 @@ void ServerManager::_handleEpollEvents(int ready_events, ServerMap &serverMap, s
 						Client newClient(clientFd, clientAddr);
 						newClient.setServer(&(it->second[0]));
 						_clients[clientFd] = newClient;
-						_epollManager.addFd(clientFd.getFd());
-						Logger::log(Logger::INFO, "New client connected: " + clientFd.getFd());
+
+						// Start monitoring client for read events
+						_epollManager.addFd(clientFd.getFd(), EPOLLIN | EPOLLET);
+
+						std::stringstream ss;
+						ss << "New client connected: " << clientFd.getFd();
+						Logger::log(Logger::INFO, ss.str());
 					}
 					break;
 				}
@@ -76,21 +84,51 @@ void ServerManager::_handleEpollEvents(int ready_events, ServerMap &serverMap, s
 		{
 			try
 			{
+				Client::State oldState = _clients[FileDescriptor(fd)].getCurrentState();
 				_clients[FileDescriptor(fd)].handleEvent(events[i]);
-				if (_clients[FileDescriptor(fd)].getServer()->getKeepAlive() == false && _clients[FileDescriptor(fd)].getCurrentState() == Client::CLIENT_WAITING_FOR_REQUEST)
+				Client::State newState = _clients[FileDescriptor(fd)].getCurrentState();
+
+				// Update epoll events based on state change
+				if (oldState != newState)
+				{
+					uint32_t epollEvents = 0;
+					switch (newState)
+					{
+					case Client::CLIENT_READING_REQUEST:
+					case Client::CLIENT_READING_FILE:
+						epollEvents = EPOLLIN | EPOLLET;
+						break;
+					case Client::CLIENT_SENDING_RESPONSE:
+						epollEvents = EPOLLOUT | EPOLLET;
+						break;
+					case Client::CLIENT_WAITING_FOR_REQUEST:
+						epollEvents = EPOLLIN | EPOLLET;
+						break;
+					default:
+						epollEvents = EPOLLIN | EPOLLET;
+						break;
+					}
+					_epollManager.modifyFd(fd, epollEvents);
+				}
+
+				// Check for connection cleanup
+				if (newState == Client::CLIENT_WAITING_FOR_REQUEST && !_clients[FileDescriptor(fd)].getServer()->getKeepAlive())
 				{
 					_clients.erase(FileDescriptor(fd));
 					_epollManager.removeFd(fd);
-					Logger::log(Logger::INFO, "Client disconnected: " + fd);
+					std::stringstream ss;
+					ss << "Client disconnected: " << fd;
+					Logger::log(Logger::INFO, ss.str());
 				}
 			}
-			catch (...)
+			catch (const std::exception &e)
 			{
 				_clients.erase(FileDescriptor(fd));
 				_epollManager.removeFd(fd);
-				Logger::log(Logger::INFO, "Client disconnected: " + fd);
+				std::stringstream ss;
+				ss << "Client " << fd << " disconnected: " << e.what();
+				Logger::log(Logger::INFO, ss.str());
 			}
-			continue;
 		}
 	}
 }

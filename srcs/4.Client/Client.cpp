@@ -83,10 +83,26 @@ void Client::handleEvent(epoll_event event)
 
 	switch (_currentState)
 	{
+	case CLIENT_WAITING_FOR_REQUEST:
+		if (event.events & EPOLLIN)
+		{
+			_currentState = CLIENT_READING_REQUEST;
+			readRequest();
+		}
+		break;
 	case CLIENT_READING_REQUEST:
 		if (event.events & EPOLLIN)
 		{
 			readRequest();
+		}
+		break;
+	case CLIENT_PROCESSING_REQUEST:
+		// This state should transition automatically in readRequest()
+		break;
+	case CLIENT_SENDING_RESPONSE:
+		if (event.events & EPOLLOUT)
+		{
+			sendResponse();
 		}
 		break;
 	case CLIENT_READING_FILE:
@@ -95,7 +111,7 @@ void Client::handleEvent(epoll_event event)
 			readFileChunk();
 		}
 		break;
-	case CLIENT_SENDING_RESPONSE:
+	case CLIENT_WRITING_FILE:
 		if (event.events & EPOLLOUT)
 		{
 			sendResponse();
