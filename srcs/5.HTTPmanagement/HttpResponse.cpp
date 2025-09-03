@@ -66,6 +66,7 @@ void HttpResponse::setBody(const std::string &body)
 	_body = body;
 }
 
+// Formats the response into a HTTP 1.1 compliant format
 std::string HttpResponse::toString() const
 {
 	std::stringstream response;

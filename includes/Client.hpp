@@ -27,7 +27,19 @@ public:
 		CLIENT_WAITING_FOR_REQUEST = 0,
 		CLIENT_READING_REQUEST = 1,
 		CLIENT_PROCESSING_REQUEST = 2,
-		CLIENT_SENDING_RESPONSE = 3
+		CLIENT_SENDING_RESPONSE = 3,
+		CLIENT_READING_FILE = 4,
+		CLIENT_WRITING_FILE = 5
+	};
+
+	enum FileOperationState
+	{
+		FILE_OP_NONE = 0,
+		FILE_OP_OPENING = 1,
+		FILE_OP_READING = 2,
+		FILE_OP_WRITING = 3,
+		FILE_OP_COMPLETE = 4,
+		FILE_OP_ERROR = 5
 	};
 
 private:
@@ -42,6 +54,15 @@ private:
 	std::string _readBuffer;
 	time_t _lastActivity;
 	bool _keepAlive;
+
+	FileOperationState _fileOpState;
+	FileDescriptor _fileOpFd;
+	size_t _fileOffset;
+	size_t _responseBytesSent;
+	size_t _fileSize;
+	std::string _filePath;
+
+	static const size_t FILE_CHUNK_SIZE = 8192; // 8KB
 
 public:
 	Client();
@@ -60,6 +81,9 @@ public:
 	void setState(State newState);
 	bool isTimedOut() const;
 	void updateActivity();
+
+	// File operations
+	void startFileOperation(const std::string &filePath);
 
 	// Getters
 	int getSocketFd() const;
