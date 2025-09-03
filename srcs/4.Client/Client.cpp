@@ -6,7 +6,7 @@
 /*   By: malee <malee@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/09/01 17:12:02 by malee             #+#    #+#             */
-/*   Updated: 2025/09/01 22:21:40 by malee            ###   ########.fr       */
+/*   Updated: 2025/09/03 15:03:21 by malee            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -167,14 +167,14 @@ void Client::sendResponse()
 		return;
 	}
 
-	// Generate response if not already done
-	if (_response.isEmpty()) // You'll need to add this method to HttpResponse
+	// If no response detected something went wrong send back error
+	if (_response.isEmpty())
 	{
 		_generateErrorResponse(500, "Internal Server Error");
 	}
 	std::stringstream ss;
 	ss << _response.toString();
-	std::string responseData = ss.str(); // You'll need to add this method
+	std::string responseData = ss.str();
 
 	ssize_t bytesSent = send(_socketFd.getFd(), responseData.c_str(), responseData.length(), 0);
 
@@ -182,7 +182,7 @@ void Client::sendResponse()
 	{
 		if (errno == EWOULDBLOCK || errno == EAGAIN)
 		{
-			return; // Try again later
+			return;
 		}
 		throw std::runtime_error("Send error");
 	}
