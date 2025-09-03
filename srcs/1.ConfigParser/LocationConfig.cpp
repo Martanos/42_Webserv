@@ -7,7 +7,8 @@ LocationConfig::LocationConfig() : _autoIndex(false) {}
 LocationConfig::~LocationConfig() {}
 
 // Copy constructor
-LocationConfig::LocationConfig(const LocationConfig &other) {
+LocationConfig::LocationConfig(const LocationConfig &other)
+{
     _path = other._path;
     _root = other._root;
     _allowedMethods = other._allowedMethods;
@@ -21,8 +22,10 @@ LocationConfig::LocationConfig(const LocationConfig &other) {
 }
 
 // Assignment operator
-LocationConfig& LocationConfig::operator=(const LocationConfig &other) {
-    if (this != &other) {
+LocationConfig &LocationConfig::operator=(const LocationConfig &other)
+{
+    if (this != &other)
+    {
         _path = other._path;
         _root = other._root;
         _allowedMethods = other._allowedMethods;
@@ -38,7 +41,8 @@ LocationConfig& LocationConfig::operator=(const LocationConfig &other) {
 }
 
 // Equality operator
-bool LocationConfig::operator==(const LocationConfig &other) const {
+bool LocationConfig::operator==(const LocationConfig &other) const
+{
     return _path == other._path &&
            _root == other._root &&
            _allowedMethods == other._allowedMethods &&
@@ -52,16 +56,16 @@ bool LocationConfig::operator==(const LocationConfig &other) const {
 }
 
 // Getters
-const std::string& LocationConfig::getPath() const { return _path; }
-const std::string& LocationConfig::getRoot() const { return _root; }
-const std::vector<std::string>& LocationConfig::getAllowedMethods() const { return _allowedMethods; }
-const std::string& LocationConfig::getRedirect() const { return _redirect; }
+const std::string &LocationConfig::getPath() const { return _path; }
+const std::string &LocationConfig::getRoot() const { return _root; }
+const std::vector<std::string> &LocationConfig::getAllowedMethods() const { return _allowedMethods; }
+const std::string &LocationConfig::getRedirect() const { return _redirect; }
 bool LocationConfig::isAutoIndexEnabled() const { return _autoIndex; }
-const std::string& LocationConfig::getIndex() const { return _index; }
-const std::string& LocationConfig::getCgiPath() const { return _cgiPath; }
-const std::string& LocationConfig::getCgiIndex() const { return _cgiIndex; }
-const std::map<std::string, std::string>& LocationConfig::getCgiParams() const { return _cgiParams; }
-const std::string& LocationConfig::getUploadPath() const { return _uploadPath; }
+const std::string &LocationConfig::getIndex() const { return _index; }
+const std::string &LocationConfig::getCgiPath() const { return _cgiPath; }
+const std::string &LocationConfig::getCgiIndex() const { return _cgiIndex; }
+const std::map<std::string, std::string> &LocationConfig::getCgiParams() const { return _cgiParams; }
+const std::string &LocationConfig::getUploadPath() const { return _uploadPath; }
 // Parsing methods
 void LocationConfig::addPath(std::string line, double lineNumber)
 {
@@ -349,35 +353,36 @@ void LocationConfig::printConfig() const
 {
     std::cout << "    Location Configuration:" << std::endl;
     std::cout << "      Path: " << _path << std::endl;
-    
+
     if (!_root.empty())
         std::cout << "      Root: " << _root << std::endl;
-    
+
     if (!_allowedMethods.empty())
     {
         std::cout << "      Allowed Methods: ";
         for (size_t i = 0; i < _allowedMethods.size(); ++i)
         {
-            if (i > 0) std::cout << ", ";
+            if (i > 0)
+                std::cout << ", ";
             std::cout << _allowedMethods[i];
         }
         std::cout << std::endl;
     }
-    
+
     if (!_redirect.empty())
         std::cout << "      Redirect: " << _redirect << std::endl;
-    
+
     std::cout << "      Auto Index: " << (_autoIndex ? "on" : "off") << std::endl;
-    
+
     if (!_index.empty())
         std::cout << "      Index: " << _index << std::endl;
-    
+
     if (!_cgiPath.empty())
         std::cout << "      CGI Path: " << _cgiPath << std::endl;
-    
+
     if (!_cgiIndex.empty())
         std::cout << "      CGI Index: " << _cgiIndex << std::endl;
-    
+
     if (!_cgiParams.empty())
     {
         std::cout << "      CGI Parameters:" << std::endl;
@@ -386,7 +391,7 @@ void LocationConfig::printConfig() const
             std::cout << "        " << it->first << " = " << it->second << std::endl;
         }
     }
-    
+
     if (!_uploadPath.empty())
         std::cout << "      Upload Path: " << _uploadPath << std::endl;
 }

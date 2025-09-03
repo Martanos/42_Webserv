@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   Client.cpp                                         :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: malee <malee@student.42singapore.sg>       +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/09/01 17:12:02 by malee             #+#    #+#             */
-/*   Updated: 2025/09/03 15:50:10 by malee            ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "Client.hpp"
 
 /*
@@ -171,96 +159,76 @@ void Client::readRequest()
 	}
 }
 
-void sendResponse()
+void Client::sendResponse()
 {
-	// First, send HTTP headers if not sent yet
-	if (_responseBytesSent == 0)
+	if (_response.getRawResponse().empty())
 	{
-		std::string headers = _response.getHeadersString();
-		ssize_t headersSent = send(_socketFd.getFd(), headers.c_str(),
-								   headers.length(), MSG_NOSIGNAL);
-
-		if (headersSent > 0)
-		{
-			_responseBytesSent += headersSent;
-			if (headersSent < static_cast<ssize_t>(headers.length()))
-			{
-				// Partial send - need to continue later
-				return;
-			}
-		}
-		else if (headersSent < 0)
-		{
-			if (errno == EAGAIN || errno == EWOULDBLOCK)
-			{
-				return; // Try again later
-			}
-			else
-			{
-				throw std::runtime_error("Send error");
-			}
-		}
+		// Generate the raw HTTP response if not already done
+		_response.setRawResponse(_response.toString());
 	}
 
-	// Send file data from buffer
-	if (!_fileBuffer.empty())
+	std::string responseData = _response.getRawResponse();
+	size_t totalSize = responseData.length();
+	size_t remainingBytes = totalSize - _response.getBytesSent();
+
+	if (remainingBytes == 0)
 	{
-		ssize_t bytesSent = send(_socketFd.getFd(), _fileBuffer.c_str(),
-								 _fileBuffer.length(), MSG_NOSIGNAL);
-
-		if (bytesSent > 0)
+		// Response fully sent
+		if (_keepAlive)
 		{
-			// Remove sent data from buffer
-			_fileBuffer.erase(0, bytesSent);
-
-			// If buffer is empty and we haven't read the whole file yet,
-			// switch back to reading
-			if (_fileBuffer.empty() && _fileOffset < _fileSize)
-			{
-				_currentState = CLIENT_READING_FILE;
-				_fileOpState = FILE_OP_READING;
-				// Switch epoll back to EPOLLIN for file reading
-			}
+			// Reset for next request
+			_request.reset();
+			_response.reset();
+			_readBuffer.clear();
+			_currentState = CLIENT_WAITING_FOR_REQUEST;
 		}
-		else if (bytesSent < 0)
+		else
 		{
-			if (errno == EAGAIN || errno == EWOULDBLOCK)
-			{
-				return; // Try again later
-			}
-			else
-			{
-				throw std::runtime_error("Send error");
-			}
+			// Close connection
+			throw std::runtime_error("Response complete - close connection");
 		}
+		return;
 	}
 
-	// Check if we're done
-	if (_fileBuffer.empty() && _fileOffset >= _fileSize)
+	// Send remaining data
+	const char *dataPtr = responseData.c_str() + _response.getBytesSent();
+	ssize_t bytesSent = send(_socketFd.getFd(), dataPtr, remainingBytes, MSG_NOSIGNAL);
+
+	if (bytesSent > 0)
 	{
-		finishFileOperation();
+		_response.setBytesSent(_response.getBytesSent() + bytesSent);
+
+		// Log progress for large responses
+		if (totalSize > 1024)
+		{
+			std::stringstream ss;
+			ss << "Sent " << _response.getBytesSent() << "/" << totalSize << " bytes to client " << _socketFd.getFd();
+			Logger::log(Logger::DEBUG, ss.str());
+		}
 	}
-}
-
-void finishFileOperation()
-{
-	_fileOpFd.closeDescriptor();
-	_fileOpState = FILE_OP_NONE;
-	_fileBuffer.clear();
-
-	if (_keepAlive)
+	else if (bytesSent == 0)
 	{
-		// Reset for next request
-		_request.reset();
-		_response.reset();
-		_currentState = CLIENT_WAITING_FOR_REQUEST;
+		// Connection closed by client
+		Logger::log(Logger::INFO, "Client closed connection during response");
+		throw std::runtime_error("Client closed connection");
 	}
 	else
 	{
-		// Close connection
-		throw std::runtime_error("Connection should be closed");
+		// Error occurred
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+		{
+			// Socket buffer full, try again later
+			return;
+		}
+		else
+		{
+			std::stringstream ss;
+			ss << "Send error: " << strerror(errno);
+			Logger::log(Logger::ERROR, ss.str());
+			throw std::runtime_error(ss.str());
+		}
 	}
-};
+}
 
 /*
 ** --------------------------------- PRIVATE METHODS ----------------------------------

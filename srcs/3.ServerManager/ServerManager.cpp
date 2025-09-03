@@ -48,7 +48,6 @@ void ServerManager::_addServerFdsToEpoll(ServerMap &serverMap)
 
 void ServerManager::_handleEpollEvents(int ready_events, ServerMap &serverMap, std::vector<epoll_event> &events)
 {
-	// TODO: Fit everything into a switch statement
 	for (int i = 0; i < ready_events; ++i)
 	{
 		int fd = events[i].data.fd;

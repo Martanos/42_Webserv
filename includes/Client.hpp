@@ -84,6 +84,8 @@ public:
 
 	// File operations
 	void startFileOperation(const std::string &filePath);
+	void readFileChunk();
+	void finishFileOperation();
 
 	// Getters
 	int getSocketFd() const;
