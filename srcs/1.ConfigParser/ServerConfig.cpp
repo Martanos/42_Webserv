@@ -5,6 +5,7 @@ ServerConfig::ServerConfig()
 {
     _clientMaxBodySize = DEFAULT_CLIENT_MAX_BODY_SIZE;
     _autoindex = DEFAULT_AUTOINDEX;
+    _keepAlive = DEFAULT_KEEP_ALIVE;
 }
 
 // Destructor
@@ -47,6 +48,7 @@ const std::map<int, std::string> &ServerConfig::getStatusPages() const { return 
 const std::vector<LocationConfig> &ServerConfig::getLocations() const { return _locations; }
 const std::string &ServerConfig::getAccessLog() const { return _accessLog; }
 const std::string &ServerConfig::getErrorLog() const { return _errorLog; }
+bool ServerConfig::getKeepAlive() const { return _keepAlive; }
 
 // Setters
 // void ServerConfig::setServerNames(const std::vector<std::string> &serverNames) { _serverNames = serverNames; }
@@ -517,6 +519,28 @@ void ServerConfig::printConfig() const
     {
         std::cout << "Error Log: " << _errorLog << std::endl;
     }
+}
+
+void ServerConfig::addKeepAlive(std::string line, double lineNumber)
+{
+    lineValidation(line, lineNumber);
+    std::stringstream keepAliveStream(line);
+    std::string token;
+    std::stringstream errorMessage;
+
+    if (!(keepAliveStream >> token) || token != "keepalive")
+    {
+        errorMessage << "Invalid keepalive directive at line " << lineNumber;
+        Logger::log(Logger::ERROR, errorMessage.str());
+        throw std::runtime_error(errorMessage.str());
+    }
+    if (!(keepAliveStream >> token) || (token != "on" && token != "off"))
+    {
+        errorMessage << "Invalid keepalive value at line " << lineNumber << ": " << token;
+        Logger::log(Logger::ERROR, errorMessage.str());
+        throw std::runtime_error(errorMessage.str());
+    }
+    _keepAlive = (token == "on");
 }
 
 // Utils
