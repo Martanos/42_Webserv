@@ -181,6 +181,7 @@ void PostMethodHandler::handleFileUpload(const HttpRequest &request,
 }
 
 // TODO: Have more robust file name generation
+// TODO: Update to work with temp file
 bool PostMethodHandler::saveUploadedFile(const std::string &uploadPath,
 										 const std::string &filename,
 										 const std::string &content) const
