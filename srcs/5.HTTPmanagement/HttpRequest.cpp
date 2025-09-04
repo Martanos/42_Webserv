@@ -6,16 +6,21 @@
 
 HttpRequest::HttpRequest()
 {
+	_tempFd = FileDescriptor(-1);
 	_method = "";
 	_uri = "";
 	_version = "";
-	_headers = std::map<std::string, std::string>();
+	_headers = std::map<std::string, std::vector<std::string> >();
 	_body = "";
 	_contentLength = 0;
 	_isChunked = false;
 	_parseState = PARSE_REQUEST_LINE;
 	_rawBuffer = "";
-	_bodyBytesReceived = 0;
+	_bytesReceived = 0;
+	_maxHeaderSize = HTTP::DEFAULT_BUFFER_SIZE;
+	_maxBodySize = HTTP::DEFAULT_BUFFER_SIZE;
+	_maxRequestLineSize = HTTP::DEFAULT_BUFFER_SIZE;
+	_maxContentLength = HTTP::DEFAULT_MAX_CONTENT_LENGTH;
 }
 
 HttpRequest::HttpRequest(const HttpRequest &src)
@@ -29,7 +34,6 @@ HttpRequest::HttpRequest(const HttpRequest &src)
 
 HttpRequest::~HttpRequest()
 {
-	_headers.clear();
 }
 
 /*
@@ -49,7 +53,7 @@ HttpRequest &HttpRequest::operator=(HttpRequest const &rhs)
 		_isChunked = rhs._isChunked;
 		_parseState = rhs._parseState;
 		_rawBuffer = rhs._rawBuffer;
-		_bodyBytesReceived = rhs._bodyBytesReceived;
+		_bytesReceived = rhs._bytesReceived;
 	}
 	return *this;
 }
@@ -58,10 +62,15 @@ HttpRequest &HttpRequest::operator=(HttpRequest const &rhs)
 ** --------------------------------- PARSING METHODS ----------------------------------
 */
 
-HttpRequest::ParseState HttpRequest::parseBuffer(const std::string &buffer, size_t bodyBufferSize)
+HttpRequest::ParseState HttpRequest::parseBuffer(const std::string &buffer, ssize_t bodyBufferSize)
 {
 	_rawBuffer += buffer;
+	_bytesReceived += buffer.size();
 
+	if (_bytesReceived > _maxContentLength)
+	{
+		return PARSE_ERROR_CONTENT_LENGTH_TOO_LONG;
+	}
 	while (_parseState != PARSE_COMPLETE && _parseState != PARSE_ERROR)
 	{
 		switch (_parseState)
@@ -72,9 +81,9 @@ HttpRequest::ParseState HttpRequest::parseBuffer(const std::string &buffer, size
 			{
 				return _parseState;
 			}
-			else if (_rawBuffer.size() > sysconf(_SC_PAGE_SIZE))
+			else if (_rawBuffer.size() > _maxRequestLineSize)
 			{
-				return PARSE_PAYLOAD_TOO_LARGE_REQUEST_LINE;
+				return PARSE_ERROR_REQUEST_LINE_TOO_LONG;
 			}
 			size_t newlinePos = _rawBuffer.find("\r\n");
 			if (newlinePos == std::string::npos)
@@ -92,9 +101,9 @@ HttpRequest::ParseState HttpRequest::parseBuffer(const std::string &buffer, size
 			{
 				return _parseState;
 			}
-			else if (_rawBuffer.size() > bodyBufferSize)
+			else if (_rawBuffer.size() > _maxHeaderSize)
 			{
-				return PARSE_PAYLOAD_TOO_LARGE_HEADERS;
+				return PARSE_ERROR_HEADER_TOO_LONG;
 			}
 			size_t newlinePos = _rawBuffer.find("\r\n");
 			if (newlinePos == std::string::npos)
@@ -103,18 +112,13 @@ HttpRequest::ParseState HttpRequest::parseBuffer(const std::string &buffer, size
 			}
 			std::string headerLine = _rawBuffer.substr(0, newlinePos);
 			_rawBuffer.erase(0, newlinePos + 2);
-
 			if (headerLine.empty())
 			{
 				// Empty line indicates end of headers
-				_prepareForBody();
-				if (_contentLength == 0 && !_isChunked)
+				_parseState = _parseHeaders();
+				if (_parseState != PARSE_HEADERS)
 				{
-					_parseState = PARSE_COMPLETE;
-				}
-				else
-				{
-					_parseState = PARSE_BODY;
+					return _parseState;
 				}
 			}
 			else
@@ -127,7 +131,7 @@ HttpRequest::ParseState HttpRequest::parseBuffer(const std::string &buffer, size
 		{
 			if (_rawBuffer.size() > bodyBufferSize)
 			{
-				return PARSE_PAYLOAD_TOO_LARGE_BODY;
+				return PARSE_ERROR;
 			}
 			_parseState = _parseBody();
 			break;
@@ -145,17 +149,33 @@ HttpRequest::ParseState HttpRequest::_parseRequestLine(const std::string &line)
 {
 	std::istringstream iss(line);
 	std::string method, uri, version;
+	std::string extraInfo;
 
 	if (!(iss >> method >> uri >> version))
 	{
 		Logger::log(Logger::ERROR, "Invalid request line: " + line);
 		return PARSE_ERROR_INVALID_REQUEST_LINE;
 	}
-
-	if (!_isValidMethod(method))
+	else if (method.empty() || uri.empty() || version.empty())
+	{
+		Logger::log(Logger::ERROR, "Invalid request line: " + line);
+		return PARSE_ERROR_INVALID_REQUEST_LINE;
+	}
+	else if (version != "HTTP/1.1")
+	{
+		Logger::log(Logger::ERROR, "Invalid HTTP version: " + version);
+		return PARSE_ERROR_INVALID_HTTP_VERSION;
+	}
+	else if (!iss.eof())
+	{
+		iss >> extraInfo;
+		Logger::log(Logger::ERROR, "Invalid request line: " + line + " - Extra info: " + extraInfo);
+		return PARSE_ERROR_MALFORMED_REQUEST;
+	}
+	else if (!_isValidMethod(method))
 	{
 		Logger::log(Logger::ERROR, "Invalid HTTP method: " + method);
-		return PARSE_ERROR_INVALID_METHOD;
+		return PARSE_ERROR_INVALID_HTTP_METHOD;
 	}
 
 	_method = method;
@@ -167,60 +187,178 @@ HttpRequest::ParseState HttpRequest::_parseRequestLine(const std::string &line)
 
 HttpRequest::ParseState HttpRequest::_parseHeaderLine(const std::string &line)
 {
-	// Extract the header name and value
-	size_t colonPos = line.find(':');
+	// Extract the header and attempt to insert into headers map
+	std::stringstream ss(line);
+	std::string name, token;
+
+	if (!(ss >> name))
+	{
+		Logger::log(Logger::ERROR, "Internal server error: " + line);
+		return PARSE_ERROR_INTERNAL_SERVER_ERROR;
+	}
+	ss >> name;
+	size_t colonPos = name.find(':');
 	if (colonPos == std::string::npos)
 	{
 		Logger::log(Logger::ERROR, "Invalid header line: " + line);
-		return PARSE_ERROR;
+		return PARSE_ERROR_MALFORMED_REQUEST;
 	}
-
 	std::string name = line.substr(0, colonPos);
-	std::string value = line.substr(colonPos + 1);
 
-	// Trim whitespace from value
-	size_t start = value.find_first_not_of(" \t");
-	if (start != std::string::npos)
-		value = value.substr(start);
-
-	size_t end = value.find_last_not_of(" \t\r\n");
-	if (end != std::string::npos)
-		value = value.substr(0, end + 1);
-
-	// Attempt to insert lowercase header name into headers map
-	if (_headers.insert(std::make_pair(_toLowerCase(name), value)).second)
+	// Find if header already exists, if it doesnt create new key with empty vector
+	std::map<std::string, std::vector<std::string> >::iterator it = _headers.find(_toLowerCase(name));
+	if (it == _headers.end())
 	{
-		return PARSE_ERROR_INTERNAL;
+		it = _headers.insert(std::make_pair(_toLowerCase(name), std::vector<std::string>())).first;
+		if (it == _headers.end())
+		{
+			Logger::log(Logger::ERROR, "Internal server error: " + line);
+			return PARSE_ERROR_INTERNAL_SERVER_ERROR;
+		}
+	}
+	// Insert whitespace/comma separated values into vector
+	while (std::getline(ss, token, ','))
+	{
+		size_t start = 0;
+		while (start < token.size() && std::isspace(static_cast<unsigned char>(token[start])))
+			++start;
+		if (start == token.size())
+		{
+			token = "";
+			it->second.push_back(token);
+			continue;
+		}
+		size_t end = token.size() - 1;
+		while (end > start && std::isspace(static_cast<unsigned char>(token[end])))
+			--end;
+		if (start != std::string::npos && end != std::string::npos)
+			token = token.substr(start, end - start + 1);
+		else
+			token = "";
+
+		it->second.push_back(token);
 	}
 
 	return PARSE_HEADERS;
 }
 
-void HttpRequest::_prepareForBody()
+HttpRequest::ParseState HttpRequest::_parseHeaders()
 {
-	std::map<std::string, std::string>::const_iterator contentLengthIt = _headers.find("content-length");
-	std::map<std::string, std::string>::const_iterator transferEncodingIt = _headers.find("transfer-encoding");
+	// Verify crucial headers first
+	// Host header
+	std::map<std::string, std::vector<std::string> >::const_iterator hostIt = _headers.find("host");
+	if (hostIt == _headers.end())
+	{
+		Logger::log(Logger::ERROR, "Host header is missing");
+		return PARSE_ERROR_MALFORMED_REQUEST;
+	}
+	else if (hostIt->second.empty())
+	{
+		Logger::log(Logger::ERROR, "Host header is empty");
+		return PARSE_ERROR_MALFORMED_REQUEST;
+	}
+	else if (hostIt->second.size() > 1)
+	{
+		Logger::log(Logger::ERROR, "Multiple differing definitions of host header found");
+		return PARSE_ERROR_MALFORMED_REQUEST;
+	}
 
-	if (contentLengthIt != _headers.end())
+	// Connection header
+	std::map<std::string, std::vector<std::string> >::const_iterator connectionIt = _headers.find("connection");
+	if (connectionIt == _headers.end())
 	{
-		_contentLength = static_cast<size_t>(std::strtoul(contentLengthIt->second.c_str(), NULL, 10));
+		Logger::log(Logger::ERROR, "Connection header is missing");
+		return PARSE_ERROR_MALFORMED_REQUEST;
 	}
-	else if (transferEncodingIt != _headers.end() && transferEncodingIt->second == "chunked")
+	else if (connectionIt->second.empty())
 	{
-		_isChunked = true;
+		Logger::log(Logger::ERROR, "Connection header is empty");
+		return PARSE_ERROR_MALFORMED_REQUEST;
 	}
+	else if (connectionIt->second.size() > 1)
+	{
+		Logger::log(Logger::ERROR, "Multiple differing definitions of connection header found");
+		return PARSE_ERROR_MALFORMED_REQUEST;
+	}
+	else if (connectionIt->second[0] != "keep-alive" && connectionIt->second[0] != "close")
+	{
+		Logger::log(Logger::ERROR, "Invalid connection type: " + connectionIt->second[0]);
+		return PARSE_ERROR_MALFORMED_REQUEST;
+	}
+
+	// Content length
+
+	// Verify message length definitions
+	std::map<std::string, std::vector<std::string> >::const_iterator contentLengthIt = _headers.find("content-length");
+	std::map<std::string, std::vector<std::string> >::const_iterator transferEncodingIt = _headers.find("transfer-encoding");
+
+	if (contentLengthIt != _headers.end() && transferEncodingIt != _headers.end())
+	{
+		Logger::log(Logger::ERROR, "Malformed request: content-length and transfer-encoding headers cannot be present at the same time");
+		return PARSE_ERROR_MALFORMED_REQUEST;
+	}
+	else if (contentLengthIt != _headers.end()) // content-length
+	{
+		if (contentLengthIt->second.empty())
+		{
+			Logger::log(Logger::ERROR, "Content length is empty");
+			return PARSE_ERROR_MALFORMED_REQUEST;
+		}
+		else if (std::adjacent_find(contentLengthIt->second.begin(), contentLengthIt->second.end(), std::not_equal_to<char>()) != contentLengthIt->second.end())
+		{
+			Logger::log(Logger::ERROR, "Multiple differing definitions of content length found");
+			return PARSE_ERROR_MALFORMED_REQUEST;
+		}
+		char *endPtr;
+		_contentLength = std::strtod(contentLengthIt->second[0].c_str(), &endPtr);
+		if (*endPtr != '\0')
+		{
+			Logger::log(Logger::ERROR, "Content length is not a valid number: " + contentLengthIt->second[0]);
+			return PARSE_ERROR_MALFORMED_REQUEST;
+		}
+		if ((_contentLength + _bytesReceived) > _maxContentLength)
+		{
+			Logger::log(Logger::ERROR, "Indicated content length too long: " + contentLengthIt->second[0]);
+			return PARSE_ERROR_CONTENT_LENGTH_TOO_LONG;
+		}
+		if (_contentLength < 0)
+		{
+			Logger::log(Logger::ERROR, "Indicated content length is negative: " + contentLengthIt->second[0]);
+			return PARSE_ERROR_MALFORMED_REQUEST;
+		}
+	}
+	else if (transferEncodingIt != _headers.end()) // chunked transfer-encoding
+	{
+		if (transferEncodingIt->second.empty())
+		{
+			Logger::log(Logger::ERROR, "Transfer encoding is empty");
+			return PARSE_ERROR_MALFORMED_REQUEST;
+		}
+		else if (std::adjacent_find(transferEncodingIt->second.begin(), transferEncodingIt->second.end(), std::not_equal_to<char>()) != transferEncodingIt->second.end())
+		{
+			Logger::log(Logger::ERROR, "Multiple differing definitions of transfer encoding found");
+			return PARSE_ERROR_MALFORMED_REQUEST;
+		}
+		else if (transferEncodingIt->second[0] == "chunked")
+		{
+			_isChunked = true;
+		}
+		else
+		{
+			Logger::log(Logger::ERROR, "Invalid transfer encoding type: " + transferEncodingIt->second[0]);
+			return PARSE_ERROR_MALFORMED_REQUEST;
+		}
+	}
+
+	return PARSE_BODY;
 }
 
 HttpRequest::ParseState HttpRequest::_parseBody()
 {
 	if (_isChunked)
 	{
-		// Simple chunked parsing - for full implementation, need to handle chunk sizes
-		// This is a simplified version that just collects all data
-		_body += _rawBuffer;
-		_rawBuffer.clear();
-		// TODO: Implement proper chunked parsing
-		return PARSE_COMPLETE;
+		_parseState = _parseChunkedBody();
+		return _parseState;
 	}
 	else if (_contentLength > 0)
 	{
@@ -239,6 +377,18 @@ HttpRequest::ParseState HttpRequest::_parseBody()
 	}
 
 	return PARSE_BODY;
+}
+
+HttpRequest::ParseState HttpRequest::_parseChunkedBody()
+{
+	ChunkedParser::ChunkState chunkState = _chunkParser.processBuffer(_rawBuffer);
+	if (chunkState == ChunkedParser::CHUNK_COMPLETE)
+	{
+		_body += _chunkParser.getDecodedData();
+		_rawBuffer.clear();
+		return PARSE_COMPLETE;
+	}
+	return _parseState;
 }
 
 std::string HttpRequest::_toLowerCase(const std::string &str) const

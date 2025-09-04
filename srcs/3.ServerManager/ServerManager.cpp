@@ -146,8 +146,12 @@ void ServerManager::run(std::vector<ServerConfig> &serverConfigs)
 	// Spawn a buffer for epoll events
 	std::vector<epoll_event> events;
 
+	// Add a signal handler for SIGINT and SIGTERM
+	signal(SIGINT, ServerManager::_handleSignal);
+	signal(SIGTERM, ServerManager::_handleSignal);
+
 	// main polling loop
-	while (true)
+	while (isServerRunning())
 	{
 		// TODO: -1 denotes witing forever this may be a problem if the server is not ready to accept connections
 		int ready_events = _epollManager.wait(events, -1);
@@ -172,8 +176,25 @@ void ServerManager::run(std::vector<ServerConfig> &serverConfigs)
 	}
 }
 
+void ServerManager::_handleSignal(int signal)
+{
+	(void)signal;
+	setServerRunning(false);
+	Logger::log(Logger::INFO, "Signal received: " + StringUtils::toString(signal));
+}
+
 /*
 ** --------------------------------- ACCESSOR ---------------------------------
 */
+
+bool ServerManager::isServerRunning()
+{
+	return serverRunning;
+}
+
+void ServerManager::setServerRunning(bool serverRunning)
+{
+	serverRunning = serverRunning;
+}
 
 /* ************************************************************************** */

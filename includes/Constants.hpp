@@ -6,28 +6,57 @@
 #include <cstddef>
 
 // System constants all in one place
+// TODO: UPDATE HTTP status codes
 // HTTP Constants
 namespace HTTP
 {
-	const size_t MAX_HEADER_SIZE = sysconf(_SC_PAGE_SIZE);		 // 8KB max for headers
-	const size_t MAX_REQUEST_LINE_SIZE = sysconf(_SC_PAGE_SIZE); // 2KB max for request line
-	const size_t DEFAULT_BUFFER_SIZE = sysconf(_SC_PAGE_SIZE);	 // 4KB default read buffer
-	const size_t CHUNK_READ_SIZE = sysconf(_SC_PAGE_SIZE);		 // 8KB chunk size for file operations
-	const int DEFAULT_TIMEOUT_SECONDS = 30;						 // 30 second timeout
-	const int MAX_CONNECTIONS = sysconf(_SC_SOMAXCONN);			 // Maximum concurrent connections
+	const size_t DEFAULT_BUFFER_SIZE = sysconf(_SC_PAGE_SIZE); // 8KB/16KB depending on the system
+	const size_t DEFAULT_MAX_CONTENT_LENGTH = 1048576;		   // 1MB
+	const int DEFAULT_TIMEOUT_SECONDS = 30;					   // 30 second timeout
+	const int MAX_CONNECTIONS = sysconf(_SC_SOMAXCONN);		   // Maximum concurrent connections
 
 	// HTTP Status Codes
+	const int STATUS_CONTINUE = 100;
+	const int STATUS_SWITCHING_PROTOCOLS = 101;
+	const int STATUS_PROCESSING = 102;
+	const int STATUS_EARLY_HINTS = 103;
 	const int STATUS_OK = 200;
 	const int STATUS_CREATED = 201;
+	const int STATUS_ACCEPTED = 202;
+	const int STATUS_NON_AUTHORITATIVE_INFORMATION = 203;
 	const int STATUS_NO_CONTENT = 204;
+	const int STATUS_RESET_CONTENT = 205;
+	const int STATUS_PARTIAL_CONTENT = 206;
+	const int STATUS_MULTI_STATUS = 207;
+	const int STATUS_ALREADY_REPORTED = 208;
+	const int STATUS_IM_USED = 226;
+	const int STATUS_MULTIPLE_CHOICES = 300;
 	const int STATUS_MOVED_PERMANENTLY = 301;
 	const int STATUS_FOUND = 302;
+	const int STATUS_SEE_OTHER = 303;
+	const int STATUS_NOT_MODIFIED = 304;
+	const int STATUS_USE_PROXY = 305;
+	const int STATUS_TEMPORARY_REDIRECT = 307;
+	const int STATUS_PERMANENT_REDIRECT = 308;
 	const int STATUS_BAD_REQUEST = 400;
 	const int STATUS_UNAUTHORIZED = 401;
 	const int STATUS_FORBIDDEN = 403;
 	const int STATUS_NOT_FOUND = 404;
 	const int STATUS_METHOD_NOT_ALLOWED = 405;
 	const int STATUS_REQUEST_ENTITY_TOO_LARGE = 413;
+	const int STATUS_URI_TOO_LONG = 414;
+	const int STATUS_UNSUPPORTED_MEDIA_TYPE = 415;
+	const int STATUS_RANGE_NOT_SATISFIABLE = 416;
+	const int STATUS_EXPECTATION_FAILED = 417;
+	const int STATUS_IM_A_TEAPOT = 418;
+	const int STATUS_MISDIRECTED_REQUEST = 421;
+	const int STATUS_UNPROCESSABLE_ENTITY = 422;
+	const int STATUS_LOCKED = 423;
+	const int STATUS_FAILED_DEPENDENCY = 424;
+	const int STATUS_TOO_MANY_REQUESTS = 429;
+	const int STATUS_REQUEST_HEADER_FIELDS_TOO_LARGE = 431;
+	const int STATUS_UNAVAILABLE_FOR_LEGAL_REASONS = 451;
+	const int STATUS_CLIENT_CLOSED_REQUEST = 499;
 	const int STATUS_INTERNAL_SERVER_ERROR = 500;
 	const int STATUS_NOT_IMPLEMENTED = 501;
 	const int STATUS_SERVICE_UNAVAILABLE = 503;
@@ -49,16 +78,16 @@ namespace SERVER
 // File System Constants
 namespace FS
 {
-	const size_t MAX_PATH_LENGTH = 4096;
-	const size_t MAX_FILENAME_LENGTH = 255;
-	const char PATH_SEPARATOR = '/';
+	const size_t MAX_PATH_LENGTH = sysconf(_SC_PATH_MAX);
+	const size_t MAX_FILENAME_LENGTH = sysconf(_SC_FILENAME_MAX);
+	const char PATH_SEPARATOR = sysconf(_SC_PATH_SEPARATOR);
 }
 
 // Network Constants
 namespace NET
 {
-	const int SOMAXCONN_VALUE = 128;
-	const size_t MAX_EPOLL_EVENTS = 1024;
+	const int SOMAXCONN_VALUE = sysconf(_SC_SOMAXCONN);
+	const size_t MAX_EPOLL_EVENTS = sysconf(_SC_EPOLL_MAX_EVENTS);
 }
 
 #endif /* CONSTANTS_HPP */

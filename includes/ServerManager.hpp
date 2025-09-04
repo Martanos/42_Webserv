@@ -8,6 +8,7 @@
 #include <vector>
 #include <map>
 #include <queue>
+#include <signal.h>
 #include "Logger.hpp"
 #include "ServerMap.hpp"
 #include "Client.hpp"
@@ -20,6 +21,8 @@ private:
 	// Non-copyable
 	ServerManager(ServerManager const &src);
 	ServerManager &operator=(ServerManager const &rhs);
+
+	bool serverRunning;
 
 public:
 	ServerManager();
@@ -39,6 +42,10 @@ private:
 
 public:
 	void run(std::vector<ServerConfig> &serverConfigs);
+	static void _handleSignal(int signal);
+
+	bool isServerRunning();
+	static void setServerRunning(bool serverRunning);
 };
 
 #endif /* *************************************************** SERVERMANAGER_H */

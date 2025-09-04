@@ -1,4 +1,3 @@
-// HttpRequest.hpp
 #ifndef HTTPREQUEST_HPP
 #define HTTPREQUEST_HPP
 
@@ -8,11 +7,14 @@
 #include <sstream>
 #include <cstdlib>
 #include <algorithm>
-#include <sys/types.h>
-#include <unistd.h>
 #include "Logger.hpp"
+#include "Constants.hpp"
+#include "ChunkedParser.hpp"
+#include "StringUtils.hpp"
+#include "SafeBuffer.hpp"
+#include "FileDescriptor.hpp"
 
-// This class is used to receive the raw data and parse it into a request object
+// TODO: Replace buffers with buffer wrapper
 class HttpRequest
 {
 public:
@@ -23,20 +25,15 @@ public:
 		PARSE_BODY = 2,
 		PARSE_COMPLETE = 3,
 		PARSE_ERROR = 4,
-		PARSE_ERROR_INTERNAL = 5,
-		PARSE_ERROR_INVALID_METHOD = 6,
-		PARSE_ERROR_INVALID_REQUEST_LINE = 7,
-		PARSE_PAYLOAD_TOO_LARGE_BODY = 8,
-		PARSE_PAYLOAD_TOO_LARGE_HEADERS = 9,
-		PARSE_PAYLOAD_TOO_LARGE_REQUEST_LINE = 10
-	};
-
-	enum BodyState
-	{
-		BODY_STATE_CHUNKED = 0,
-		BODY_STATE_CONTENT_LENGTH = 1,
-		BODY_STATE_COMPLETE = 2,
-		BODY_STATE_ERROR = 3
+		PARSE_ERROR_REQUEST_LINE_TOO_LONG = 6,
+		PARSE_ERROR_HEADER_TOO_LONG = 7,
+		PARSE_ERROR_BODY_TOO_LONG = 8,
+		PARSE_ERROR_CONTENT_LENGTH_TOO_LONG = 9,
+		PARSE_ERROR_INVALID_REQUEST_LINE = 9,
+		PARSE_ERROR_INVALID_HTTP_METHOD = 11,
+		PARSE_ERROR_INVALID_HTTP_VERSION = 12,
+		PARSE_ERROR_MALFORMED_REQUEST = 13,
+		PARSE_ERROR_INTERNAL_SERVER_ERROR = 14
 	};
 
 private:
@@ -46,17 +43,26 @@ private:
 	std::string _version;
 
 	// Headers
-	std::map<std::string, std::string> _headers;
+	std::map<std::string, std::vector<std::string> > _headers;
 
-	// Body
+	// Body handling
 	std::string _body;
-	size_t _contentLength;
+	double _contentLength;
 	bool _isChunked;
+
+	// Message limits
+	size_t _maxRequestLineSize;
+	size_t _maxHeaderSize;
+	size_t _maxBodySize;
+	size_t _maxContentLength;
 
 	// Parsing state
 	ParseState _parseState;
 	std::string _rawBuffer;
-	size_t _bodyBytesReceived;
+	size_t _bytesReceived;
+
+	// temp FD for flushing
+	FileDescriptor _tempFd;
 
 public:
 	HttpRequest();
@@ -65,7 +71,7 @@ public:
 	~HttpRequest();
 
 	// Parsing methods
-	ParseState parseBuffer(const std::string &buffer, size_t bodyBufferSize);
+	ParseState parseBuffer(const std::string &buffer, ssize_t bodyBufferSize);
 	bool isComplete() const;
 	bool hasError() const;
 	void reset();
@@ -77,7 +83,6 @@ public:
 	const std::map<std::string, std::string> &getHeaders() const;
 	const std::string &getHeader(const std::string &name) const;
 	const std::string &getBody() const;
-	const std::string &getServer() const;
 	size_t getContentLength() const;
 	bool isChunked() const;
 
@@ -85,9 +90,11 @@ private:
 	ParseState _parseRequestLine(const std::string &line);
 	ParseState _parseHeaderLine(const std::string &line);
 	ParseState _parseBody();
-	void _prepareForBody();
+	ParseState _parseChunkedBody();
+	ParseState _parseHeaders();
 	bool _isValidMethod(const std::string &method) const;
 	std::string _toLowerCase(const std::string &str) const;
+	ParseState _checkCurrentSize() const;
 };
 
-#endif
+#endif /* HTTPREQUEST_HPP */
