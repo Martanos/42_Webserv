@@ -100,7 +100,7 @@ void RequestRouter::route(const HttpRequest &request,
 		response.setHeader("Date", std::string(dateBuffer));
 
 		// Add Connection header based on keep-alive settings
-		std::string connection = request.getHeader("connection");
+		std::string connection = request.getHeader("connection")[0];
 		if (connection == "close" || request.getVersion() == "HTTP/1.0")
 		{
 			response.setHeader("Connection", "close");

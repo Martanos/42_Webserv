@@ -40,19 +40,6 @@ void PostMethodHandler::handle(const HttpRequest &request,
 							   const Server *server,
 							   const Location *location)
 {
-	// The request body is already parsed by HttpRequest
-	// Check content length against server limits
-	size_t contentLength = request.getContentLength();
-	if (contentLength > static_cast<size_t>(server->getClientMaxBodySize()))
-	{
-		response.setStatus(413, "Payload Too Large");
-		response.setBody(server->getStatusPage(413));
-		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length",
-						   StringUtils::toString(response.getBody().length()));
-		return;
-	}
-
 	// Check if location allows POST
 	if (location)
 	{
@@ -125,11 +112,11 @@ void PostMethodHandler::handleFileUpload(const HttpRequest &request,
 	ss << "upload_" << time(NULL) << "_" << rand() % 10000;
 
 	// Check Content-Type for filename hint
-	std::string contentType = request.getHeader("content-type");
+	std::string contentType = request.getHeader("content-type")[0];
 	std::string filename = ss.str();
 
 	// If it's a form upload, try to extract filename from Content-Disposition
-	std::string contentDisposition = request.getHeader("content-disposition");
+	std::string contentDisposition = request.getHeader("content-disposition")[0];
 	if (!contentDisposition.empty())
 	{
 		std::string extractedName = extractFilename(contentDisposition);

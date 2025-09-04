@@ -6,7 +6,7 @@
 #    By: malee <malee@student.42singapore.sg>       +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/07/24 16:54:44 by malee             #+#    #+#              #
-#    Updated: 2025/09/03 16:38:55 by malee            ###   ########.fr        #
+#    Updated: 2025/09/04 20:37:41 by malee            ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -40,8 +40,8 @@ SRC_FILES = main.cpp \
 			MethodHandlers/RequestRouter.cpp \
 			Wrappers/FileDescriptor.cpp \
 			Wrappers/SocketAddress.cpp \
-			Wrappers/AddrInfo.cpp \
-			cgiexec/CgiEnv.cpp
+			Wrappers/AddrInfo.cpp
+#cgiexec/CgiEnv.cpp
 
 # Object files with proper path
 OBJ = $(addprefix $(OBJ_DIR)/, $(SRC_FILES:.cpp=.o))
