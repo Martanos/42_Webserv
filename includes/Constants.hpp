@@ -15,10 +15,12 @@ namespace HTTP
 												   "expires", "last-modified", "server"};
 	static const std::string SUPPORTED_METHODS[] = {"GET", "POST", "DELETE"};
 	static const std::string HTTP_VERSION = "HTTP/1.1";
-	const size_t DEFAULT_BUFFER_SIZE = sysconf(_SC_PAGE_SIZE); // 8KB/16KB depending on the system
-	const size_t DEFAULT_MAX_CONTENT_LENGTH = 1048576;		   // 1MB
-	const int DEFAULT_TIMEOUT_SECONDS = 30;					   // 30 second timeout
-	const int MAX_CONNECTIONS = sysconf(_SC_SOMAXCONN);		   // Maximum concurrent connections
+	static const std::string TEMP_FILE_TEMPLATE = "/tmp/webserv-";
+	static const size_t DEFAULT_BUFFER_SIZE = sysconf(_SC_PAGE_SIZE); // 8KB/16KB depending on the system
+	static const size_t TEMP_FILE_TRESHOLD = DEFAULT_BUFFER_SIZE * 4; // 32KB/64KB depending on the system
+	static const size_t DEFAULT_MAX_CONTENT_LENGTH = 1048576;		  // 1MB
+	const int DEFAULT_TIMEOUT_SECONDS = 30;							  // 30 second timeout
+	const int MAX_CONNECTIONS = sysconf(_SC_SOMAXCONN);				  // Maximum concurrent connections
 
 	// HTTP Status Codes
 	const int STATUS_CONTINUE = 100;

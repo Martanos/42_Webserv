@@ -7,6 +7,7 @@
 #include <sstream>
 #include <cstdlib>
 #include <algorithm>
+#include <ctime>
 #include "Logger.hpp"
 #include "Constants.hpp"
 #include "StringUtils.hpp"
@@ -24,18 +25,27 @@ public:
 		PARSE_BODY = 2,
 		PARSE_COMPLETE = 3,
 		PARSE_ERROR = 4,
-		PARSE_ERROR_REQUEST_LINE_TOO_LONG = 6,
-		PARSE_ERROR_HEADER_TOO_LONG = 7,
-		PARSE_ERROR_BODY_TOO_LONG = 8,
-		PARSE_ERROR_CONTENT_LENGTH_TOO_LONG = 9,
+		PARSE_ERROR_REQUEST_LINE_TOO_LONG = 5,
+		PARSE_ERROR_HEADER_TOO_LONG = 6,
+		PARSE_ERROR_BODY_TOO_LONG = 7,
+		PARSE_ERROR_CONTENT_LENGTH_TOO_LONG = 8,
 		PARSE_ERROR_INVALID_REQUEST_LINE = 9,
-		PARSE_ERROR_INVALID_HTTP_METHOD = 11,
-		PARSE_ERROR_INVALID_HTTP_VERSION = 12,
+		PARSE_ERROR_INVALID_HTTP_METHOD = 10,
+		PARSE_ERROR_INVALID_HTTP_VERSION = 11,
 		PARSE_ERROR_MALFORMED_REQUEST = 13,
-		PARSE_ERROR_INTERNAL_SERVER_ERROR = 14
+		PARSE_ERROR_INTERNAL_SERVER_ERROR = 14,
+		PARSE_ERROR_TEMP_FILE_ERROR = 15
 	};
 
 private:
+	enum ChunkState
+	{
+		CHUNK_SIZE = 0,	   // Reading chunk size line
+		CHUNK_DATA = 1,	   // Reading chunk data
+		CHUNK_TRAILER = 2, // Reading trailer headers
+		CHUNK_COMPLETE = 3 // Chunked transfer complete
+	};
+
 	// Request line
 	std::string _method;
 	std::string _uri;
@@ -45,9 +55,20 @@ private:
 	std::map<std::string, std::vector<std::string> > _headers;
 
 	// Body handling
-	std::string _body;
-	double _contentLength;
-	bool _isChunked;
+	std::string _body;	   // In-memory body storage
+	size_t _contentLength; // Expected content length
+	bool _isChunked;	   // Chunked transfer encoding flag
+
+	// Chunked parsing state
+	ChunkState _chunkState;		   // Current chunk parsing state
+	size_t _currentChunkSize;	   // Size of current chunk being read
+	size_t _currentChunkBytesRead; // Bytes read of current chunk
+	size_t _totalBodySize;		   // Total body size accumulated
+
+	// Temp file handling for large bodies
+	bool _usingTempFile;	   // Flag if body is stored in temp file
+	std::string _tempFilePath; // Path to temp file
+	FileDescriptor _tempFd;	   // File descriptor for temp file
 
 	// Message limits
 	size_t _maxRequestLineSize;
@@ -61,6 +82,8 @@ private:
 	size_t _bytesReceived;
 
 	// temp FD for flushing
+	bool _isUsingTempFile;
+	std::string _tempFilePath;
 	FileDescriptor _tempFd;
 
 public:
@@ -84,6 +107,9 @@ public:
 	const std::string &getBody() const;
 	size_t getContentLength() const;
 	bool isChunked() const;
+	bool isUsingTempFile() const;
+	std::string getTempFile() const;
+	std::string _getBodyFromFile() const;
 
 private:
 	ParseState _parseRequestLine(const std::string &line);
@@ -91,6 +117,15 @@ private:
 	ParseState _parseBody();
 	ParseState _parseChunkedBody();
 	ParseState _parseHeaders();
+	ParseState _parseChunkSize();
+	ParseState _parseChunkData();
+	ParseState _parseChunkTrailers();
+	ParseState _switchToTempFile();
+	ParseState _appendToTempFile(const std::string &data);
+	size_t _parseHexSize(const std::string &hexStr) const;
+	ParseState _handleBodyData(const std::string &data);
+	void _cleanupTempFile();
+	std::string _createTempFilePath() const;
 	bool _isValidMethod(const std::string &method) const;
 	std::string _toLowerCase(const std::string &str) const;
 };
