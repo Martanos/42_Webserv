@@ -10,6 +10,11 @@
 // HTTP Constants
 namespace HTTP
 {
+	const const std::string SINGLETON_HEADERS[] = {"content-type", "location", "user-agent", "referer",
+												   "authorization", "content-location", "date", "etag",
+												   "expires", "last-modified", "server"};
+	static const std::string SUPPORTED_METHODS[] = {"GET", "POST", "DELETE"};
+	static const std::string HTTP_VERSION = "HTTP/1.1";
 	const size_t DEFAULT_BUFFER_SIZE = sysconf(_SC_PAGE_SIZE); // 8KB/16KB depending on the system
 	const size_t DEFAULT_MAX_CONTENT_LENGTH = 1048576;		   // 1MB
 	const int DEFAULT_TIMEOUT_SECONDS = 30;					   // 30 second timeout

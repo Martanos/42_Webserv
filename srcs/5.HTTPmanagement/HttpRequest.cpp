@@ -161,7 +161,7 @@ HttpRequest::ParseState HttpRequest::_parseRequestLine(const std::string &line)
 		Logger::log(Logger::ERROR, "Invalid request line: " + line);
 		return PARSE_ERROR_INVALID_REQUEST_LINE;
 	}
-	else if (version != "HTTP/1.1")
+	else if (version != HTTP::HTTP_VERSION)
 	{
 		Logger::log(Logger::ERROR, "Invalid HTTP version: " + version);
 		return PARSE_ERROR_INVALID_HTTP_VERSION;
@@ -191,6 +191,13 @@ HttpRequest::ParseState HttpRequest::_parseHeaderLine(const std::string &line)
 	std::stringstream ss(line);
 	std::string name, token;
 
+	// line cannot contain whitespace before the colon
+	if (line.find(' ') != std::string::npos)
+	{
+		Logger::log(Logger::ERROR, "Invalid header line: " + line);
+		return PARSE_ERROR_MALFORMED_REQUEST;
+	}
+	// Extract the header name
 	if (!(ss >> name))
 	{
 		Logger::log(Logger::ERROR, "Internal server error: " + line);
@@ -203,7 +210,7 @@ HttpRequest::ParseState HttpRequest::_parseHeaderLine(const std::string &line)
 		Logger::log(Logger::ERROR, "Invalid header line: " + line);
 		return PARSE_ERROR_MALFORMED_REQUEST;
 	}
-	std::string name = line.substr(0, colonPos);
+	name = line.substr(0, colonPos);
 
 	// Find if header already exists, if it doesnt create new key with empty vector
 	std::map<std::string, std::vector<std::string> >::iterator it = _headers.find(_toLowerCase(name));
@@ -244,111 +251,217 @@ HttpRequest::ParseState HttpRequest::_parseHeaderLine(const std::string &line)
 
 HttpRequest::ParseState HttpRequest::_parseHeaders()
 {
-	// Verify crucial headers first
-	// Host header
+	// RFC 9110 Section 5.4: Server MUST NOT apply request until entire header section received
+	// This validation happens after all headers are parsed
+
+	// === REQUIRED HEADERS VALIDATION ===
+
+	// RFC 9112: Host header is REQUIRED for HTTP/1.1
 	std::map<std::string, std::vector<std::string> >::const_iterator hostIt = _headers.find("host");
 	if (hostIt == _headers.end())
 	{
-		Logger::log(Logger::ERROR, "Host header is missing");
+		Logger::log(Logger::ERROR, "Host header is missing (required for HTTP/1.1)");
 		return PARSE_ERROR_MALFORMED_REQUEST;
 	}
-	else if (hostIt->second.empty())
+	if (hostIt->second.empty())
 	{
 		Logger::log(Logger::ERROR, "Host header is empty");
 		return PARSE_ERROR_MALFORMED_REQUEST;
 	}
-	else if (hostIt->second.size() > 1)
+	// RFC: Host is singleton header - multiple different values forbidden
+	if (hostIt->second.size() > 1)
 	{
-		Logger::log(Logger::ERROR, "Multiple differing definitions of host header found");
-		return PARSE_ERROR_MALFORMED_REQUEST;
+		// Check if all values are identical (allowed as per RFC 9110 Section 5.3)
+		std::string firstHost = hostIt->second[0];
+		for (size_t i = 1; i < hostIt->second.size(); ++i)
+		{
+			if (hostIt->second[i] != firstHost)
+			{
+				Logger::log(Logger::ERROR, "Multiple different Host header values found");
+				return PARSE_ERROR_MALFORMED_REQUEST;
+			}
+		}
 	}
 
-	// Connection header
-	std::map<std::string, std::vector<std::string> >::const_iterator connectionIt = _headers.find("connection");
-	if (connectionIt == _headers.end())
-	{
-		Logger::log(Logger::ERROR, "Connection header is missing");
-		return PARSE_ERROR_MALFORMED_REQUEST;
-	}
-	else if (connectionIt->second.empty())
-	{
-		Logger::log(Logger::ERROR, "Connection header is empty");
-		return PARSE_ERROR_MALFORMED_REQUEST;
-	}
-	else if (connectionIt->second.size() > 1)
-	{
-		Logger::log(Logger::ERROR, "Multiple differing definitions of connection header found");
-		return PARSE_ERROR_MALFORMED_REQUEST;
-	}
-	else if (connectionIt->second[0] != "keep-alive" && connectionIt->second[0] != "close")
-	{
-		Logger::log(Logger::ERROR, "Invalid connection type: " + connectionIt->second[0]);
-		return PARSE_ERROR_MALFORMED_REQUEST;
-	}
+	// === MESSAGE BODY LENGTH VALIDATION ===
 
-	// Content length
-
-	// Verify message length definitions
 	std::map<std::string, std::vector<std::string> >::const_iterator contentLengthIt = _headers.find("content-length");
 	std::map<std::string, std::vector<std::string> >::const_iterator transferEncodingIt = _headers.find("transfer-encoding");
 
+	// RFC 9110 Section 8.6: Content-Length and Transfer-Encoding MUST NOT coexist
 	if (contentLengthIt != _headers.end() && transferEncodingIt != _headers.end())
 	{
-		Logger::log(Logger::ERROR, "Malformed request: content-length and transfer-encoding headers cannot be present at the same time");
+		Logger::log(Logger::ERROR, "Content-Length and Transfer-Encoding cannot both be present");
 		return PARSE_ERROR_MALFORMED_REQUEST;
 	}
-	else if (contentLengthIt != _headers.end()) // content-length
+
+	// === CONTENT-LENGTH VALIDATION ===
+	if (contentLengthIt != _headers.end())
 	{
 		if (contentLengthIt->second.empty())
 		{
-			Logger::log(Logger::ERROR, "Content length is empty");
+			Logger::log(Logger::ERROR, "Content-Length header is empty");
 			return PARSE_ERROR_MALFORMED_REQUEST;
 		}
-		else if (std::adjacent_find(contentLengthIt->second.begin(), contentLengthIt->second.end(), std::not_equal_to<char>()) != contentLengthIt->second.end())
+
+		// RFC 9110 Section 8.6: Multiple identical values allowed, different values forbidden
+		std::string firstValue = contentLengthIt->second[0];
+		for (size_t i = 1; i < contentLengthIt->second.size(); ++i)
 		{
-			Logger::log(Logger::ERROR, "Multiple differing definitions of content length found");
-			return PARSE_ERROR_MALFORMED_REQUEST;
+			if (contentLengthIt->second[i] != firstValue)
+			{
+				Logger::log(Logger::ERROR, "Multiple different Content-Length values: " +
+											   firstValue + " vs " + contentLengthIt->second[i]);
+				return PARSE_ERROR_MALFORMED_REQUEST;
+			}
 		}
+
+		// Validate the numeric value
 		char *endPtr;
-		_contentLength = std::strtod(contentLengthIt->second[0].c_str(), &endPtr);
+		_contentLength = std::strtod(firstValue.c_str(), &endPtr);
 		if (*endPtr != '\0')
 		{
-			Logger::log(Logger::ERROR, "Content length is not a valid number: " + contentLengthIt->second[0]);
+			Logger::log(Logger::ERROR, "Content-Length is not a valid number: " + firstValue);
 			return PARSE_ERROR_MALFORMED_REQUEST;
-		}
-		if ((_contentLength + _bytesReceived) > _maxContentLength)
-		{
-			Logger::log(Logger::ERROR, "Indicated content length too long: " + contentLengthIt->second[0]);
-			return PARSE_ERROR_CONTENT_LENGTH_TOO_LONG;
 		}
 		if (_contentLength < 0)
 		{
-			Logger::log(Logger::ERROR, "Indicated content length is negative: " + contentLengthIt->second[0]);
+			Logger::log(Logger::ERROR, "Content-Length cannot be negative: " + firstValue);
 			return PARSE_ERROR_MALFORMED_REQUEST;
 		}
+
+		// Check against maximum allowed content length
+		if ((_contentLength + _bytesReceived) > _maxContentLength)
+		{
+			Logger::log(Logger::ERROR, "Content-Length exceeds maximum allowed: " + firstValue);
+			return PARSE_ERROR_CONTENT_LENGTH_TOO_LONG;
+		}
 	}
-	else if (transferEncodingIt != _headers.end()) // chunked transfer-encoding
+
+	// === TRANSFER-ENCODING VALIDATION ===
+	else if (transferEncodingIt != _headers.end())
 	{
 		if (transferEncodingIt->second.empty())
 		{
-			Logger::log(Logger::ERROR, "Transfer encoding is empty");
+			Logger::log(Logger::ERROR, "Transfer-Encoding header is empty");
 			return PARSE_ERROR_MALFORMED_REQUEST;
 		}
-		else if (std::adjacent_find(transferEncodingIt->second.begin(), transferEncodingIt->second.end(), std::not_equal_to<char>()) != transferEncodingIt->second.end())
+
+		// RFC: Transfer-Encoding can have multiple encodings, but for WebServ we only support chunked
+		// The last encoding MUST be "chunked" if present
+		bool hasChunked = false;
+		for (size_t i = 0; i < transferEncodingIt->second.size(); ++i)
 		{
-			Logger::log(Logger::ERROR, "Multiple differing definitions of transfer encoding found");
-			return PARSE_ERROR_MALFORMED_REQUEST;
+			std::string encoding = _toLowerCase(transferEncodingIt->second[i]);
+			if (encoding == "chunked")
+			{
+				hasChunked = true;
+				// RFC: chunked MUST be the final encoding
+				if (i != transferEncodingIt->second.size() - 1)
+				{
+					Logger::log(Logger::ERROR, "chunked encoding must be the final encoding");
+					return PARSE_ERROR_MALFORMED_REQUEST;
+				}
+			}
+			else
+			{
+				// WebServ only supports chunked encoding
+				Logger::log(Logger::ERROR, "Unsupported transfer encoding: " + encoding);
+				return PARSE_ERROR_MALFORMED_REQUEST;
+			}
 		}
-		else if (transferEncodingIt->second[0] == "chunked")
+
+		if (hasChunked)
 		{
 			_isChunked = true;
 		}
 		else
 		{
-			Logger::log(Logger::ERROR, "Invalid transfer encoding type: " + transferEncodingIt->second[0]);
+			Logger::log(Logger::ERROR, "Transfer-Encoding present but no chunked encoding found");
 			return PARSE_ERROR_MALFORMED_REQUEST;
 		}
 	}
+
+	// === VALIDATE SINGLETON HEADERS ===
+	// These headers should only have one semantic value
+	const size_t singletonCount = sizeof(HTTP::SINGLETON_HEADERS) / sizeof(HTTP::SINGLETON_HEADERS[0]);
+	for (size_t h = 0; h < singletonCount; ++h)
+	{
+		std::map<std::string, std::vector<std::string> >::const_iterator it =
+			_headers.find(HTTP::SINGLETON_HEADERS[h]);
+		if (it != _headers.end() && it->second.size() > 1)
+		{
+			// Check if values are identical (some allow duplicates if identical)
+			std::string firstValue = it->second[0];
+			bool allIdentical = true;
+			for (size_t i = 1; i < it->second.size(); ++i)
+			{
+				if (it->second[i] != firstValue)
+				{
+					allIdentical = false;
+					break;
+				}
+			}
+			if (!allIdentical)
+			{
+				Logger::log(Logger::WARNING, "Multiple different values for singleton header: " +
+												 std::string(HTTP::SINGLETON_HEADERS[h]));
+				// RFC suggests using last valid value for Content-Type, but we'll warn and continue
+			}
+		}
+	}
+
+	// === VALIDATE DANGEROUS CHARACTERS ===
+	// RFC 9110 Section 5.5: Field values containing CR, LF, or NUL are invalid and dangerous
+	for (std::map<std::string, std::vector<std::string> >::const_iterator headerIt = _headers.begin();
+		 headerIt != _headers.end(); ++headerIt)
+	{
+		for (size_t i = 0; i < headerIt->second.size(); ++i)
+		{
+			const std::string &value = headerIt->second[i];
+			for (size_t j = 0; j < value.size(); ++j)
+			{
+				char c = value[j];
+				if (c == '\r' || c == '\n' || c == '\0')
+				{
+					Logger::log(Logger::ERROR, "Dangerous character in header " +
+												   headerIt->first + ": CR/LF/NUL detected");
+					return PARSE_ERROR_MALFORMED_REQUEST;
+				}
+				// RFC: Other control characters should be treated carefully
+				if (c > 0 && c < 32 && c != '\t')
+				{
+					Logger::log(Logger::WARNING, "Control character in header " +
+													 headerIt->first + " (char code: " + StringUtils::toString((int)c) + ")");
+				}
+			}
+		}
+	}
+
+	// === CHECK FIELD SIZE LIMITS ===
+	// RFC 9110 Section 5.4: Server that receives oversized fields MUST respond with 4xx
+	size_t totalHeaderSize = 0;
+	for (std::map<std::string, std::vector<std::string> >::const_iterator headerIt = _headers.begin();
+		 headerIt != _headers.end(); ++headerIt)
+	{
+		totalHeaderSize += headerIt->first.size() + 2; // +2 for ": "
+		for (size_t i = 0; i < headerIt->second.size(); ++i)
+		{
+			totalHeaderSize += headerIt->second[i].size();
+			if (i > 0)
+				totalHeaderSize += 2; // +2 for ", "
+		}
+		totalHeaderSize += 2; // +2 for CRLF
+	}
+
+	if (totalHeaderSize > _maxHeaderSize)
+	{
+		Logger::log(Logger::ERROR, "Total header size exceeds limit: " + StringUtils::toString(totalHeaderSize) + " > " + StringUtils::toString(_maxHeaderSize));
+		return PARSE_ERROR_HEADER_TOO_LONG;
+	}
+
+	Logger::log(Logger::INFO, "Headers parsed successfully. Total headers: " +
+								  StringUtils::toString(_headers.size()) + ", Total size: " + StringUtils::toString(totalHeaderSize));
 
 	return PARSE_BODY;
 }
@@ -362,7 +475,7 @@ HttpRequest::ParseState HttpRequest::_parseBody()
 	}
 	else if (_contentLength > 0)
 	{
-		size_t needed = _contentLength - _bodyBytesReceived;
+		size_t needed = _contentLength - _bytesReceived;
 		size_t available = _rawBuffer.length();
 		size_t toRead = (needed < available) ? needed : available;
 
@@ -400,8 +513,7 @@ std::string HttpRequest::_toLowerCase(const std::string &str) const
 
 bool HttpRequest::_isValidMethod(const std::string &method) const
 {
-	return (method == "GET" || method == "POST" || method == "DELETE" ||
-			method == "HEAD" || method == "PUT" || method == "OPTIONS");
+	return std::find(HTTP::SUPPORTED_METHODS, HTTP::SUPPORTED_METHODS + 4, method) != HTTP::SUPPORTED_METHODS + 4;
 }
 
 /*
