@@ -9,7 +9,6 @@
 #include <algorithm>
 #include "Logger.hpp"
 #include "Constants.hpp"
-#include "ChunkedParser.hpp"
 #include "StringUtils.hpp"
 #include "SafeBuffer.hpp"
 #include "FileDescriptor.hpp"
@@ -80,8 +79,8 @@ public:
 	const std::string &getMethod() const;
 	const std::string &getUri() const;
 	const std::string &getVersion() const;
-	const std::map<std::string, std::string> &getHeaders() const;
-	const std::string &getHeader(const std::string &name) const;
+	const std::map<std::string, std::vector<std::string> > &getHeaders() const;
+	const std::vector<std::string> &getHeader(const std::string &name) const;
 	const std::string &getBody() const;
 	size_t getContentLength() const;
 	bool isChunked() const;
@@ -94,7 +93,6 @@ private:
 	ParseState _parseHeaders();
 	bool _isValidMethod(const std::string &method) const;
 	std::string _toLowerCase(const std::string &str) const;
-	ParseState _checkCurrentSize() const;
 };
 
 #endif /* HTTPREQUEST_HPP */

@@ -116,10 +116,11 @@ HttpRequest::ParseState HttpRequest::parseBuffer(const std::string &buffer, ssiz
 			{
 				// Empty line indicates end of headers
 				_parseState = _parseHeaders();
-				if (_parseState != PARSE_HEADERS)
+				if (_parseState != PARSE_BODY)
 				{
 					return _parseState;
 				}
+				// Update relevant limits
 			}
 			else
 			{
@@ -131,14 +132,12 @@ HttpRequest::ParseState HttpRequest::parseBuffer(const std::string &buffer, ssiz
 		{
 			if (_rawBuffer.size() > bodyBufferSize)
 			{
-				return PARSE_ERROR;
+				return PARSE_ERROR_BODY_TOO_LONG;
 			}
 			_parseState = _parseBody();
 			break;
 		}
-		case PARSE_COMPLETE:
-			break;
-		case PARSE_ERROR:
+		default:
 			break;
 		}
 	}
@@ -492,18 +491,6 @@ HttpRequest::ParseState HttpRequest::_parseBody()
 	return PARSE_BODY;
 }
 
-HttpRequest::ParseState HttpRequest::_parseChunkedBody()
-{
-	ChunkedParser::ChunkState chunkState = _chunkParser.processBuffer(_rawBuffer);
-	if (chunkState == ChunkedParser::CHUNK_COMPLETE)
-	{
-		_body += _chunkParser.getDecodedData();
-		_rawBuffer.clear();
-		return PARSE_COMPLETE;
-	}
-	return _parseState;
-}
-
 std::string HttpRequest::_toLowerCase(const std::string &str) const
 {
 	std::string result = str;
@@ -530,31 +517,28 @@ bool HttpRequest::hasError() const
 	return _parseState == PARSE_ERROR;
 }
 
-const std::string &HttpRequest::getHeader(const std::string &name) const
+const std::vector<std::string> &HttpRequest::getHeader(const std::string &name) const
 {
-	static const std::string empty = "";
-	std::map<std::string, std::string>::const_iterator it = _headers.find(_toLowerCase(name));
-	return (it != _headers.end()) ? it->second : empty;
+	static const std::vector<std::string> empty = std::vector<std::string>();
+	std::map<std::string, std::vector<std::string> >::const_iterator it = _headers.find(_toLowerCase(name));
+	return it != _headers.end() ? it->second : empty;
 }
 
 void HttpRequest::reset()
 {
-	_method.clear();
-	_uri.clear();
-	_version.clear();
 	_headers.clear();
 	_body.clear();
 	_contentLength = 0;
 	_isChunked = false;
 	_parseState = PARSE_REQUEST_LINE;
 	_rawBuffer.clear();
-	_bodyBytesReceived = 0;
+	_bytesReceived = 0;
 }
 
 const std::string &HttpRequest::getMethod() const { return _method; };
 const std::string &HttpRequest::getUri() const { return _uri; }
 const std::string &HttpRequest::getVersion() const { return _version; };
-const std::map<std::string, std::string> &HttpRequest::getHeaders() const { return _headers; };
+const std::map<std::string, std::vector<std::string> > &HttpRequest::getHeaders() const { return _headers; };
 const std::string &HttpRequest::getBody() const { return _body; };
 size_t HttpRequest::getContentLength() const { return _contentLength; };
 bool HttpRequest::isChunked() const { return _isChunked; };
