@@ -22,7 +22,7 @@ private:
 	ServerManager(ServerManager const &src);
 	ServerManager &operator=(ServerManager const &rhs);
 
-	bool serverRunning;
+	static bool serverRunning;
 
 public:
 	ServerManager();
@@ -45,7 +45,7 @@ public:
 	static void _handleSignal(int signal);
 
 	bool isServerRunning();
-	static void setServerRunning(bool serverRunning);
+	static void setServerRunning(bool shouldRun);
 };
 
 #endif /* *************************************************** SERVERMANAGER_H */

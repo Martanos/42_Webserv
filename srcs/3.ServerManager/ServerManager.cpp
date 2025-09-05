@@ -146,9 +146,10 @@ void ServerManager::run(std::vector<ServerConfig> &serverConfigs)
 	// Spawn a buffer for epoll events
 	std::vector<epoll_event> events;
 
+	// TODO: Change to
 	// Add a signal handler for SIGINT and SIGTERM
-	signal(SIGINT, ServerManager::_handleSignal);
-	signal(SIGTERM, ServerManager::_handleSignal);
+	signal(SIGINT, _handleSignal);
+	signal(SIGTERM, _handleSignal);
 
 	// main polling loop
 	while (isServerRunning())
@@ -192,9 +193,9 @@ bool ServerManager::isServerRunning()
 	return serverRunning;
 }
 
-void ServerManager::setServerRunning(bool serverRunning)
+void ServerManager::setServerRunning(bool shouldRun)
 {
-	serverRunning = serverRunning;
+	serverRunning = shouldRun;
 }
 
 /* ************************************************************************** */

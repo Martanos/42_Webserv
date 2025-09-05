@@ -120,15 +120,8 @@ void Client::readRequest()
 
 	if (bytesRead < 0)
 	{
-		if (errno == EWOULDBLOCK || errno == EAGAIN)
-		{
-			_currentState = CLIENT_WAITING_FOR_REQUEST;
-			return;
-		}
-		std::stringstream ss;
-		ss << "Error reading from client: " << strerror(errno);
-		Logger::log(Logger::ERROR, ss.str());
-		throw std::runtime_error("Read error");
+		_currentState = CLIENT_WAITING_FOR_REQUEST;
+		return;
 	}
 
 	// Null-terminate and add to buffer
