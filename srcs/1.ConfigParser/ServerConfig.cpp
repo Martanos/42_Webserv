@@ -460,6 +460,28 @@ void ServerConfig::addErrorLog(std::string line, double lineNumber)
     }
 }
 
+void ServerConfig::addKeepAlive(std::string line, double lineNumber)
+{
+    lineValidation(line, lineNumber);
+    std::stringstream keepAliveStream(line);
+    std::string token;
+    std::stringstream errorMessage;
+
+    if (!(keepAliveStream >> token) || token != "keep_alive")
+    {
+        errorMessage << "Invalid keep_alive directive at line " << lineNumber;
+        Logger::log(Logger::ERROR, errorMessage.str());
+        throw std::runtime_error(errorMessage.str());
+    }
+    if (!(keepAliveStream >> token) || (token != "on" && token != "off"))
+    {
+        errorMessage << "Invalid keep_alive value at line " << lineNumber << ": " << token;
+        Logger::log(Logger::ERROR, errorMessage.str());
+        throw std::runtime_error(errorMessage.str());
+    }
+    _keepAlive = (token == "on");
+}
+
 // Debugging methods
 void ServerConfig::printConfig() const
 {
@@ -519,29 +541,10 @@ void ServerConfig::printConfig() const
     {
         std::cout << "Error Log: " << _errorLog << std::endl;
     }
+    
 }
 
-void ServerConfig::addKeepAlive(std::string line, double lineNumber)
-{
-    lineValidation(line, lineNumber);
-    std::stringstream keepAliveStream(line);
-    std::string token;
-    std::stringstream errorMessage;
 
-    if (!(keepAliveStream >> token) || token != "keepalive")
-    {
-        errorMessage << "Invalid keepalive directive at line " << lineNumber;
-        Logger::log(Logger::ERROR, errorMessage.str());
-        throw std::runtime_error(errorMessage.str());
-    }
-    if (!(keepAliveStream >> token) || (token != "on" && token != "off"))
-    {
-        errorMessage << "Invalid keepalive value at line " << lineNumber << ": " << token;
-        Logger::log(Logger::ERROR, errorMessage.str());
-        throw std::runtime_error(errorMessage.str());
-    }
-    _keepAlive = (token == "on");
-}
 
 // Utils
 

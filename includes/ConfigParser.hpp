@@ -27,6 +27,7 @@ class ConfigParser {
             SERVER_AUTOINDEX,
             SERVER_ACCESS_LOG,
             SERVER_ERROR_LOG,
+            SERVER_KEEP_ALIVE,
             SERVER_LOCATION,
             SERVER_UNKNOWN
         };

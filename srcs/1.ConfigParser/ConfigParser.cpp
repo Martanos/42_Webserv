@@ -178,6 +178,9 @@ void ConfigParser::_parseServerBlock(std::stringstream &buffer, double &lineNumb
         case SERVER_ERROR_LOG:
             currentServer.addErrorLog(line, lineNumber);
             break;
+        case SERVER_KEEP_ALIVE:
+            currentServer.addKeepAlive(line, lineNumber);
+            break;
         case SERVER_LOCATION:
             _parseLocationBlock(buffer, lineNumber, line, currentServer);
             break;
@@ -260,6 +263,8 @@ ConfigParser::ServerDirectiveType ConfigParser::_getServerDirectiveType(const st
         return SERVER_ACCESS_LOG;
     if (directive == "error_log")
         return SERVER_ERROR_LOG;
+    if (directive == "keep_alive")
+        return SERVER_KEEP_ALIVE;
     if (directive == "location")
         return SERVER_LOCATION;
     return SERVER_UNKNOWN;
