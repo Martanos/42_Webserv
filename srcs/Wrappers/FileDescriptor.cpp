@@ -351,7 +351,7 @@ ssize_t FileDescriptor::writeFile(const std::string &buffer)
 }
 
 /*
-** --------------------------------- FILE OPERATIONS ---------------------------------
+** --------------------------------- SOCKET OPERATIONS ---------------------------------
 */
 
 ssize_t FileDescriptor::receiveData(std::string &buffer)
@@ -388,6 +388,146 @@ ssize_t FileDescriptor::sendData(const std::string &buffer)
 		throw std::runtime_error(ss.str());
 	}
 	return bytesSent;
+}
+
+/*
+** --------------------------------- PIPE OPERATIONS ---------------------------------
+*/
+
+ssize_t FileDescriptor::readPipe(std::string &buffer, size_t maxSize)
+{
+	if (!isPipe())
+	{
+		std::stringstream ss;
+		ss << "FileDescriptor: Failed to read pipe: Not a pipe";
+		Logger::log(Logger::ERROR, ss.str());
+		throw std::runtime_error(ss.str());
+	}
+
+	size_t bufferSize = (maxSize > 0) ? maxSize : 4096;
+	buffer.resize(bufferSize);
+	
+	ssize_t bytesRead = read(_fd, &buffer[0], bufferSize);
+	if (bytesRead == -1)
+	{
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+		{
+			buffer.clear();
+			return 0; // No data available (non-blocking)
+		}
+		std::stringstream ss;
+		ss << "FileDescriptor: Failed to read pipe: " << strerror(errno);
+		Logger::log(Logger::ERROR, ss.str());
+		throw std::runtime_error(ss.str());
+	}
+	else if (bytesRead == 0)
+	{
+		buffer.clear();
+		return 0; // EOF
+	}
+	
+	buffer.resize(bytesRead);
+	return bytesRead;
+}
+
+ssize_t FileDescriptor::writePipe(const std::string &buffer)
+{
+	if (buffer.empty())
+		return 0;
+		
+	if (!isPipe())
+	{
+		std::stringstream ss;
+		ss << "FileDescriptor: Failed to write pipe: Not a pipe";
+		Logger::log(Logger::ERROR, ss.str());
+		throw std::runtime_error(ss.str());
+	}
+	
+	ssize_t totalWritten = 0;
+	const char *data = buffer.c_str();
+	size_t dataSize = buffer.length();
+	
+	while (totalWritten < static_cast<ssize_t>(dataSize))
+	{
+		ssize_t bytesWritten = write(_fd, data + totalWritten, dataSize - totalWritten);
+		if (bytesWritten == -1)
+		{
+			if (errno == EINTR)
+				continue;
+			if (errno == EAGAIN || errno == EWOULDBLOCK)
+				break; // Non-blocking write would block
+			if (errno == EPIPE)
+			{
+				std::stringstream ss;
+				ss << "FileDescriptor: Pipe broken (EPIPE)";
+				Logger::log(Logger::WARNING, ss.str());
+				return totalWritten;
+			}
+			std::stringstream ss;
+			ss << "FileDescriptor: Failed to write pipe: " << strerror(errno);
+			Logger::log(Logger::ERROR, ss.str());
+			throw std::runtime_error(ss.str());
+		}
+		totalWritten += bytesWritten;
+	}
+	
+	return totalWritten;
+}
+
+bool FileDescriptor::waitForPipeReady(bool forReading, int timeoutMs) const
+{
+	if (!isPipe())
+	{
+		return false;
+	}
+	
+	fd_set fds;
+	FD_ZERO(&fds);
+	FD_SET(_fd, &fds);
+	
+	struct timeval timeout;
+	timeout.tv_sec = timeoutMs / 1000;
+	timeout.tv_usec = (timeoutMs % 1000) * 1000;
+	
+	int result;
+	if (forReading)
+	{
+		result = select(_fd + 1, &fds, NULL, NULL, &timeout);
+	}
+	else
+	{
+		result = select(_fd + 1, NULL, &fds, NULL, &timeout);
+	}
+	
+	return result > 0 && FD_ISSET(_fd, &fds);
+}
+
+bool FileDescriptor::createPipe(FileDescriptor &readEnd, FileDescriptor &writeEnd)
+{
+	int pipefd[2];
+	if (pipe(pipefd) == -1)
+	{
+		std::stringstream ss;
+		ss << "FileDescriptor: Failed to create pipe: " << strerror(errno);
+		Logger::log(Logger::ERROR, ss.str());
+		return false;
+	}
+	
+	readEnd.setFd(pipefd[0]);
+	writeEnd.setFd(pipefd[1]);
+	return true;
+}
+
+bool FileDescriptor::createPipeNonBlocking(FileDescriptor &readEnd, FileDescriptor &writeEnd)
+{
+	if (!createPipe(readEnd, writeEnd))
+	{
+		return false;
+	}
+	
+	readEnd.setNonBlocking();
+	writeEnd.setNonBlocking();
+	return true;
 }
 
 /* ************************************************************************** */

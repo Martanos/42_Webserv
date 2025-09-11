@@ -68,6 +68,15 @@ public:
 	// Socket operations
 	ssize_t receiveData(std::string &buffer);
 	ssize_t sendData(const std::string &buffer);
+
+	// Pipe operations
+	ssize_t readPipe(std::string &buffer, size_t maxSize = 0);
+	ssize_t writePipe(const std::string &buffer);
+	bool waitForPipeReady(bool forReading, int timeoutMs = 1000) const;
+	
+	// Pipe creation utilities
+	static bool createPipe(FileDescriptor &readEnd, FileDescriptor &writeEnd);
+	static bool createPipeNonBlocking(FileDescriptor &readEnd, FileDescriptor &writeEnd);
 };
 
 std::ostream &operator<<(std::ostream &o, FileDescriptor const &i);
