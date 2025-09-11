@@ -22,6 +22,7 @@
 #include "Server.hpp"
 #include "ListeningSocket.hpp"
 
+// TODO: get rid of server objects and map via references
 // The job of this class is to divide up the information taken from the config into manageble maps for later server operations
 // 1. Divide up ServerConfigs into Server classes (This reduces navigation complexity as well as makes it clearer which class is doing what)
 // 2. Spawn the map of servers where key is a pair pair of fd to host + port pair simultaneously binding to the fd and listening port to get the fd

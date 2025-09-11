@@ -13,51 +13,41 @@
 #include "StringUtils.hpp"
 #include "SafeBuffer.hpp"
 #include "FileDescriptor.hpp"
+#include "HttpURI.hpp"
+#include "HttpHeaders.hpp"
+#include "HttpBody.hpp"
 
 // TODO: Replace buffers with buffer wrapper
+// This class ingests and parses http requests recieved from the client
+// It provides an interface for accessing the request data
+// HttpRequest handles http operations and response formatting
+// HttpURI handles the uri parsing and validation
+// HttpHeaders parses and stores the headers
+// HttpBody handles the body it has streaming capability as well
 class HttpRequest
 {
 public:
 	enum ParseState
 	{
-		PARSE_REQUEST_LINE = 0,
-		PARSE_HEADERS = 1,
-		PARSE_BODY = 2,
-		PARSE_COMPLETE = 3,
-		PARSE_ERROR = 4,
-		PARSE_ERROR_REQUEST_LINE_TOO_LONG = 5,
-		PARSE_ERROR_HEADER_TOO_LONG = 6,
-		PARSE_ERROR_BODY_TOO_LONG = 7,
-		PARSE_ERROR_CONTENT_LENGTH_TOO_LONG = 8,
-		PARSE_ERROR_INVALID_REQUEST_LINE = 9,
-		PARSE_ERROR_INVALID_HTTP_METHOD = 10,
-		PARSE_ERROR_INVALID_HTTP_VERSION = 11,
-		PARSE_ERROR_MALFORMED_REQUEST = 13,
-		PARSE_ERROR_INTERNAL_SERVER_ERROR = 14,
-		PARSE_ERROR_TEMP_FILE_ERROR = 15
+		PARSING_REQUEST_LINE = 0,
+		PARSING_HEADERS = 1,
+		PARSING_BODY = 2,
+		PARSING_COMPLETE = 3,
+		PARSING_ERROR = 4
 	};
 
 private:
-	enum ChunkState
-	{
-		CHUNK_SIZE = 0,	   // Reading chunk size line
-		CHUNK_DATA = 1,	   // Reading chunk data
-		CHUNK_TRAILER = 2, // Reading trailer headers
-		CHUNK_COMPLETE = 3 // Chunked transfer complete
-	};
+	// Parsed message objects
+	HttpURI _uri;
+	HttpHeaders _headers;
+	HttpBody _body;
 
-	// Request line
-	std::string _method;
-	std::string _uri;
-	std::string _version;
+	// Parsing state
+	ParseState _parseState;
+	std::string _rawBuffer;
+	size_t _bytesReceived;
 
-	// Headers
-	std::map<std::string, std::vector<std::string> > _headers;
-
-	// Body handling
-	std::string _body;	   // In-memory body storage
-	size_t _contentLength; // Expected content length
-	bool _isChunked;	   // Chunked transfer encoding flag
+	// Potential servers
 
 	// Chunked parsing state
 	ChunkState _chunkState;		   // Current chunk parsing state
@@ -93,7 +83,7 @@ public:
 	~HttpRequest();
 
 	// Parsing methods
-	ParseState parseBuffer(const std::string &buffer, ssize_t bodyBufferSize);
+	ParseState parseBuffer(const std::string &buffer, HttpResponse &response);
 	bool isComplete() const;
 	bool hasError() const;
 	void reset();
@@ -112,8 +102,6 @@ public:
 	std::string _getBodyFromFile() const;
 
 private:
-	ParseState _parseRequestLine(const std::string &line);
-	ParseState _parseHeaderLine(const std::string &line);
 	ParseState _parseBody();
 	ParseState _parseChunkedBody();
 	ParseState _parseHeaders();

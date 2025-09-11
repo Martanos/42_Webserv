@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include "Constants.hpp"
 
-// RAII wrapper for dynamic buffer allocation
+// Wrapper for buffer operations
 class SafeBuffer
 {
 private:

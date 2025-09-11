@@ -19,7 +19,12 @@
 #include "RequestRouter.hpp"
 #include "DefaultStatusMap.hpp"
 #include "MimeTypes.hpp"
-// This class is used to handle the client connection and process the HTTP request
+
+// This class represents the client connection it is simply the
+// orchestrator of client operations
+// Http requests are handled by http request class
+// Request routing class takes care of method operations
+// Http response class takes care of response generation and sending
 class Client
 {
 public:

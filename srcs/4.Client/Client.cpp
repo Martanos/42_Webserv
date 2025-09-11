@@ -98,6 +98,7 @@ void Client::handleEvent(epoll_event event)
 			sendResponse();
 		}
 		break;
+	// TODO: FIX/Remove this http request takes care of chunked requests
 	case CLIENT_READING_FILE:
 		if (event.events & EPOLLIN)
 		{
@@ -170,20 +171,59 @@ void Client::sendResponse()
 	if (remainingBytes == 0)
 	{
 		// Response fully sent
+
+		// Check if we should keep the connection alive
+		bool clientWantsKeepAlive = false;
+		const std::vector<std::string> &connectionHeaders =
+			_request.getHeader("Connection");
+
+		for (size_t i = 0; i < connectionHeaders.size(); ++i)
+		{
+			std::string header = connectionHeaders[i];
+			// Convert to lowercase for comparison
+			std::transform(header.begin(), header.end(),
+						   header.begin(), ::tolower);
+
+			if (header.find("keep-alive") != std::string::npos)
+			{
+				clientWantsKeepAlive = true;
+			}
+			else if (header.find("close") != std::string::npos)
+			{
+				clientWantsKeepAlive = false;
+				break;
+			}
+		}
+
+		// Server configuration also matters
+		bool serverAllowsKeepAlive = _server->getKeepAlive();
+
+		// HTTP/1.0 defaults to close, HTTP/1.1 defaults to keep-alive
+		bool defaultKeepAlive = (_request.getVersion() == "HTTP/1.1");
+
+		_keepAlive = serverAllowsKeepAlive &&
+					 (clientWantsKeepAlive ||
+					  (defaultKeepAlive && connectionHeaders.empty()));
+
 		if (_keepAlive)
 		{
-			// Reset for next request
+			// Reset for next request on same connection
 			_request.reset();
-			_response.reset();
+			_response = HttpResponse(); // Create fresh response
 			_readBuffer.clear();
 			_currentState = CLIENT_WAITING_FOR_REQUEST;
+			updateActivity(); // Reset timeout
+
+			// Important: Set response header to inform client
+			_response.setHeader("Connection", "keep-alive");
+			// Optionally set Keep-Alive timeout
+			_response.setHeader("Keep-Alive", "timeout=15, max=100");
 		}
 		else
 		{
-			// Close connection
-			throw std::runtime_error("Response complete - close connection");
+			_currentState = CLIENT_CLOSING;
+			_response.setHeader("Connection", "close");
 		}
-		return;
 	}
 
 	// Send remaining data
@@ -210,6 +250,7 @@ void Client::sendResponse()
 	}
 	else
 	{
+		// TODO: Checking errno check if this is allowed
 		// Error occurred
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
 		{
