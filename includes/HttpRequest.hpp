@@ -18,6 +18,7 @@
 #include "HttpBody.hpp"
 
 // TODO: Replace buffers with buffer wrapper
+// TODO: Include check for if is a URI contains a CGI route
 // This class ingests and parses http requests recieved from the client
 // It provides an interface for accessing the request data
 // HttpRequest handles http operations and response formatting
@@ -44,7 +45,7 @@ private:
 
 	// Parsing state
 	ParseState _parseState;
-	std::string _rawBuffer;
+	RingBuffer _rawBuffer;
 	size_t _bytesReceived;
 
 	// Potential servers
@@ -83,7 +84,7 @@ public:
 	~HttpRequest();
 
 	// Parsing methods
-	ParseState parseBuffer(const std::string &buffer, HttpResponse &response);
+	ParseState parseBuffer(RingBuffer &buffer, HttpResponse &response);
 	bool isComplete() const;
 	bool hasError() const;
 	void reset();

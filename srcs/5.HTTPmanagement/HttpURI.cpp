@@ -7,7 +7,7 @@
 HttpURI::HttpURI()
 {
 	_uriState = URI_PARSING;
-	_rawURI = "";
+	_rawURI = RingBuffer(sysconf(_SC_PAGE_SIZE) * 2);
 	_method = "";
 	_uri = "";
 	_version = "";
@@ -47,29 +47,28 @@ HttpURI &HttpURI::operator=(HttpURI const &rhs)
 ** --------------------------------- METHODS ----------------------------------
 */
 
-int HttpURI::parseBuffer(std::string &buffer, HttpResponse &response)
+int HttpURI::parseBuffer(RingBuffer &buffer, HttpResponse &response)
 {
-	if (buffer.empty())
+	// Check if buffer contains CLRF termination line and that the current buffer does not exceed the URI max size
+	size_t newlinePos = _rawURI.contains("\r\n", 2);
+	if (newlinePos == _rawURI.capacity())
 	{
+		if (buffer.readable() > sysconf(_SC_PAGE_SIZE))
+		{
+			Logger::log(Logger::ERROR, "Request line too long");
+			response.setStatusCode(HTTP::STATUS_URI_TOO_LONG);
+			response.setStatusMessage("Request line too long");
+			response.setBody("Request line too long");
+			response.setHeader("Content-Length", StringUtils::toString(response.getBody().size()));
+			response.setHeader("Connection", "close");
+			return URI_PARSING_ERROR;
+		}
 		return URI_PARSING;
 	}
-	size_t newlinePos = buffer.find("\r\n");
-	if (newlinePos == std::string::npos)
-	{
-		return URI_PARSING;
-	}
-	std::string requestLine = buffer.substr(0, newlinePos);
-	if (requestLine.size() > sysconf(_SC_PAGE_SIZE))
-	{
-		Logger::log(Logger::ERROR, "Request line too long");
-		response.setStatusCode(HTTP::STATUS_URI_TOO_LONG);
-		response.setStatusMessage("Request line too long");
-		response.setBody("Request line too long");
-		response.setHeader("Content-Length", StringUtils::toString(response.getBody().size()));
-		response.setHeader("Connection", "close");
-		return URI_PARSING_ERROR;
-	}
-	buffer.erase(0, newlinePos + 2);
+	// If buffer contains CLRF read to a string object for processing
+	std::string requestLine;
+	_rawURI.transferFrom(buffer, newlinePos);
+	_rawURI.peekBuffer(requestLine, _rawURI.readable());
 	std::istringstream iss(requestLine);
 	std::string method, uri, version;
 	std::string extraInfo;
@@ -114,23 +113,9 @@ int HttpURI::parseBuffer(std::string &buffer, HttpResponse &response)
 		response.setHeader("Connection", "close");
 		return URI_PARSING_ERROR;
 	}
-	else if (std::find(HTTP::SUPPORTED_METHODS, HTTP::SUPPORTED_METHODS + sizeof(HTTP::SUPPORTED_METHODS), method) == HTTP::SUPPORTED_METHODS + sizeof(HTTP::SUPPORTED_METHODS))
-	{
-		Logger::log(Logger::ERROR, "Invalid HTTP method: " + method);
-		response.setStatusCode(HTTP::STATUS_BAD_REQUEST);
-		response.setStatusMessage("Bad Request");
-		response.setBody("Bad Request");
-		response.setHeader("Content-Length", StringUtils::toString(response.getBody().size()));
-		response.setHeader("Connection", "close");
-		return URI_PARSING_ERROR;
-	}
-	else
-	{
-		_method = method;
-		_uri = uri;
-		_version = version;
-	}
-	_rawURI = requestLine;
+	_method = method;
+	_uri = uri;
+	_version = version;
 	_uriState = URI_PARSING_COMPLETE;
 	return URI_PARSING_COMPLETE;
 }
@@ -138,7 +123,7 @@ int HttpURI::parseBuffer(std::string &buffer, HttpResponse &response)
 void HttpURI::reset()
 {
 	_uriState = URI_PARSING;
-	_rawURI = "";
+	_rawURI.reset();
 	_method = "";
 	_uri = "";
 	_version = "";
@@ -153,7 +138,7 @@ HttpURI::URIState HttpURI::getURIState() const
 	return _uriState;
 }
 
-std::string HttpURI::getRawURI() const
+RingBuffer &HttpURI::getRawURI()
 {
 	return _rawURI;
 }
@@ -178,7 +163,7 @@ void HttpURI::setURIState(URIState uriState)
 	_uriState = uriState;
 }
 
-void HttpURI::setRawURI(const std::string &rawURI)
+void HttpURI::setRawURI(RingBuffer &rawURI)
 {
 	_rawURI = rawURI;
 }

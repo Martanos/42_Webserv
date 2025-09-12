@@ -66,14 +66,14 @@ public:
 	ssize_t writeFile(const std::string &buffer);
 
 	// Socket operations
-	ssize_t receiveData(std::string &buffer);
+	ssize_t receiveData(void *buffer, size_t size);
 	ssize_t sendData(const std::string &buffer);
 
 	// Pipe operations
 	ssize_t readPipe(std::string &buffer, size_t maxSize = 0);
 	ssize_t writePipe(const std::string &buffer);
 	bool waitForPipeReady(bool forReading, int timeoutMs = 1000) const;
-	
+
 	// Pipe creation utilities
 	static bool createPipe(FileDescriptor &readEnd, FileDescriptor &writeEnd);
 	static bool createPipeNonBlocking(FileDescriptor &readEnd, FileDescriptor &writeEnd);

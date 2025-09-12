@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <string>
-#include "SafeBuffer.hpp"
+#include "RingBuffer.hpp"
 #include "Logger.hpp"
 #include "HttpResponse.hpp"
 #include "Constants.hpp"
@@ -24,18 +24,18 @@ public:
 	};
 
 	// Main parsing method
-	int parseBuffer(std::string &buffer, HttpResponse &response);
+	int parseBuffer(RingBuffer &buffer, HttpResponse &response);
 
 	// Accessors
 	URIState getURIState() const;
-	std::string getRawURI() const;
+	RingBuffer &getRawURI();
 	std::string getMethod() const;
 	std::string getURI() const;
 	std::string getVersion() const;
 
 	// Mutators
 	void setURIState(URIState uriState);
-	void setRawURI(const std::string &rawURI);
+	void setRawURI(RingBuffer &rawURI);
 	void setMethod(const std::string &method);
 	void setURI(const std::string &uri);
 	void setVersion(const std::string &version);
@@ -45,7 +45,7 @@ public:
 
 private:
 	URIState _uriState;
-	std::string _rawURI;
+	RingBuffer _rawURI;
 
 	// Request line
 	std::string _method;

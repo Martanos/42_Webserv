@@ -15,7 +15,7 @@ HttpRequest::HttpRequest()
 	_usingTempFile = false;
 	_tempFilePath = "";
 	_tempFd = FileDescriptor(-1);
-	_rawBuffer = "";
+	_rawBuffer = RingBuffer(sysconf(_SC_PAGESIZE) * 4); // Should equal 32KB/64KB depending on the system
 	_bytesReceived = 0;
 	_maxHeaderSize = HTTP::DEFAULT_BUFFER_SIZE;
 	_maxBodySize = HTTP::DEFAULT_BUFFER_SIZE;
@@ -74,70 +74,60 @@ HttpRequest &HttpRequest::operator=(const HttpRequest &rhs)
 ** --------------------------------- PARSING METHODS ----------------------------------
 */
 
-HttpRequest::ParseState HttpRequest::parseBuffer(const std::string &buffer, HttpResponse &response)
+HttpRequest::ParseState HttpRequest::parseBuffer(RingBuffer &buffer, HttpResponse &response)
 {
-	_rawBuffer += buffer;
-	_bytesReceived += buffer.size();
-
-	// TODO: Implement server identification then self check against max content length
-	// if (_parseState == PARSING_BODY)
-	// {
-	// 	_maxContentLength = bodyBufferSize;
-	// }
-	// if (_bytesReceived > _maxContentLength)
-	// {
-	// 	return PARSE_ERROR_CONTENT_LENGTH_TOO_LONG;
-	// }
-	while (_parseState != PARSING_COMPLETE && _parseState != PARSING_ERROR)
+	// Max body size in done in client
+	// Flush client buffer into request buffer
+	_rawBuffer.transferFrom(buffer, buffer.readable());
+	switch (_parseState)
 	{
-		switch (_parseState)
+	case PARSING_REQUEST_LINE:
+	{
+		int result = _uri.parseBuffer(_rawBuffer, response);
+		if (result == HttpURI::URI_PARSING_COMPLETE)
 		{
-		case PARSING_REQUEST_LINE:
+			_parseState = PARSING_HEADERS;
+		}
+		else if (result == HttpURI::URI_PARSING_ERROR)
 		{
-			int result = _uri.parseBuffer(_rawBuffer, response);
-			if (result == HttpURI::URI_PARSING_COMPLETE)
-			{
-				_parseState = PARSING_HEADERS;
-			}
-			else if (result == HttpURI::URI_PARSING_ERROR)
-			{
-				_parseState = PARSING_ERROR;
-			}
-			break;
+			_parseState = PARSING_ERROR;
 		}
-		case PARSING_HEADERS:
+		break;
+	}
+	case PARSING_HEADERS:
+	{
+		int result = _headers.parseBuffer(_rawBuffer, response);
+		if (result == HttpHeaders::HEADERS_PARSING_COMPLETE)
 		{
-			int result = _headers.parseBuffer(_rawBuffer, response);
-			if (result == HttpHeaders::HEADERS_PARSING_COMPLETE)
-			{
-				_parseState = PARSING_BODY;
-			}
-			else if (result == HttpHeaders::HEADERS_PARSING_ERROR)
-			{
-				_parseState = PARSING_ERROR;
-			}
-			if (_headers.getBodyType() == HttpHeaders::BODY_TYPE_NO_BODY)
-			{
-				_parseState = PARSING_COMPLETE;
-			}
-			break;
+
+			_parseState = PARSING_BODY;
 		}
-		case PARSING_BODY:
+		else if (result == HttpHeaders::HEADERS_PARSING_ERROR)
 		{
-			int result = _body.parseBuffer(_rawBuffer, response);
-			if (result == PARSING_COMPLETE)
-			{
-				_parseState = PARSING_COMPLETE;
-			}
-			else if (result == PARSING_ERROR)
-			{
-				_parseState = PARSING_ERROR;
-			}
-			break;
+			_parseState = PARSING_ERROR;
 		}
-		default:
-			break;
+		// TODO: include check for if is a URI contains a CGI route
+		if (_headers.getBodyType() == HttpHeaders::BODY_TYPE_NO_BODY)
+		{
+			_parseState = PARSING_COMPLETE;
 		}
+		break;
+	}
+	case PARSING_BODY:
+	{
+		int result = _body.parseBuffer(_rawBuffer, response);
+		if (result == PARSING_COMPLETE)
+		{
+			_parseState = PARSING_COMPLETE;
+		}
+		else if (result == PARSING_ERROR)
+		{
+			_parseState = PARSING_ERROR;
+		}
+		break;
+	}
+	default:
+		break;
 	}
 	return _parseState;
 }
@@ -434,97 +424,12 @@ HttpRequest::ParseState HttpRequest::_appendToTempFile(const std::string &data)
 	return PARSE_BODY;
 }
 
-// Parse hexadecimal chunk size
-size_t HttpRequest::_parseHexSize(const std::string &hexStr) const
-{
-	if (hexStr.empty())
-	{
-		return static_cast<size_t>(-1);
-	}
-
-	size_t result = 0;
-	for (size_t i = 0; i < hexStr.length(); ++i)
-	{
-		char c = hexStr[i];
-		int digit = -1;
-
-		if (c >= '0' && c <= '9')
-		{
-			digit = c - '0';
-		}
-		else if (c >= 'A' && c <= 'F')
-		{
-			digit = c - 'A' + 10;
-		}
-		else if (c >= 'a' && c <= 'f')
-		{
-			digit = c - 'a' + 10;
-		}
-		else
-		{
-			// Invalid hex character
-			return static_cast<size_t>(-1);
-		}
-
-		// Check for overflow
-		if (result > (SIZE_MAX - digit) / 16)
-		{
-			Logger::log(Logger::ERROR, "Chunk size too large: " + hexStr);
-			return static_cast<size_t>(-1);
-		}
-
-		result = result * 16 + digit;
-	}
-
-	return result;
-}
-
-// Create temp file path
-std::string HttpRequest::_createTempFilePath() const
-{
-	std::time_t now = std::time(0);
-	char buf[80];
-	std::strftime(buf, sizeof(buf), "%Y%m%d%H%M%S", std::localtime(&now));
-	return std::string(HTTP::TEMP_FILE_TEMPLATE) + std::string(buf);
-}
-
-// Clean up temp file
-void HttpRequest::_cleanupTempFile()
-{
-	if (_usingTempFile && !_tempFilePath.empty())
-	{
-		if (_tempFd.getFd() != -1)
-		{
-			// File descriptor will be closed by destructor
-		}
-
-		// Remove temp file
-		if (unlink(_tempFilePath.c_str()) != 0)
-		{
-			Logger::log(Logger::WARNING, "Failed to remove temp file: " + _tempFilePath);
-		}
-		else
-		{
-			Logger::log(Logger::DEBUG, "Removed temp file: " + _tempFilePath);
-		}
-
-		_tempFilePath.clear();
-		_usingTempFile = false;
-	}
-}
-
 std::string HttpRequest::_toLowerCase(const std::string &str) const
 {
 	std::string result = str;
 	std::transform(result.begin(), result.end(), result.begin(), ::tolower);
 	return result;
 }
-
-bool HttpRequest::_isValidMethod(const std::string &method) const
-{
-	return std::find(HTTP::SUPPORTED_METHODS, HTTP::SUPPORTED_METHODS + 4, method) != HTTP::SUPPORTED_METHODS + 4;
-}
-
 /*
 ** --------------------------------- ACCESSOR METHODS ----------------------------------
 */

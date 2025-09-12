@@ -10,7 +10,7 @@ Client::Client()
 	_server = NULL;
 	_keepAlive = true;
 	_lastActivity = time(NULL);
-	_readBuffer = "";
+	_readBuffer = RingBuffer();
 }
 
 Client::Client(const Client &src)
@@ -26,7 +26,7 @@ Client::Client(FileDescriptor socketFd, SocketAddress clientAddr)
 	_server = NULL;
 	_keepAlive = true;
 	_lastActivity = time(NULL);
-	_readBuffer = "";
+	_readBuffer = RingBuffer();
 }
 
 /*
@@ -55,6 +55,7 @@ Client &Client::operator=(Client const &rhs)
 		_lastActivity = rhs._lastActivity;
 		_keepAlive = rhs._keepAlive;
 		_server = rhs._server;
+		_readBuffer = rhs._readBuffer;
 	}
 	return *this;
 }
@@ -63,7 +64,7 @@ Client &Client::operator=(Client const &rhs)
 ** --------------------------------- EVENT HANDLING ----------------------------------
 */
 
-// TODO: replace throw with custom exception
+// TODO: Encapsulate in a try catch block
 void Client::handleEvent(epoll_event event)
 {
 	updateActivity();
@@ -116,21 +117,36 @@ void Client::handleEvent(epoll_event event)
 
 void Client::readRequest()
 {
-	std::string buffer;
-	ssize_t bytesRead = _clientFd.receiveData(buffer);
-
-	if (bytesRead < 0)
+	if (!_readBuffer.empty())
 	{
-		_currentState = CLIENT_WAITING_FOR_REQUEST;
+		std::stringstream ss;
+		ss << "Read buffer is not empty: " << _readBuffer.readable();
+		Logger::log(Logger::WARNING, ss.str());
+		_readBuffer.clear();
+	}
+	// Buffer should be empty each loop
+	ssize_t bytesRead = _clientFd.receiveData(_readBuffer.data(), _readBuffer.size());
+	if (bytesRead <= 0)
+	{
+		// TODO: Should be an error state
+		_currentState = CLIENT_READING_REQUEST;
 		return;
 	}
-
-	// Null-terminate and add to buffer
-	buffer[bytesRead] = '\0';
-	_readBuffer.append(buffer, bytesRead);
-
+	_totalBytesRead += bytesRead;
+	if (_serverFound && _totalBytesRead > _server->getClientMaxBodySize())
+	{
+		_response.reset();
+		_response.setStatus(413, "Payload Too Large");
+		_response.setBody(DefaultStatusMap::getStatusBody(413));
+		_response.setHeader("Content-Type", "text/html");
+		_response.setHeader("Content-Length", StringUtils::toString(_response.getBody().length()));
+		_response.setHeader("Connection", _keepAlive ? "keep-alive" : "close");
+		_response.setHeader("Server", SERVER::SERVER_VERSION);
+		_currentState = CLIENT_SENDING_RESPONSE;
+		return;
+	}
 	// Parse the request
-	HttpRequest::ParseState parseResult = _request.parseBuffer(_readBuffer, _readBuffer.size());
+	HttpRequest::ParseState parseResult = _request.parseBuffer(_readBuffer, _response);
 
 	switch (parseResult)
 	{

@@ -19,6 +19,7 @@
 #include "RequestRouter.hpp"
 #include "DefaultStatusMap.hpp"
 #include "MimeTypes.hpp"
+#include "RingBuffer.hpp"
 
 // This class represents the client connection it is simply the
 // orchestrator of client operations
@@ -34,24 +35,26 @@ public:
 		CLIENT_READING_REQUEST = 1,
 		CLIENT_PROCESSING_REQUEST = 2,
 		CLIENT_SENDING_RESPONSE = 3,
-		CLIENT_READING_FILE = 4,
-		CLIENT_WRITING_FILE = 5,
-		CLIENT_CLOSING = 6,
-		CLIENT_DISCONNECTED = 7
+		CLIENT_CLOSING = 4,
+		CLIENT_DISCONNECTED = 5
 	};
 
 private:
+	// Objects
 	FileDescriptor _clientFd;
 	int _socketFd;
 	SocketAddress _clientAddr;
-	State _currentState;
 
+	size_t _totalBytesRead;
 	HttpRequest _request;
 	HttpResponse _response;
+	RingBuffer _readBuffer;
 	std::vector<Server> &_potentialServers;
+	bool _serverFound;
 	Server *_server;
 
-	std::string _readBuffer;
+	// State
+	State _currentState;
 	time_t _lastActivity;
 	bool _keepAlive;
 

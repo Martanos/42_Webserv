@@ -354,18 +354,16 @@ ssize_t FileDescriptor::writeFile(const std::string &buffer)
 ** --------------------------------- SOCKET OPERATIONS ---------------------------------
 */
 
-ssize_t FileDescriptor::receiveData(std::string &buffer)
+ssize_t FileDescriptor::receiveData(void *buffer, size_t size)
 {
-	if (buffer.empty())
-		buffer.resize(sysconf(_SC_PAGESIZE));
-	else if (!isSocket())
+	if (!isSocket())
 	{
 		std::stringstream ss;
 		ss << "FileDescriptor: Failed to receive data: Not a socket";
 		Logger::log(Logger::ERROR, ss.str());
 		throw std::runtime_error(ss.str());
 	}
-	return recv(_fd, &buffer[0], buffer.size(), MSG_NOSIGNAL);
+	return recv(_fd, buffer, size, MSG_NOSIGNAL);
 }
 
 ssize_t FileDescriptor::sendData(const std::string &buffer)
@@ -406,7 +404,7 @@ ssize_t FileDescriptor::readPipe(std::string &buffer, size_t maxSize)
 
 	size_t bufferSize = (maxSize > 0) ? maxSize : 4096;
 	buffer.resize(bufferSize);
-	
+
 	ssize_t bytesRead = read(_fd, &buffer[0], bufferSize);
 	if (bytesRead == -1)
 	{
@@ -425,7 +423,7 @@ ssize_t FileDescriptor::readPipe(std::string &buffer, size_t maxSize)
 		buffer.clear();
 		return 0; // EOF
 	}
-	
+
 	buffer.resize(bytesRead);
 	return bytesRead;
 }
@@ -434,7 +432,7 @@ ssize_t FileDescriptor::writePipe(const std::string &buffer)
 {
 	if (buffer.empty())
 		return 0;
-		
+
 	if (!isPipe())
 	{
 		std::stringstream ss;
@@ -442,11 +440,11 @@ ssize_t FileDescriptor::writePipe(const std::string &buffer)
 		Logger::log(Logger::ERROR, ss.str());
 		throw std::runtime_error(ss.str());
 	}
-	
+
 	ssize_t totalWritten = 0;
 	const char *data = buffer.c_str();
 	size_t dataSize = buffer.length();
-	
+
 	while (totalWritten < static_cast<ssize_t>(dataSize))
 	{
 		ssize_t bytesWritten = write(_fd, data + totalWritten, dataSize - totalWritten);
@@ -470,7 +468,7 @@ ssize_t FileDescriptor::writePipe(const std::string &buffer)
 		}
 		totalWritten += bytesWritten;
 	}
-	
+
 	return totalWritten;
 }
 
@@ -480,15 +478,15 @@ bool FileDescriptor::waitForPipeReady(bool forReading, int timeoutMs) const
 	{
 		return false;
 	}
-	
+
 	fd_set fds;
 	FD_ZERO(&fds);
 	FD_SET(_fd, &fds);
-	
+
 	struct timeval timeout;
 	timeout.tv_sec = timeoutMs / 1000;
 	timeout.tv_usec = (timeoutMs % 1000) * 1000;
-	
+
 	int result;
 	if (forReading)
 	{
@@ -498,7 +496,7 @@ bool FileDescriptor::waitForPipeReady(bool forReading, int timeoutMs) const
 	{
 		result = select(_fd + 1, NULL, &fds, NULL, &timeout);
 	}
-	
+
 	return result > 0 && FD_ISSET(_fd, &fds);
 }
 
@@ -512,7 +510,7 @@ bool FileDescriptor::createPipe(FileDescriptor &readEnd, FileDescriptor &writeEn
 		Logger::log(Logger::ERROR, ss.str());
 		return false;
 	}
-	
+
 	readEnd.setFd(pipefd[0]);
 	writeEnd.setFd(pipefd[1]);
 	return true;
@@ -524,7 +522,7 @@ bool FileDescriptor::createPipeNonBlocking(FileDescriptor &readEnd, FileDescript
 	{
 		return false;
 	}
-	
+
 	readEnd.setNonBlocking();
 	writeEnd.setNonBlocking();
 	return true;
