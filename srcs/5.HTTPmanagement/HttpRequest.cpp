@@ -9,18 +9,8 @@ HttpRequest::HttpRequest()
 	_uri = HttpURI();
 	_headers = HttpHeaders();
 	_body = HttpBody();
-	_currentChunkSize = 0;
-	_currentChunkBytesRead = 0;
-	_totalBodySize = 0;
-	_usingTempFile = false;
-	_tempFilePath = "";
-	_tempFd = FileDescriptor(-1);
 	_rawBuffer = RingBuffer(sysconf(_SC_PAGESIZE) * 4); // Should equal 32KB/64KB depending on the system
 	_bytesReceived = 0;
-	_maxHeaderSize = HTTP::DEFAULT_BUFFER_SIZE;
-	_maxBodySize = HTTP::DEFAULT_BUFFER_SIZE;
-	_maxRequestLineSize = HTTP::DEFAULT_BUFFER_SIZE;
-	_maxContentLength = HTTP::DEFAULT_MAX_CONTENT_LENGTH;
 }
 
 HttpRequest::HttpRequest(const HttpRequest &src)
@@ -34,7 +24,6 @@ HttpRequest::HttpRequest(const HttpRequest &src)
 
 HttpRequest::~HttpRequest()
 {
-	_cleanupTempFile();
 }
 
 /*
@@ -45,27 +34,12 @@ HttpRequest &HttpRequest::operator=(const HttpRequest &rhs)
 {
 	if (this != &rhs)
 	{
-		// Clean up existing temp file if any
-		_cleanupTempFile();
-
-		// Copy basic members
 		_uri = rhs._uri;
 		_headers = rhs._headers;
 		_body = rhs._body;
 		_parseState = rhs._parseState;
 		_rawBuffer = rhs._rawBuffer;
 		_bytesReceived = rhs._bytesReceived;
-
-		// Copy chunked parsing state
-		_chunkState = rhs._chunkState;
-		_currentChunkSize = rhs._currentChunkSize;
-		_currentChunkBytesRead = rhs._currentChunkBytesRead;
-		_totalBodySize = rhs._totalBodySize;
-		_usingTempFile = rhs._usingTempFile;
-		_tempFilePath = rhs._tempFilePath;
-
-		// Note: File descriptor is not copied - temp files are per-request
-		_tempFd = FileDescriptor(-1);
 	}
 	return *this;
 }
@@ -78,19 +52,21 @@ HttpRequest::ParseState HttpRequest::parseBuffer(RingBuffer &buffer, HttpRespons
 {
 	// Max body size in done in client
 	// Flush client buffer into request buffer
+	_bytesReceived += buffer.readable();
 	_rawBuffer.transferFrom(buffer, buffer.readable());
 	switch (_parseState)
 	{
 	case PARSING_REQUEST_LINE:
 	{
 		int result = _uri.parseBuffer(_rawBuffer, response);
-		if (result == HttpURI::URI_PARSING_COMPLETE)
+		switch (result)
 		{
+		case HttpURI::URI_PARSING_COMPLETE:
 			_parseState = PARSING_HEADERS;
-		}
-		else if (result == HttpURI::URI_PARSING_ERROR)
-		{
+			break;
+		case HttpURI::URI_PARSING_ERROR:
 			_parseState = PARSING_ERROR;
+			break;
 		}
 		break;
 	}
@@ -99,7 +75,6 @@ HttpRequest::ParseState HttpRequest::parseBuffer(RingBuffer &buffer, HttpRespons
 		int result = _headers.parseBuffer(_rawBuffer, response);
 		if (result == HttpHeaders::HEADERS_PARSING_COMPLETE)
 		{
-
 			_parseState = PARSING_BODY;
 		}
 		else if (result == HttpHeaders::HEADERS_PARSING_ERROR)

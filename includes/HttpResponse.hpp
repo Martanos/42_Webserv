@@ -8,7 +8,8 @@
 #include "Logger.hpp"
 #include "StringUtils.hpp"
 
-//  This class is used to generate the response to the client
+// This class is used to generate the response to the client
+// TODO: Set fields automatically depending on status code
 class HttpResponse
 {
 private:

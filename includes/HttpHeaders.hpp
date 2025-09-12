@@ -16,6 +16,7 @@
 #include "HttpResponse.hpp"
 #include "Constants.hpp"
 #include "StringUtils.hpp"
+#include "RingBuffer.hpp"
 
 class HttpHeaders
 {
@@ -40,7 +41,7 @@ private:
 	HeadersState _headersState;
 	BodyType _bodyType;
 	size_t _expectedBodySize;
-	std::string _rawHeaders;
+	RingBuffer _rawHeaders;
 	std::map<std::string, std::vector<std::string> > _headers;
 
 public:
@@ -51,13 +52,13 @@ public:
 	HttpHeaders &operator=(HttpHeaders const &rhs);
 
 	// Main parsing method
-	int parseBuffer(std::string &buffer, HttpResponse &response);
+	int parseBuffer(RingBuffer &buffer, HttpResponse &response);
 	void parseHeaderLine(const std::string &line, HttpResponse &response);
 	void parseHeaders(HttpResponse &response);
 
 	// Accessors
 	int getHeadersState() const;
-	std::string getRawHeaders() const;
+	RingBuffer getRawHeaders() const;
 	std::map<std::string, std::vector<std::string> > getHeaders() const;
 	size_t getHeadersSize() const;
 	BodyType getBodyType() const;
@@ -65,7 +66,7 @@ public:
 
 	// Mutators
 	void setHeadersState(HeadersState headersState);
-	void setRawHeaders(const std::string &rawHeaders);
+	void setRawHeaders(const RingBuffer &rawHeaders);
 	void setHeaders(const std::map<std::string, std::vector<std::string> > &headers);
 	void setBodyType(BodyType bodyType);
 	void setExpectedBodySize(size_t expectedBodySize);

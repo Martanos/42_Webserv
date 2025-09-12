@@ -7,7 +7,7 @@
 HttpHeaders::HttpHeaders()
 {
 	_headersState = HEADERS_PARSING;
-	_rawHeaders = "";
+	_rawHeaders = RingBuffer(sysconf(_SC_PAGE_SIZE) * 2); // Should equal 32KB/64KB depending on the system
 	_headers.clear();
 }
 
@@ -43,29 +43,28 @@ HttpHeaders &HttpHeaders::operator=(HttpHeaders const &rhs)
 ** --------------------------------- METHODS ----------------------------------
 */
 
-int HttpHeaders::parseBuffer(std::string &buffer, HttpResponse &response)
+int HttpHeaders::parseBuffer(RingBuffer &buffer, HttpResponse &response)
 {
-	if (buffer.empty())
+	size_t newlinePos = _rawHeaders.contains("\r\n", 2);
+	if (newlinePos == _rawHeaders.capacity())
 	{
+		if (buffer.readable() > sysconf(_SC_PAGE_SIZE))
+		{
+			Logger::log(Logger::ERROR, "Headers too long");
+			response.setStatusCode(HTTP::STATUS_BAD_REQUEST);
+			response.setStatusMessage("Bad Request");
+			response.setBody("Bad Request");
+			response.setHeader("Content-Length", StringUtils::toString(response.getBody().size()));
+			response.setHeader("Connection", "close");
+			return _headersState;
+		}
 		return _headersState;
 	}
-	size_t newlinePos = buffer.find("\r\n");
-	if (newlinePos == std::string::npos)
-	{
-		return _headersState;
-	}
-	std::string headerLine = buffer.substr(0, newlinePos);
-	buffer.erase(0, newlinePos + 2);
-	if (headerLine.empty())
-	{
-		parseHeaders(response);
-		return _headersState;
-	}
-	else
-	{
-		parseHeaderLine(headerLine, response);
-		return _headersState;
-	}
+	std::string headerLine;
+	_rawHeaders.transferFrom(buffer, newlinePos);
+	_rawHeaders.peekBuffer(headerLine, _rawHeaders.readable());
+	parseHeaderLine(headerLine, response);
+	return _headersState;
 }
 
 void HttpHeaders::parseHeaderLine(const std::string &line, HttpResponse &response)
@@ -86,6 +85,9 @@ void HttpHeaders::parseHeaderLine(const std::string &line, HttpResponse &respons
 		_headersState = HEADERS_PARSING_ERROR;
 		return;
 	}
+	// Check if this is the CLRF termination line
+	if (line == "\r\n")
+		return parseHeaders(response);
 	// Extract the header name
 	if (!(ss >> name))
 	{
@@ -152,7 +154,6 @@ void HttpHeaders::parseHeaderLine(const std::string &line, HttpResponse &respons
 
 		it->second.push_back(token);
 	}
-
 	return;
 }
 
@@ -473,7 +474,7 @@ int HttpHeaders::getHeadersState() const
 	return _headersState;
 }
 
-std::string HttpHeaders::getRawHeaders() const
+RingBuffer HttpHeaders::getRawHeaders() const
 {
 	return _rawHeaders;
 }
@@ -507,9 +508,9 @@ void HttpHeaders::setHeadersState(HeadersState headersState)
 	_headersState = headersState;
 }
 
-void HttpHeaders::setRawHeaders(const std::string &rawHeaders)
+void HttpHeaders::setRawHeaders(const RingBuffer &rawHeaders)
 {
-	_rawHeaders = rawHeaders;
+	_rawHeaders.writeBuffer(rawHeaders, rawHeaders.readable());
 }
 
 void HttpHeaders::setHeaders(const std::map<std::string, std::vector<std::string> > &headers)
@@ -532,7 +533,7 @@ void HttpHeaders::reset()
 	_bodyType = BODY_TYPE_NO_BODY;
 	_expectedBodySize = 0;
 	_headersState = HEADERS_PARSING;
-	_rawHeaders = "";
+	_rawHeaders.reset();
 	_headers.clear();
 }
 
