@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cstring>
 #include <cstddef>
+#include "FileDescriptor.hpp"
 
 // Ring buffer is a circular buffer that can be used to store data
 // More efficient than most other buffers
@@ -48,6 +49,8 @@ public:
 	size_t appendBuffer(const RingBuffer &src);
 	size_t readBuffer(char *dest, size_t len);
 	size_t peekBuffer(char *dest, size_t len) const;
+	size_t flushToFile(const std::string &filePath);
+	size_t flushToFile(FileDescriptor &fd);
 	void reserve(size_t newCapacity);
 	void consume(size_t len);
 	void reset();

@@ -18,6 +18,7 @@
 #include "FileDescriptor.hpp"
 #include "Logger.hpp"
 #include "StringUtils.hpp"
+#include "RingBuffer.hpp"
 
 // The responsibility of this class is to parse the body of the request
 // For example if chunked transfer encoding is used, this class will parse the body
@@ -54,7 +55,7 @@ private:
 	size_t _expectedBodySize;
 	bool _isChunked;
 	bool _isUsingTempFile;
-	std::vector<char> _rawBodyLine;
+	RingBuffer _rawBodyLine;
 	std::string _tempFilePath;
 	FileDescriptor _tempFd;
 

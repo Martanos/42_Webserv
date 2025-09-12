@@ -16,11 +16,7 @@ namespace HTTP
 	static const std::string SUPPORTED_METHODS[] = {"GET", "POST", "DELETE"};
 	static const std::string HTTP_VERSION = "HTTP/1.1";
 	static const std::string TEMP_FILE_TEMPLATE = "/tmp/webserv-";
-	static const size_t DEFAULT_BUFFER_SIZE = sysconf(_SC_PAGE_SIZE); // 8KB/16KB depending on the system
-	static const size_t TEMP_FILE_TRESHOLD = DEFAULT_BUFFER_SIZE * 4; // 32KB/64KB depending on the system
-	static const size_t DEFAULT_MAX_CONTENT_LENGTH = 1048576;		  // 1MB
-	const int DEFAULT_TIMEOUT_SECONDS = 30;							  // 30 second timeout
-	const int MAX_CONNECTIONS = sysconf(_SC_SOMAXCONN);				  // Maximum concurrent connections
+	const int DEFAULT_TIMEOUT_SECONDS = 30; // 30 second timeout
 
 	// HTTP Status Codes
 	const int STATUS_CONTINUE = 100;
@@ -80,21 +76,6 @@ namespace SERVER
 	const size_t DEFAULT_CLIENT_MAX_BODY_SIZE = 1048576; // 1MB
 	const bool DEFAULT_KEEP_ALIVE = true;
 	const char *const SERVER_VERSION = "42_Webserv/1.0";
-}
-
-// File System Constants
-namespace FS
-{
-	const size_t MAX_PATH_LENGTH = sysconf(_SC_PATH_MAX);
-	const size_t MAX_FILENAME_LENGTH = sysconf(_SC_FILENAME_MAX);
-	const char PATH_SEPARATOR = sysconf(_SC_PATH_SEPARATOR);
-}
-
-// Network Constants
-namespace NET
-{
-	const int SOMAXCONN_VALUE = sysconf(_SC_SOMAXCONN);
-	const size_t MAX_EPOLL_EVENTS = sysconf(_SC_EPOLL_MAX_EVENTS);
 }
 
 #endif /* CONSTANTS_HPP */

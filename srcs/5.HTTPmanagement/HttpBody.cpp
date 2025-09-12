@@ -8,7 +8,6 @@ HttpBody::HttpBody()
 {
 	_bodyState = BODY_PARSING;
 	_expectedBodySize = 0;
-	_bodyBytesRead = 0;
 	_isChunked = false;
 	_isUsingTempFile = false;
 	_tempFilePath = "";

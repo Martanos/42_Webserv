@@ -82,6 +82,29 @@ size_t RingBuffer::contains(const char *data, size_t len) const
 	return _capacity;
 }
 
+// TODO: Check if this is right
+size_t RingBuffer::flushToFile(const std::string &filePath)
+{
+	FileDescriptor fd(open(filePath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH));
+	if (!fd.isValid())
+	{
+		Logger::log(Logger::ERROR, "Failed to open file: " + filePath);
+		return 0;
+	}
+	std::string buffer;
+	buffer.resize(readable());
+	peekBuffer(buffer, readable());
+	return fd.writeFile(buffer);
+}
+
+size_t RingBuffer::flushToFile(FileDescriptor &fd)
+{
+	std::string buffer;
+	buffer.resize(readable());
+	peekBuffer(buffer, readable());
+	return fd.writeFile(buffer);
+}
+
 /*
 ** --------------------------------- ACCESSOR ---------------------------------
 */
@@ -233,12 +256,16 @@ void RingBuffer::reset()
 }
 
 void RingBuffer::clear()
-
 {
 	_buffer.clear();
 	_head = 0;
 	_tail = 0;
 	_capacity = 0;
+}
+
+size_t RingBuffer::capacity() const
+{
+	return _capacity;
 }
 
 /* ************************************************************************** */
