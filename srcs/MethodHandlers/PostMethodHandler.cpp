@@ -261,30 +261,48 @@ std::string PostMethodHandler::extractFilename(const std::string &contentDisposi
 	return "";
 }
 
-// TODO: Implement CGI handling
 void PostMethodHandler::handleCGI(const HttpRequest &request,
 								  HttpResponse &response,
 								  const Location *location,
 								  const Server *server) const
 {
-	// Simplified CGI handling placeholder
-	// The full implementation would:
-	// 1. Set up environment variables from request headers
-	// 2. Create pipes for stdin/stdout
-	// 3. Fork process
-	// 4. Execute CGI script with request body as stdin
-	// 5. Read CGI output and parse headers
-	// 6. Return response
-
-	(void)request;
-	(void)server;
-	(void)location;
-
-	response.setStatus(501, "Not Implemented");
-	response.setBody("<h1>CGI Support Not Yet Implemented</h1>");
-	response.setHeader("Content-Type", "text/html");
-	response.setHeader("Content-Length",
-					   StringUtils::toString(response.getBody().length()));
+	// Use the new CgiHandler for CGI execution
+	CgiHandler cgiHandler;
+	
+	CgiHandler::ExecutionResult result = cgiHandler.execute(request, response, server, location);
+	
+	if (result != CgiHandler::SUCCESS)
+	{
+		// CGI execution failed, return appropriate error
+		int statusCode = 500;
+		std::string statusMessage = "Internal Server Error";
+		
+		switch (result)
+		{
+			case CgiHandler::ERROR_SCRIPT_NOT_FOUND:
+				statusCode = 404;
+				statusMessage = "Not Found";
+				break;
+			case CgiHandler::ERROR_TIMEOUT:
+				statusCode = 504;
+				statusMessage = "Gateway Timeout";
+				break;
+			case CgiHandler::ERROR_INVALID_SCRIPT_PATH:
+				statusCode = 400;
+				statusMessage = "Bad Request";
+				break;
+			default:
+				statusCode = 500;
+				statusMessage = "Internal Server Error";
+				break;
+		}
+		
+		response.setStatus(statusCode, statusMessage);
+		response.setBody(server->getStatusPage(statusCode));
+		response.setHeader("Content-Type", "text/html");
+		response.setHeader("Content-Length",
+						   StringUtils::toString(response.getBody().length()));
+	}
 }
 
 /*

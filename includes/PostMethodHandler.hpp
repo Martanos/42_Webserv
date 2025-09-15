@@ -4,6 +4,7 @@
 
 #include "IMethodHandler.hpp"
 #include "FileDescriptor.hpp"
+#include "CgiHandler.hpp"
 #include <string>
 
 class PostMethodHandler : public IMethodHandler

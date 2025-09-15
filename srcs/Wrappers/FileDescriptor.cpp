@@ -480,9 +480,9 @@ bool FileDescriptor::waitForPipeReady(bool forReading, int timeoutMs) const
 	}
 
 	fd_set fds;
-	FD_ZERO(&fds);
-	FD_SET(_fd, &fds);
-
+	FD_ZERO(&fds); // clear the set
+	FD_SET(_fd, &fds); // add file descriptor to the set
+	
 	struct timeval timeout;
 	timeout.tv_sec = timeoutMs / 1000;
 	timeout.tv_usec = (timeoutMs % 1000) * 1000;
@@ -494,9 +494,9 @@ bool FileDescriptor::waitForPipeReady(bool forReading, int timeoutMs) const
 	}
 	else
 	{
+		// for writing
 		result = select(_fd + 1, NULL, &fds, NULL, &timeout);
 	}
-
 	return result > 0 && FD_ISSET(_fd, &fds);
 }
 

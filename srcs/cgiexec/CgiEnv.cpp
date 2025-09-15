@@ -68,34 +68,57 @@ void CGIenv::printEnv() const
 	}
 }
 
-void CGIenv::copyDataFromServer(const ServerConfig &server, const LocationConfig &location)
+void CGIenv::copyDataFromServer(const Server *server, const Location *location)
 {
+	if (!server || !location)
+	{
+		Logger::log(Logger::ERROR, "CGIenv::copyDataFromServer: Invalid server or location pointer");
+		return;
+	}
+
 	// Server information
-	const std::vector<std::string> &serverNames = server.getServerNames();
-	if (!serverNames.empty())
-		setEnv("SERVER_NAME", serverNames[0]); // Use first server name
+	const std::string &serverName = server->getServerName();
+	if (!serverName.empty())
+		setEnv("SERVER_NAME", serverName);
 	else
 		setEnv("SERVER_NAME", "localhost");
 	
 	// Get port from server configuration
-	const std::vector<std::pair<std::string, unsigned short> > &hostsPorts = server.getHosts_ports();
-	if (!hostsPorts.empty())
-		setEnv("SERVER_PORT", StringUtils::toString(hostsPorts[0].second)); // Use first port
+	unsigned short port = server->getPort();
+	setEnv("SERVER_PORT", StringUtils::toString(port));
+	
+	// Server host information
+	const std::string &host = server->getHost();
+	if (!host.empty())
+		setEnv("SERVER_ADDR", host);
 	else
-		setEnv("SERVER_PORT", "80"); // Default port
+		setEnv("SERVER_ADDR", "127.0.0.1");
 	
 	// Document root from location or server
-	std::string root = location.getRoot();
+	std::string root = location->getRoot();
+	if (root.empty())
+		root = server->getRoot();
+	
 	if (!root.empty())
 		setEnv("DOCUMENT_ROOT", root);
 	else
-		setEnv("DOCUMENT_ROOT", server.getRoot());
+		setEnv("DOCUMENT_ROOT", "/var/www/html"); // Default document root
 	
 	// Add custom CGI parameters from location configuration
-	const std::map<std::string, std::string> &cgiParams = location.getCgiParams();
+	const std::map<std::string, std::string> &cgiParams = location->getCgiParams();
 	for (std::map<std::string, std::string>::const_iterator it = cgiParams.begin();
 		 it != cgiParams.end(); ++it)
+	{
 		setEnv(it->first, it->second);
+	}
+	
+	// Add additional server-specific environment variables
+	setEnv("SERVER_SOFTWARE", "webserv/1.0");
+	setEnv("GATEWAY_INTERFACE", "CGI/1.1");
+	
+	// Set client max body size if available
+	double maxBodySize = server->getClientMaxBodySize();
+	setEnv("SERVER_MAX_BODY_SIZE", StringUtils::toString(static_cast<long>(maxBodySize)));
 }
 
 void CGIenv::setupFromRequest(const HttpRequest &request, 
@@ -264,14 +287,5 @@ bool CGIenv::hasEnv(const std::string &key) const
 	return _envVariables.find(key) != _envVariables.end();
 }
 
-void CGIenv::removeEnv(const std::string &key)
-{
-	_envVariables.erase(key);
-}
-
-void CGIenv::clear()
-{
-	_envVariables.clear();
-}
 
 /* ************************************************************************** */

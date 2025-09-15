@@ -25,7 +25,7 @@ class CGIenv {
         void setEnv(const std::string& key, const std::string& value);
         std::string getEnv(const std::string& key) const;
         void printEnv() const;
-        void copyDataFromServer(const ServerConfig &server, const LocationConfig &location);
+        void copyDataFromServer(const Server *server, const Location *location);
         
         // New methods for CGI execution
         void setupFromRequest(const HttpRequest &request, 
@@ -42,8 +42,6 @@ class CGIenv {
         // Utility methods
         size_t getEnvCount() const;
         bool hasEnv(const std::string &key) const;
-        void removeEnv(const std::string &key);
-        void clear();
 
     private:
         std::map<std::string, std::string> _envVariables;
