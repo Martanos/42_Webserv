@@ -12,11 +12,14 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <cstddef>
+#include <limits>
+#include <cstdint>
 #include "Logger.hpp"
 #include "HttpResponse.hpp"
 #include "Constants.hpp"
 #include "StringUtils.hpp"
 #include "RingBuffer.hpp"
+#include "HttpBody.hpp"
 
 class HttpHeaders
 {
@@ -29,17 +32,8 @@ public:
 		HEADERS_PARSING_ERROR = 2
 	};
 
-	enum BodyType
-	{
-		BODY_TYPE_NO_BODY = 0,
-		BODY_TYPE_CHUNKED = 1,
-		BODY_TYPE_CONTENT_LENGTH = 2,
-		BODY_TYPE_MULTIPART = 3,
-	};
-
 private:
 	HeadersState _headersState;
-	BodyType _bodyType;
 	size_t _expectedBodySize;
 	RingBuffer _rawHeaders;
 	std::map<std::string, std::vector<std::string> > _headers;
@@ -52,23 +46,21 @@ public:
 	HttpHeaders &operator=(HttpHeaders const &rhs);
 
 	// Main parsing method
-	int parseBuffer(RingBuffer &buffer, HttpResponse &response);
-	void parseHeaderLine(const std::string &line, HttpResponse &response);
-	void parseHeaders(HttpResponse &response);
+	int parseBuffer(RingBuffer &buffer, HttpResponse &response, HttpBody &body);
+	void parseHeaderLine(const std::string &line, HttpResponse &response, HttpBody &body);
+	void parseHeaders(HttpResponse &response, HttpBody &body);
 
 	// Accessors
 	int getHeadersState() const;
 	RingBuffer getRawHeaders() const;
 	std::map<std::string, std::vector<std::string> > getHeaders() const;
 	size_t getHeadersSize() const;
-	BodyType getBodyType() const;
 	size_t getExpectedBodySize() const;
 
 	// Mutators
 	void setHeadersState(HeadersState headersState);
 	void setRawHeaders(const RingBuffer &rawHeaders);
 	void setHeaders(const std::map<std::string, std::vector<std::string> > &headers);
-	void setBodyType(BodyType bodyType);
 	void setExpectedBodySize(size_t expectedBodySize);
 
 	// Methods

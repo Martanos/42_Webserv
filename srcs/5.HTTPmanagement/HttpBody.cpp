@@ -7,11 +7,10 @@
 HttpBody::HttpBody()
 {
 	_bodyState = BODY_PARSING;
+	_bodyType = BODY_TYPE_NO_BODY;
+	_chunkState = CHUNK_SIZE;
 	_expectedBodySize = 0;
-	_isChunked = false;
-	_isUsingTempFile = false;
-	_tempFilePath = "";
-	_tempFd = FileDescriptor(-1);
+	_tempFile = FileManager();
 }
 
 HttpBody::HttpBody(const HttpBody &src)
@@ -19,12 +18,10 @@ HttpBody::HttpBody(const HttpBody &src)
 	if (this != &src)
 	{
 		_bodyState = src._bodyState;
+		_bodyType = src._bodyType;
+		_chunkState = src._chunkState;
 		_expectedBodySize = src._expectedBodySize;
-		_bodyBytesRead = src._bodyBytesRead;
-		_isChunked = src._isChunked;
-		_isUsingTempFile = src._isUsingTempFile;
-		_tempFilePath = src._tempFilePath;
-		_tempFd = src._tempFd;
+		_tempFile = src._tempFile;
 	}
 }
 
@@ -35,10 +32,6 @@ HttpBody::HttpBody(const HttpBody &src)
 // If the file isn't moved that means it wasn't used and hence needs to be cleaned up
 HttpBody::~HttpBody()
 {
-	if (_isUsingTempFile && _bodyState != BODY_PARSING_COMPLETE)
-	{
-		_cleanupTempFile();
-	}
 }
 
 /*
@@ -51,11 +44,9 @@ HttpBody &HttpBody::operator=(HttpBody const &rhs)
 	{
 		_bodyState = rhs._bodyState;
 		_expectedBodySize = rhs._expectedBodySize;
-		_bodyBytesRead = rhs._bodyBytesRead;
-		_isChunked = rhs._isChunked;
-		_isUsingTempFile = rhs._isUsingTempFile;
-		_tempFilePath = rhs._tempFilePath;
-		_tempFd = rhs._tempFd;
+		_bodyType = rhs._bodyType;
+		_chunkState = rhs._chunkState;
+		_tempFile = rhs._tempFile;
 	}
 	return *this;
 }
@@ -68,75 +59,64 @@ void HttpBody::reset()
 {
 	_bodyState = BODY_PARSING;
 	_expectedBodySize = 0;
-	_isChunked = false;
-	_isUsingTempFile = false;
-	_tempFilePath = "";
-	_tempFd = FileDescriptor(-1);
+	_bodyType = BODY_TYPE_NO_BODY;
+	_chunkState = CHUNK_SIZE;
+	_tempFile.reset();
 }
 
-int HttpBody::parseBuffer(std::string &buffer, HttpResponse &response)
+int HttpBody::parseBuffer(RingBuffer &buffer, HttpResponse &response)
 {
 
 	switch (_bodyState)
 	{
 	case BODY_PARSING:
-		_parseBody(buffer, response);
+	{
+		switch (_bodyType)
+		{
+		case BODY_TYPE_CHUNKED:
+			_parseChunkedBody(buffer, response);
+			break;
+		case BODY_TYPE_CONTENT_LENGTH:
+			_parseContentLengthBody(buffer, response);
+			break;
+		case BODY_TYPE_NO_BODY:
+			_bodyState = BODY_PARSING_COMPLETE;
+			break;
+		default:
+			_bodyState = BODY_PARSING_ERROR;
+			break;
+		}
 		break;
+	}
 	case BODY_PARSING_COMPLETE:
 		break;
 	}
+	return _bodyState;
 }
 
-/*
-** --------------------------------- FILE MANAGEMENT METHODS ----------------------------------
-*/
-
-std::string HttpBody::_generateTempFilePath()
+void HttpBody::_parseChunkedBody(RingBuffer &buffer, HttpResponse &response)
 {
-	std::time_t now = std::time(0);
-	char buf[80];
-	std::strftime(buf, sizeof(buf), "%Y%m%d%H%M%S", std::localtime(&now));
-	// Check that the generated name doesn't already exist
-	if (access((std::string(HTTP::TEMP_FILE_TEMPLATE) + std::string(buf)).c_str(), F_OK) == 0)
+	switch (_chunkState)
 	{
-		return std::string(HTTP::TEMP_FILE_TEMPLATE) + std::string(buf);
+	case CHUNK_SIZE:
+		break;
+	case CHUNK_DATA:
+		break;
+	case CHUNK_TRAILERS:
+		break;
+	case CHUNK_COMPLETE:
+		break;
 	}
-	// If not try again
-	return _generateTempFilePath();
 }
 
-// TODO: Impleemnt more safe guards
-void HttpBody::_switchToTempFile()
+void HttpBody::_parseContentLengthBody(RingBuffer &buffer, HttpResponse &response)
 {
-	if (_isUsingTempFile)
+	if (_expectedBodySize == 0)
 	{
-		return; // Already using temp file
+		_bodyState = BODY_PARSING_COMPLETE;
+		return;
 	}
-	_tempFilePath = _generateTempFilePath();
-	_tempFd = FileDescriptor(open(_tempFilePath.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644));
-	_isUsingTempFile = true;
-}
-
-void HttpBody::_cleanupTempFile()
-{
-	if (_isUsingTempFile && !_tempFilePath.empty())
-	{
-		if (_tempFd.getFd() != -1)
-		{
-			// File descriptor will be closed by destructor
-		}
-		// Remove temp file
-		if (unlink(_tempFilePath.c_str()) != 0)
-		{
-			Logger::log(Logger::WARNING, "Failed to remove temp file: " + _tempFilePath);
-		}
-		else
-		{
-			Logger::log(Logger::DEBUG, "Removed temp file: " + _tempFilePath);
-		}
-		_tempFilePath.clear();
-		_isUsingTempFile = false;
-	}
+	else if (_expectedBodySize >)
 }
 
 /*
@@ -199,29 +179,14 @@ HttpBody::BodyState HttpBody::getBodyState() const
 	return _bodyState;
 }
 
-std::string HttpBody::getRawBody() const
-{
-	return _rawBody;
-}
-
-size_t HttpBody::getBodySize() const
-{
-	return _bodySize;
-}
-
-size_t HttpBody::getBodyBytesRead() const
-{
-	return _bodyBytesRead;
-}
-
 bool HttpBody::getIsChunked() const
 {
-	return _isChunked;
+	return _bodyType == BODY_TYPE_CHUNKED;
 }
 
 bool HttpBody::getIsUsingTempFile() const
 {
-	return _isUsingTempFile;
+	return _tempFile.getIsUsingTempFile();
 }
 
 /*
@@ -230,12 +195,12 @@ bool HttpBody::getIsUsingTempFile() const
 
 std::string HttpBody::getTempFilePath() const
 {
-	return _tempFilePath;
+	return _tempFile.getFilePath();
 }
 
 FileDescriptor HttpBody::getTempFd() const
 {
-	return _tempFd;
+	return _tempFile.getFd();
 }
 
 void HttpBody::setBodyState(BodyState bodyState)
@@ -243,39 +208,29 @@ void HttpBody::setBodyState(BodyState bodyState)
 	_bodyState = bodyState;
 }
 
-void HttpBody::setRawBody(const std::string &rawBody)
+void HttpBody::setExpectedBodySize(size_t expectedBodySize)
 {
-	_rawBody = rawBody;
-}
-
-void HttpBody::setBodySize(size_t bodySize)
-{
-	_bodySize = bodySize;
-}
-
-void HttpBody::setBodyBytesRead(size_t bodyBytesRead)
-{
-	_bodyBytesRead = bodyBytesRead;
-}
-
-void HttpBody::setIsChunked(bool isChunked)
-{
-	_isChunked = isChunked;
+	_expectedBodySize = expectedBodySize;
 }
 
 void HttpBody::setIsUsingTempFile(bool isUsingTempFile)
 {
-	_isUsingTempFile = isUsingTempFile;
+	_tempFile.setIsUsingTempFile(isUsingTempFile);
 }
 
 void HttpBody::setTempFilePath(const std::string &tempFilePath)
 {
-	_tempFilePath = tempFilePath;
+	_tempFile.setFilePath(tempFilePath);
 }
 
 void HttpBody::setTempFd(const FileDescriptor &tempFd)
 {
-	_tempFd = tempFd;
+	_tempFile.setFd(tempFd);
+}
+
+void HttpBody::setBodyType(BodyType bodyType)
+{
+	_bodyType = bodyType;
 }
 
 /* ************************************************************************** */

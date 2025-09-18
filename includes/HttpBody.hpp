@@ -13,12 +13,14 @@
 #include <cstring>
 #include <algorithm>
 #include <vector>
+#include <climits>
 #include "Constants.hpp"
 #include "HttpResponse.hpp"
 #include "FileDescriptor.hpp"
 #include "Logger.hpp"
 #include "StringUtils.hpp"
 #include "RingBuffer.hpp"
+#include "FileManager.hpp"
 
 // The responsibility of this class is to parse the body of the request
 // For example if chunked transfer encoding is used, this class will parse the body
@@ -53,17 +55,12 @@ private:
 	BodyType _bodyType;
 	ChunkState _chunkState;
 	size_t _expectedBodySize;
-	bool _isChunked;
-	bool _isUsingTempFile;
 	RingBuffer _rawBodyLine;
-	std::string _tempFilePath;
-	FileDescriptor _tempFd;
+	FileManager _tempFile;
 
-	// File management methods
-	std::string _generateTempFilePath();
-	void _switchToTempFile();
-	void _appendToTempFile(const std::string &data);
-	void _cleanupTempFile();
+	// Parsing paths
+	void _parseChunkedBody(RingBuffer &buffer, HttpResponse &response);
+	void _parseContentLengthBody(RingBuffer &buffer, HttpResponse &response);
 
 	// Decoding methods
 	size_t _parseHexSize(const std::string &hexStr) const;
@@ -75,7 +72,7 @@ public:
 
 	HttpBody &operator=(HttpBody const &rhs);
 
-	int parseBuffer(std::string &buffer, HttpResponse &response);
+	int parseBuffer(RingBuffer &buffer, HttpResponse &response);
 
 	// Accessors
 	BodyState getBodyState() const;
@@ -89,10 +86,9 @@ public:
 
 	// Mutators
 	void setBodyState(BodyState bodyState);
-	void setRawBody(const std::string &rawBody);
+	void setBodyType(BodyType bodyType);
+	void setExpectedBodySize(size_t expectedBodySize);
 	void setBodySize(size_t bodySize);
-	void setBodyBytesRead(size_t bodyBytesRead);
-	void setIsChunked(bool isChunked);
 	void setIsUsingTempFile(bool isUsingTempFile);
 	void setTempFilePath(const std::string &tempFilePath);
 	void setTempFd(const FileDescriptor &tempFd);

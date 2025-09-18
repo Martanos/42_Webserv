@@ -81,17 +81,11 @@ HttpRequest::ParseState HttpRequest::parseBuffer(RingBuffer &buffer, HttpRespons
 		{
 			_parseState = PARSING_ERROR;
 		}
-		// TODO: include check for if is a URI contains a CGI route
-		if (_headers.getBodyType() == HttpHeaders::BODY_TYPE_NO_BODY)
-		{
-			_parseState = PARSING_COMPLETE;
-		}
 		break;
 	}
 	case PARSING_BODY:
 	{
-		int result = _body.parseBuffer(_rawBuffer, response);
-		if (result == PARSING_COMPLETE)
+		if (result == HttpBody::BODY_PARSING_COMPLETE)
 		{
 			_parseState = PARSING_COMPLETE;
 		}

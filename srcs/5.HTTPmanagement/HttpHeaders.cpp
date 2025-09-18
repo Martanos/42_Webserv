@@ -43,7 +43,7 @@ HttpHeaders &HttpHeaders::operator=(HttpHeaders const &rhs)
 ** --------------------------------- METHODS ----------------------------------
 */
 
-int HttpHeaders::parseBuffer(RingBuffer &buffer, HttpResponse &response)
+int HttpHeaders::parseBuffer(RingBuffer &buffer, HttpResponse &response, HttpBody &body)
 {
 	size_t newlinePos = _rawHeaders.contains("\r\n", 2);
 	if (newlinePos == _rawHeaders.capacity())
@@ -63,11 +63,11 @@ int HttpHeaders::parseBuffer(RingBuffer &buffer, HttpResponse &response)
 	std::string headerLine;
 	_rawHeaders.transferFrom(buffer, newlinePos);
 	_rawHeaders.peekBuffer(headerLine, _rawHeaders.readable());
-	parseHeaderLine(headerLine, response);
+	parseHeaderLine(headerLine, response, body);
 	return _headersState;
 }
 
-void HttpHeaders::parseHeaderLine(const std::string &line, HttpResponse &response)
+void HttpHeaders::parseHeaderLine(const std::string &line, HttpResponse &response, HttpBody &body)
 {
 	// Extract the header and attempt to insert into headers map
 	std::stringstream ss(line);
@@ -157,7 +157,7 @@ void HttpHeaders::parseHeaderLine(const std::string &line, HttpResponse &respons
 	return;
 }
 
-void HttpHeaders::parseHeaders(HttpResponse &response)
+void HttpHeaders::parseHeaders(HttpResponse &response, HttpBody &body)
 {
 	// RFC 9110 Section 5.4: Server MUST NOT apply request until entire header section received
 	// This validation happens after all headers are parsed
@@ -274,9 +274,20 @@ void HttpHeaders::parseHeaders(HttpResponse &response)
 			_headersState = HEADERS_PARSING_ERROR;
 			return;
 		}
-		if (contentLength < 0)
+		else if (contentLength < 0)
 		{
 			Logger::log(Logger::ERROR, "Content-Length cannot be negative: " + firstValue);
+			response.setStatusCode(HTTP::STATUS_BAD_REQUEST);
+			response.setStatusMessage("Bad Request");
+			response.setBody("Bad Request");
+			response.setHeader("Content-Length", StringUtils::toString(response.getBody().size()));
+			response.setHeader("Connection", "close");
+			_headersState = HEADERS_PARSING_ERROR;
+			return;
+		}
+		else if (contentLength > std::numeric_limits<int64_t>::max())
+		{
+			Logger::log(Logger::ERROR, "Content-Length is too large: " + firstValue);
 			response.setStatusCode(HTTP::STATUS_BAD_REQUEST);
 			response.setStatusMessage("Bad Request");
 			response.setBody("Bad Request");
@@ -289,13 +300,13 @@ void HttpHeaders::parseHeaders(HttpResponse &response)
 		{
 			if (contentLength == 0)
 			{
-				_bodyType = BODY_TYPE_NO_BODY;
+				body.setBodyType(HttpBody::BODY_TYPE_NO_BODY);
 				return;
 			}
 			else
 			{
-				_expectedBodySize = contentLength;
-				_bodyType = BODY_TYPE_CONTENT_LENGTH;
+				body.setExpectedBodySize(contentLength);
+				body.setBodyType(HttpBody::BODY_TYPE_CONTENT_LENGTH);
 				return;
 			}
 		}
@@ -364,7 +375,7 @@ void HttpHeaders::parseHeaders(HttpResponse &response)
 		}
 		else
 		{
-			_bodyType = BODY_TYPE_CHUNKED;
+			body.setBodyType(HttpBody::BODY_TYPE_CHUNKED);
 			return;
 		}
 	}
@@ -489,11 +500,6 @@ size_t HttpHeaders::getHeadersSize() const
 	return _headers.size();
 }
 
-HttpHeaders::BodyType HttpHeaders::getBodyType() const
-{
-	return _bodyType;
-}
-
 size_t HttpHeaders::getExpectedBodySize() const
 {
 	return _expectedBodySize;
@@ -518,11 +524,6 @@ void HttpHeaders::setHeaders(const std::map<std::string, std::vector<std::string
 	_headers = headers;
 }
 
-void HttpHeaders::setBodyType(BodyType bodyType)
-{
-	_bodyType = bodyType;
-}
-
 void HttpHeaders::setExpectedBodySize(size_t expectedBodySize)
 {
 	_expectedBodySize = expectedBodySize;
@@ -530,7 +531,6 @@ void HttpHeaders::setExpectedBodySize(size_t expectedBodySize)
 
 void HttpHeaders::reset()
 {
-	_bodyType = BODY_TYPE_NO_BODY;
 	_expectedBodySize = 0;
 	_headersState = HEADERS_PARSING;
 	_rawHeaders.reset();

@@ -308,6 +308,14 @@ FileDescriptor::operator int() const
 	return _fd;
 }
 
+size_t FileDescriptor::getFileSize() const
+{
+	struct stat st;
+	if (_fd == -1 || fstat(_fd, &st) == -1)
+		return 0;
+	return st.st_size;
+}
+
 /*
 ** --------------------------------- FILE OPERATIONS ---------------------------------
 */
@@ -480,9 +488,9 @@ bool FileDescriptor::waitForPipeReady(bool forReading, int timeoutMs) const
 	}
 
 	fd_set fds;
-	FD_ZERO(&fds); // clear the set
+	FD_ZERO(&fds);	   // clear the set
 	FD_SET(_fd, &fds); // add file descriptor to the set
-	
+
 	struct timeval timeout;
 	timeout.tv_sec = timeoutMs / 1000;
 	timeout.tv_usec = (timeoutMs % 1000) * 1000;

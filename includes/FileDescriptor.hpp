@@ -32,6 +32,7 @@ public:
 	int getFd() const;
 	bool isOpen() const;
 	void setFd(int fd);
+	size_t getFileSize() const;
 
 	// Verification
 	bool isValid() const;
