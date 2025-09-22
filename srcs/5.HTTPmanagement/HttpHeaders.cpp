@@ -87,7 +87,7 @@ void HttpHeaders::parseHeaderLine(const std::string &line, HttpResponse &respons
 	}
 	// Check if this is the CLRF termination line
 	if (line == "\r\n")
-		return parseHeaders(response);
+		return parseHeaders(response, body);
 	// Extract the header name
 	if (!(ss >> name))
 	{
@@ -375,6 +375,7 @@ void HttpHeaders::parseHeaders(HttpResponse &response, HttpBody &body)
 		}
 		else
 		{
+			body.setExpectedBodySize(HTTP::MAX_BODY_SIZE);
 			body.setBodyType(HttpBody::BODY_TYPE_CHUNKED);
 			return;
 		}

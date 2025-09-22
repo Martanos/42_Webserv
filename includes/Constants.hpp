@@ -16,7 +16,8 @@ namespace HTTP
 	static const std::string SUPPORTED_METHODS[] = {"GET", "POST", "DELETE"};
 	static const std::string HTTP_VERSION = "HTTP/1.1";
 	static const std::string TEMP_FILE_TEMPLATE = "/tmp/webserv-";
-	const int DEFAULT_TIMEOUT_SECONDS = 30; // 30 second timeout
+	static const size_t MAX_BODY_SIZE = 1048576; // 1MB
+	const int DEFAULT_TIMEOUT_SECONDS = 30;		 // 30 second timeout
 
 	// HTTP Status Codes
 	const int STATUS_CONTINUE = 100;

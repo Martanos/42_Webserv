@@ -84,6 +84,14 @@ void FileManager::clear()
 	_fd = FileDescriptor(open(_filePath.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644));
 }
 
+size_t FileManager::contains(const char *data, size_t len) const
+{
+	// Read file and check if data is present
+	std::string fileData;
+	_fd.readFile(fileData);
+	return fileData.find(data, len) != std::string::npos;
+}
+
 /*
 ** --------------------------------- ACCESSOR ---------------------------------
 */
@@ -93,7 +101,7 @@ std::string FileManager::getFilePath() const
 	return _filePath;
 }
 
-FileDescriptor FileManager::getFd() const
+FileDescriptor &FileManager::getFd()
 {
 	return _fd;
 }

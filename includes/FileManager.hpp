@@ -22,7 +22,7 @@
 #include "StringUtils.hpp"
 
 // This class is responsible for the creation and management of files
-// TODO: Implement file decode and encoding
+// TODO: Integrate with FileDescriptor
 class FileManager
 {
 private:
@@ -42,9 +42,10 @@ public:
 
 	// Accessors
 	std::string getFilePath() const;
-	FileDescriptor getFd() const;
+	FileDescriptor &getFd();
 	bool getIsUsingTempFile() const;
 	size_t getFileSize() const;
+	size_t contains(const char *data, size_t len) const;
 
 	// Mutators
 	void setFilePath(const std::string &filePath);

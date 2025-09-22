@@ -82,7 +82,6 @@ size_t RingBuffer::contains(const char *data, size_t len) const
 	return _capacity;
 }
 
-// TODO: Check if this is right
 size_t RingBuffer::flushToFile(const std::string &filePath)
 {
 	FileDescriptor fd(open(filePath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH));
@@ -157,8 +156,7 @@ size_t RingBuffer::appendBuffer(const RingBuffer &src)
 	return writeBuffer(src, src.readable());
 }
 
-// This is the space available to read from the buffer
-// Not the space available to write to the buffer
+// Readable space in the buffer
 size_t RingBuffer::readable() const
 {
 	if (_head >= _tail)
@@ -211,6 +209,7 @@ size_t RingBuffer::peekBuffer(std::string &dest, size_t len) const
 ** --------------------------------- MUTATORS ---------------------------------
 */
 
+// Write and consume
 size_t RingBuffer::writeBuffer(const char *data, size_t len)
 {
 	size_t toWrite = std::min(len, writable());
@@ -227,6 +226,7 @@ size_t RingBuffer::writeBuffer(const char *data, size_t len)
 	return toWrite;
 }
 
+// Clears the buffer and sets the new capacity
 void RingBuffer::reserve(size_t newCapacity)
 {
 	if (newCapacity > _capacity)

@@ -85,6 +85,7 @@ HttpRequest::ParseState HttpRequest::parseBuffer(RingBuffer &buffer, HttpRespons
 	}
 	case PARSING_BODY:
 	{
+		int result = _body.parseBuffer(_rawBuffer, response);
 		if (result == HttpBody::BODY_PARSING_COMPLETE)
 		{
 			_parseState = PARSING_COMPLETE;

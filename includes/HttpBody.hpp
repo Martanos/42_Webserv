@@ -55,12 +55,15 @@ private:
 	BodyType _bodyType;
 	ChunkState _chunkState;
 	size_t _expectedBodySize;
-	RingBuffer _rawBodyLine;
+	RingBuffer _chunkedBuffer;
+	RingBuffer _rawBody;
+	FileManager _tempChunkedFile;
 	FileManager _tempFile;
+	bool _isUsingTempFile;
 
 	// Parsing paths
-	void _parseChunkedBody(RingBuffer &buffer, HttpResponse &response);
-	void _parseContentLengthBody(RingBuffer &buffer, HttpResponse &response);
+	BodyState _parseChunkedBody(RingBuffer &buffer, HttpResponse &response);
+	BodyState _parseContentLengthBody(RingBuffer &buffer, HttpResponse &response);
 
 	// Decoding methods
 	size_t _parseHexSize(const std::string &hexStr) const;
@@ -82,7 +85,7 @@ public:
 	bool getIsChunked() const;
 	bool getIsUsingTempFile() const;
 	std::string getTempFilePath() const;
-	FileDescriptor getTempFd() const;
+	FileDescriptor &getTempFd();
 
 	// Mutators
 	void setBodyState(BodyState bodyState);
