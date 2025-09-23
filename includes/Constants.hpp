@@ -10,7 +10,7 @@
 // HTTP Constants
 namespace HTTP
 {
-	const const std::string SINGLETON_HEADERS[] = {"content-type", "location", "user-agent", "referer",
+	const std::string SINGLETON_HEADERS[] = {"content-type", "location", "user-agent", "referer",
 												   "authorization", "content-location", "date", "etag",
 												   "expires", "last-modified", "server"};
 	static const std::string SUPPORTED_METHODS[] = {"GET", "POST", "DELETE"};
@@ -76,6 +76,7 @@ namespace SERVER
 	const bool DEFAULT_AUTOINDEX = false;
 	const size_t DEFAULT_CLIENT_MAX_BODY_SIZE = 1048576; // 1MB
 	const bool DEFAULT_KEEP_ALIVE = true;
+	
 	const char *const SERVER_VERSION = "42_Webserv/1.0";
 }
 

@@ -149,14 +149,14 @@ const std::map<std::string, Location> &Server::getLocations() const
 	return _locations;
 }
 
-const std::string &Server::getStatusPage(const int &status) const
+const std::string Server::getStatusPage(const int &status) const
 {
 	if (_statusPages.find(status) == _statusPages.end())
 		return DefaultStatusMap::getStatusInfo(status);
 	return _statusPages.at(status);
 }
 
-const Location &Server::getLocation(const std::string &path) const
+const Location Server::getLocation(const std::string &path) const
 {
 	if (_locations.find(path) == _locations.end())
 		return Location();

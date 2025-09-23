@@ -13,7 +13,6 @@
 #include <unistd.h>
 #include <cstddef>
 #include <limits>
-#include <cstdint>
 #include "Logger.hpp"
 #include "HttpResponse.hpp"
 #include "Constants.hpp"

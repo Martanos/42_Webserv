@@ -56,9 +56,9 @@ public:
 	const bool &getAutoindex() const;
 	const double &getClientMaxBodySize() const;
 	const std::map<int, std::string> &getStatusPages() const;
-	const std::string &getStatusPage(const int &status) const;
+	const std::string getStatusPage(const int &status) const;
 	const std::map<std::string, Location> &getLocations() const;
-	const Location &getLocation(const std::string &path) const;
+	const Location getLocation(const std::string &path) const;
 	const bool &getKeepAlive() const;
 
 	// Setters

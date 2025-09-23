@@ -9,6 +9,13 @@ ListeningSocket::ListeningSocket()
 	throw std::runtime_error("Default constructor not implemented");
 }
 
+ListeningSocket::ListeningSocket(const ListeningSocket &src)
+{
+	// has to be defined;
+
+	(void)src;
+	throw std::runtime_error("Copy constructor not implemented");
+}
 ListeningSocket::ListeningSocket(const std::string &host, const unsigned short port)
 	: _socket(socket(AF_INET, SOCK_STREAM, 0)), _address(host, port)
 {

@@ -11,7 +11,6 @@
 #include <cstdio>
 #include <cerrno>
 #include <cstddef>
-#include <cstdint>
 #include <netdb.h>
 #include "Logger.hpp"
 #include "IPAddressParser.hpp"
@@ -69,7 +68,7 @@ public:
 	bool isIPv6() const;
 
 	// Methods
-	static SocketAddress SocketAddress::createIPv4(const std::string &host, unsigned short port)
+	static SocketAddress createIPv4(const std::string &host, unsigned short port)
 	{
 		SocketAddress addr;
 		addr._family = AF_INET;
@@ -96,7 +95,7 @@ public:
 		return addr;
 	}
 
-	static SocketAddress SocketAddress::createIPv6(const std::string &host, unsigned short port)
+	static SocketAddress createIPv6(const std::string &host, unsigned short port)
 	{
 		SocketAddress addr;
 		addr._family = AF_INET6;
@@ -118,7 +117,7 @@ public:
 		return addr;
 	}
 
-	static SocketAddress SocketAddress::createAuto(const std::string &host, unsigned short port)
+	static SocketAddress createAuto(const std::string &host, unsigned short port)
 	{
 		if (IPAddressParser::looksLikeIPv4(host))
 		{

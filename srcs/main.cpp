@@ -6,12 +6,12 @@
 /*   By: seayeo <seayeo@42.sg>                      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/24 18:16:26 by malee             #+#    #+#             */
-/*   Updated: 2025/08/13 14:17:43 by seayeo           ###   ########.fr       */
+/*   Updated: 2025/09/23 16:34:07 by seayeo           ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "configparser/Parser_classes/ConfigParser.hpp"
-#include "configparser/Parser_classes/ServerConfig.hpp"
+#include "ConfigParser.hpp"
+#include "ServerConfig.hpp"
 #include "Logger.hpp"
 
 int main(int argc, char **argv)

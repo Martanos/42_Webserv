@@ -16,7 +16,7 @@ class ListeningSocket
 {
 private:
 	ListeningSocket();
-	ListeningSocket(const ListeningSocket &src);
+	
 	ListeningSocket &operator=(const ListeningSocket &rhs);
 
 	FileDescriptor _socket;
@@ -24,6 +24,7 @@ private:
 
 public:
 	// Constructor
+	ListeningSocket(const ListeningSocket &src);
 	ListeningSocket(const std::string &host, const unsigned short port);
 	~ListeningSocket();
 

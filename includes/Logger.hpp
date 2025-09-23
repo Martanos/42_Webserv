@@ -7,6 +7,7 @@
 #include <ctime>
 #include <string>
 #include <sys/epoll.h>
+#include <cstring>
 
 // Enhanced static logger class with better formatting
 class Logger
