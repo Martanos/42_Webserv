@@ -1,11 +1,12 @@
 #include "ServerConfig.hpp"
+#include "Constants.hpp"
 
 // Constructors
 ServerConfig::ServerConfig()
 {
-    _clientMaxBodySize = DEFAULT_CLIENT_MAX_BODY_SIZE;
-    _autoindex = DEFAULT_AUTOINDEX;
-    _keepAlive = DEFAULT_KEEP_ALIVE;
+    _clientMaxBodySize = SERVER::DEFAULT_CLIENT_MAX_BODY_SIZE;
+    _autoindex = SERVER::DEFAULT_AUTOINDEX;
+    _keepAlive = SERVER::DEFAULT_KEEP_ALIVE;
 }
 
 // Destructor

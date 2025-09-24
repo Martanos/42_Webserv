@@ -16,19 +16,7 @@
 #include "LocationConfig.hpp"
 
 // TODO: Make these configurable
-#define DEFAULT_ROOT "www/"
-#define DEFAULT_INDEX "index.html"
-#define DEFAULT_AUTOINDEX false
-#define DEFAULT_CLIENT_MAX_BODY_SIZE 1000000
-#define DEFAULT_KEEP_ALIVE true
 #define DEFAULT_SERVER_NAME "default"
-#define DEFAULT_HOST "0.0.0.0"
-#define DEFAULT_PORT 80
-#define DEFAULT_ROOT "www/"
-#define DEFAULT_INDEX "index.html"
-#define DEFAULT_AUTOINDEX false
-#define DEFAULT_CLIENT_MAX_BODY_SIZE 1000000
-#define DEFAULT_KEEP_ALIVE true
 
 // Temp container to gather all config data
 class ServerConfig

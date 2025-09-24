@@ -19,6 +19,7 @@ private:
 public:
 	// Constructor
 	EpollManager();
+	~EpollManager();
 	EpollManager &operator=(const EpollManager &);
 
 	void addFd(int fd, uint32_t events = EPOLLIN);

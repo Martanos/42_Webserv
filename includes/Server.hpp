@@ -10,14 +10,6 @@
 #include "ServerConfig.hpp"
 #include "DefaultStatusMap.hpp"
 
-// TODO: Make these configurable
-#define DEFAULT_HOST "localhost"
-#define DEFAULT_PORT 80
-#define DEFAULT_ROOT "www/"
-#define DEFAULT_INDEX "index.html"
-#define DEFAULT_AUTOINDEX false
-#define DEFAULT_CLIENT_MAX_BODY_SIZE 1000000
-
 // Main server object contains all required information for server
 // Param validation is done during parser stage, not here
 // Exists as reference to what the server block should contain

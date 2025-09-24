@@ -13,6 +13,7 @@ ServerManager::ServerManager()
 
 ServerManager::ServerManager(const ServerManager &src)
 {
+	(void)src;
 	throw std::runtime_error("ServerManager: Copy constructor called");
 }
 

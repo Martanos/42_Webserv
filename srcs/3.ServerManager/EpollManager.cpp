@@ -6,6 +6,7 @@
 
 EpollManager::EpollManager(const EpollManager &src)
 {
+	(void)src;
 	throw std::runtime_error("EpollManager: Copy constructor called");
 }
 
@@ -91,7 +92,7 @@ void EpollManager::removeFd(int fd)
 	}
 }
 
-int EpollManager::wait(std::vector<epoll_event> &events, int timeout = -1)
+int EpollManager::wait(std::vector<epoll_event> &events, int timeout)
 {
 	if (events.empty())
 	{

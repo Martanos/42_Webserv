@@ -1,4 +1,5 @@
 #include "Server.hpp"
+#include "Constants.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -7,12 +8,12 @@
 Server::Server()
 {
 	_serverName = "";
-	_host = DEFAULT_HOST;
-	_port = DEFAULT_PORT;
-	_root = DEFAULT_ROOT;
-	_indexes = std::vector<std::string>(1, DEFAULT_INDEX);
-	_autoindex = DEFAULT_AUTOINDEX;
-	_clientMaxBodySize = DEFAULT_CLIENT_MAX_BODY_SIZE;
+	_host = SERVER::DEFAULT_HOST;
+	_port = SERVER::DEFAULT_PORT;
+	_root = SERVER::DEFAULT_ROOT;
+	_indexes = std::vector<std::string>(1, SERVER::DEFAULT_INDEX);
+	_autoindex = SERVER::DEFAULT_AUTOINDEX;
+	_clientMaxBodySize = SERVER::DEFAULT_CLIENT_MAX_BODY_SIZE;
 	_statusPages = std::map<int, std::string>();
 	_locations = std::map<std::string, Location>();
 }

@@ -54,11 +54,7 @@ ListeningSocket::ListeningSocket(const std::string &host, const unsigned short p
 	}
 }
 
-ListeningSocket::ListeningSocket(const ListeningSocket &src)
-{
-	(void)src;
-	throw std::runtime_error("Copy constructor not implemented");
-}
+
 
 /*
 ** -------------------------------- DESTRUCTOR --------------------------------
