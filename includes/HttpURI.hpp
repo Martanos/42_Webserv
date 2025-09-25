@@ -1,15 +1,15 @@
 #ifndef HTTPURI_HPP
 #define HTTPURI_HPP
 
+#include "Constants.hpp"
+#include "HttpResponse.hpp"
+#include "Logger.hpp"
+#include "RingBuffer.hpp"
+#include <cstddef>
 #include <iostream>
 #include <string>
-#include "RingBuffer.hpp"
-#include "Logger.hpp"
-#include "HttpResponse.hpp"
-#include "Constants.hpp"
 #include <sys/types.h>
 #include <unistd.h>
-#include <cstddef>
 
 // This class is responsible for parsing the URI from the request line
 // It will also format the reponse if anything goes wrong
@@ -53,4 +53,5 @@ private:
 	std::string _version;
 };
 
-#endif /* ********************************************************* HTTPURI_H */
+#endif /* ********************************************************* HTTPURI_H                                          \
+		*/

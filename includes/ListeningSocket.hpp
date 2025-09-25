@@ -1,22 +1,21 @@
 #ifndef LISTENINGSOCKET_HPP
 #define LISTENINGSOCKET_HPP
 
-#include <iostream>
-#include <string>
+#include "FileDescriptor.hpp"
+#include "Logger.hpp"
+#include "SocketAddress.hpp"
 #include <cerrno>
+#include <iostream>
 #include <netinet/in.h>
+#include <string>
 #include <sys/socket.h>
 #include <unistd.h>
-#include <sys/socket.h>
-#include "FileDescriptor.hpp"
-#include "SocketAddress.hpp"
-#include "Logger.hpp"
 
 class ListeningSocket
 {
 private:
 	ListeningSocket();
-	
+
 	ListeningSocket &operator=(const ListeningSocket &rhs);
 
 	FileDescriptor _socket;
@@ -45,4 +44,5 @@ public:
 
 std::ostream &operator<<(std::ostream &o, ListeningSocket const &i);
 
-#endif /* ************************************************* LISTENINGSOCKET_H */
+#endif /* ************************************************* LISTENINGSOCKET_H                                          \
+		*/

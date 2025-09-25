@@ -1,9 +1,9 @@
 #include "CgiEnv.hpp"
 #include "HttpRequest.hpp"
 #include "Location.hpp"
+#include "Logger.hpp"
 #include "Server.hpp"
 #include "StringUtils.hpp"
-#include "Logger.hpp"
 #include <cstdlib>
 #include <sstream>
 
@@ -61,8 +61,7 @@ std::string CGIenv::getEnv(const std::string &key) const
 
 void CGIenv::printEnv() const
 {
-	for (std::map<std::string, std::string>::const_iterator it = _envVariables.begin();
-		 it != _envVariables.end(); ++it)
+	for (std::map<std::string, std::string>::const_iterator it = _envVariables.begin(); it != _envVariables.end(); ++it)
 	{
 		std::cout << it->first << "=" << it->second << std::endl;
 	}
@@ -82,48 +81,45 @@ void CGIenv::copyDataFromServer(const Server *server, const Location *location)
 		setEnv("SERVER_NAME", serverName);
 	else
 		setEnv("SERVER_NAME", "localhost");
-	
+
 	// Get port from server configuration
 	unsigned short port = server->getPort();
 	setEnv("SERVER_PORT", StringUtils::toString(port));
-	
+
 	// Server host information
 	const std::string &host = server->getHost();
 	if (!host.empty())
 		setEnv("SERVER_ADDR", host);
 	else
 		setEnv("SERVER_ADDR", "127.0.0.1");
-	
+
 	// Document root from location or server
 	std::string root = location->getRoot();
 	if (root.empty())
 		root = server->getRoot();
-	
+
 	if (!root.empty())
 		setEnv("DOCUMENT_ROOT", root);
 	else
 		setEnv("DOCUMENT_ROOT", "/var/www/html"); // Default document root
-	
+
 	// Add custom CGI parameters from location configuration
 	const std::map<std::string, std::string> &cgiParams = location->getCgiParams();
-	for (std::map<std::string, std::string>::const_iterator it = cgiParams.begin();
-		 it != cgiParams.end(); ++it)
+	for (std::map<std::string, std::string>::const_iterator it = cgiParams.begin(); it != cgiParams.end(); ++it)
 	{
 		setEnv(it->first, it->second);
 	}
-	
+
 	// Add additional server-specific environment variables
 	setEnv("SERVER_SOFTWARE", "webserv/1.0");
 	setEnv("GATEWAY_INTERFACE", "CGI/1.1");
-	
+
 	// Set client max body size if available
 	double maxBodySize = server->getClientMaxBodySize();
 	setEnv("SERVER_MAX_BODY_SIZE", StringUtils::toString(static_cast<long>(maxBodySize)));
 }
 
-void CGIenv::setupFromRequest(const HttpRequest &request, 
-							  const Server *server, 
-							  const Location *location,
+void CGIenv::setupFromRequest(const HttpRequest &request, const Server *server, const Location *location,
 							  const std::string &scriptPath)
 {
 	// Basic CGI environment variables from HTTP standard
@@ -135,17 +131,17 @@ void CGIenv::setupFromRequest(const HttpRequest &request,
 	// Request URI and script information (derived from HttpRequest)
 	std::string uri = request.getUri();
 	setEnv("REQUEST_URI", uri);
-	
-	// Parse SCRIPT_NAME and PATH_INFO (requires location context but derived from URI)
+
+	// Parse SCRIPT_NAME and PATH_INFO (requires location context but derived
+	// from URI)
 	if (location)
 	{
 		std::string locationPath = location->getPath();
 		std::string scriptName = locationPath;
 		std::string pathInfo = "";
-		
+
 		// If URI is longer than location path, the extra part is PATH_INFO
-		if (uri.length() > locationPath.length() && 
-			uri.substr(0, locationPath.length()) == locationPath)
+		if (uri.length() > locationPath.length() && uri.substr(0, locationPath.length()) == locationPath)
 		{
 			pathInfo = uri.substr(locationPath.length());
 			if (!pathInfo.empty() && pathInfo[0] != '/')
@@ -153,11 +149,11 @@ void CGIenv::setupFromRequest(const HttpRequest &request,
 				pathInfo = "/" + pathInfo;
 			}
 		}
-		
+
 		setEnv("SCRIPT_NAME", scriptName);
 		setEnv("PATH_INFO", pathInfo);
 	}
-	
+
 	// Script filename (provided parameter)
 	setEnv("SCRIPT_FILENAME", scriptPath);
 
@@ -180,7 +176,7 @@ void CGIenv::setupFromRequest(const HttpRequest &request,
 		{
 			setEnv("CONTENT_TYPE", contentType[0]);
 		}
-		
+
 		setEnv("CONTENT_LENGTH", StringUtils::toString(request.getBody().length()));
 	}
 	else
@@ -195,7 +191,7 @@ void CGIenv::setupFromRequest(const HttpRequest &request,
 	// This should ideally come from the connection context, not server config
 	setEnv("REMOTE_ADDR", "127.0.0.1");
 	setEnv("REMOTE_HOST", "localhost");
-	
+
 	// Suppress unused parameter warnings
 	(void)server;
 }
@@ -204,9 +200,9 @@ void CGIenv::setupHttpHeaders(const HttpRequest &request)
 {
 	// Get all headers from the request
 	const std::map<std::string, std::vector<std::string> > &headers = request.getHeaders();
-	
-	for (std::map<std::string, std::vector<std::string> >::const_iterator it = headers.begin();
-		 it != headers.end(); ++it)
+
+	for (std::map<std::string, std::vector<std::string> >::const_iterator it = headers.begin(); it != headers.end();
+		 ++it)
 	{
 		if (!it->second.empty())
 		{
@@ -221,7 +217,7 @@ std::string CGIenv::convertHeaderNameToCgi(const std::string &headerName) const
 {
 	std::string result;
 	result.reserve(headerName.length());
-	
+
 	for (size_t i = 0; i < headerName.length(); ++i)
 	{
 		char c = headerName[i];
@@ -243,24 +239,24 @@ std::string CGIenv::convertHeaderNameToCgi(const std::string &headerName) const
 		}
 		// Skip other characters
 	}
-	
+
 	return result;
 }
 
 char **CGIenv::getEnvArray() const
 {
 	// Allocate array of char* pointers
-	char **envArray = new char*[_envVariables.size() + 1];
+	char **envArray = new char *[_envVariables.size() + 1];
 	size_t index = 0;
-	
-	for (std::map<std::string, std::string>::const_iterator it = _envVariables.begin();
-		 it != _envVariables.end(); ++it, ++index)
+
+	for (std::map<std::string, std::string>::const_iterator it = _envVariables.begin(); it != _envVariables.end();
+		 ++it, ++index)
 	{
 		std::string envString = it->first + "=" + it->second;
 		envArray[index] = new char[envString.length() + 1];
 		std::strcpy(envArray[index], envString.c_str());
 	}
-	
+
 	envArray[index] = NULL; // Null-terminate the array
 	return envArray;
 }
@@ -269,7 +265,7 @@ void CGIenv::freeEnvArray(char **envArray) const
 {
 	if (!envArray)
 		return;
-		
+
 	for (size_t i = 0; envArray[i] != NULL; ++i)
 	{
 		delete[] envArray[i];
@@ -286,6 +282,5 @@ bool CGIenv::hasEnv(const std::string &key) const
 {
 	return _envVariables.find(key) != _envVariables.end();
 }
-
 
 /* ************************************************************************** */

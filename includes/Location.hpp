@@ -1,12 +1,12 @@
 #ifndef LOCATION_HPP
 #define LOCATION_HPP
 
+#include "Logger.hpp"
+#include <algorithm>
 #include <iostream>
+#include <map>
 #include <string>
 #include <vector>
-#include <map>
-#include <algorithm>
-#include "Logger.hpp"
 
 //  Location object contains all required information for location
 //  Param validation is done during parser stage, not here
@@ -61,4 +61,5 @@ public:
 
 std::ostream &operator<<(std::ostream &o, Location const &i);
 
-#endif /* ******************************************************** LOCATION_H */
+#endif /* ******************************************************** LOCATION_H                                          \
+		*/

@@ -1,4 +1,5 @@
 #include "ServerManager.hpp"
+#include "StringUtils.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -41,7 +42,8 @@ ServerManager &ServerManager::operator=(ServerManager const &rhs)
 
 void ServerManager::_addServerFdsToEpoll(ServerMap &serverMap)
 {
-	for (std::map<ListeningSocket, std::vector<Server> >::const_iterator it = serverMap.getServerMap().begin(); it != serverMap.getServerMap().end(); ++it)
+	for (std::map<ListeningSocket, std::vector<Server> >::const_iterator it = serverMap.getServerMap().begin();
+		 it != serverMap.getServerMap().end(); ++it)
 	{
 		_epollManager.addFd(it->first.getFd());
 	}
@@ -110,7 +112,8 @@ void ServerManager::_handleEpollEvents(int ready_events, ServerMap &serverMap, s
 				}
 
 				// Check for connection cleanup
-				if (newState == Client::CLIENT_WAITING_FOR_REQUEST && !_clients[FileDescriptor(fd)].getServer()->getKeepAlive())
+				if (newState == Client::CLIENT_WAITING_FOR_REQUEST &&
+					!_clients[FileDescriptor(fd)].getServer()->getKeepAlive())
 				{
 					_clients.erase(FileDescriptor(fd));
 					_epollManager.removeFd(fd);
@@ -131,9 +134,31 @@ void ServerManager::_handleEpollEvents(int ready_events, ServerMap &serverMap, s
 	}
 }
 
+void ServerManager::_checkClientTimeouts()
+{
+	time_t currentTime = time(NULL);
+	std::vector<FileDescriptor> clientsToRemove;
+	
+	for (std::map<FileDescriptor, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+	{
+		if (it->second.isTimedOut())
+		{
+			clientsToRemove.push_back(it->first);
+		}
+	}
+	
+	// Remove timed out clients
+	for (std::vector<FileDescriptor>::iterator it = clientsToRemove.begin(); it != clientsToRemove.end(); ++it)
+	{
+		Logger::log(Logger::INFO, "Client " + StringUtils::toString(it->getFd()) + " timed out, disconnecting");
+		_clients.erase(*it);
+		_epollManager.removeFd(it->getFd());
+	}
+}
+
 void ServerManager::run(std::vector<ServerConfig> &serverConfigs)
 {
-	// TODO:SETUP SIGNAL HANDLING
+	Logger::log(Logger::INFO, "Starting ServerManager with " + StringUtils::toString(serverConfigs.size()) + " server configurations");
 
 	// Spawn server map based on server configs
 	_serverMap = ServerMap(serverConfigs);
@@ -147,35 +172,43 @@ void ServerManager::run(std::vector<ServerConfig> &serverConfigs)
 	// Spawn a buffer for epoll events
 	std::vector<epoll_event> events;
 
-	// TODO: Change to
 	// Add a signal handler for SIGINT and SIGTERM
 	signal(SIGINT, _handleSignal);
 	signal(SIGTERM, _handleSignal);
 
+	Logger::log(Logger::INFO, "ServerManager initialized successfully, entering main event loop");
+
 	// main polling loop
 	while (isServerRunning())
 	{
-		// TODO: -1 denotes witing forever this may be a problem if the server is not ready to accept connections
-		int ready_events = _epollManager.wait(events, -1);
+		int ready_events = _epollManager.wait(events, 5000); // 5 second timeout
 		if (ready_events == -1)
 		{
-			// TODO: Check if this is the correct way to handle signals
 			if (errno == EINTR)
 			{
-				std::stringstream ss;
-				ss << "Epoll wait interrupted by signal: " << strerror(errno);
-				Logger::log(Logger::INFO, ss.str());
-				throw std::runtime_error(ss.str());
+				Logger::log(Logger::INFO, "Epoll wait interrupted by signal, shutting down gracefully");
+				break;
+			}
+			else
+			{
+				Logger::logErrno(Logger::ERROR, "Epoll wait failed");
+				break;
 			}
 		}
 		else if (ready_events == 0)
 		{
-			Logger::log(Logger::INFO, "Epoll wait returned 0, no events ready");
+			// Timeout - check for client timeouts
+			_checkClientTimeouts();
 			continue;
 		}
 		else
+		{
+			Logger::log(Logger::DEBUG, "Processing " + StringUtils::toString(ready_events) + " events");
 			_handleEpollEvents(ready_events, _serverMap, events);
+		}
 	}
+	
+	Logger::log(Logger::INFO, "ServerManager shutting down");
 }
 
 void ServerManager::_handleSignal(int signal)

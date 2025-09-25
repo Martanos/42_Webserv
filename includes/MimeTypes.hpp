@@ -80,8 +80,7 @@ private:
 		}
 		else
 		{
-			Logger::log(Logger::WARNING,
-						"User mime types file not defined using system mime types");
+			Logger::log(Logger::WARNING, "User mime types file not defined using system mime types");
 			std::string systemFile = "/etc/mime.types";
 			file.open(systemFile.c_str());
 			if (file.is_open())
@@ -135,8 +134,7 @@ public:
 	static std::string getMimeType(const std::string &extension)
 	{
 		initMimeTypes();
-		std::map<std::string,
-				 std::string>::iterator it = getMimeTypesMap().find(extension);
+		std::map<std::string, std::string>::iterator it = getMimeTypesMap().find(extension);
 		if (it != getMimeTypesMap().end())
 		{
 			return (it->second);

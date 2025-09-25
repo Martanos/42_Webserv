@@ -1,14 +1,14 @@
 #ifndef RINGBUFFER_HPP
 #define RINGBUFFER_HPP
 
+#include "FileDescriptor.hpp"
+#include <algorithm>
+#include <cstddef>
+#include <cstring>
 #include <iostream>
 #include <string>
-#include <vector>
 #include <unistd.h>
-#include <algorithm>
-#include <cstring>
-#include <cstddef>
-#include "FileDescriptor.hpp"
+#include <vector>
 
 // Ring buffer is a circular buffer that can be used to store data
 // More efficient than most other buffers
@@ -57,4 +57,5 @@ public:
 	void clear();
 };
 
-#endif /* ****************************************************** RINGBUFFER_H */
+#endif /* ****************************************************** RINGBUFFER_H                                          \
+		*/

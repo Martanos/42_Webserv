@@ -45,7 +45,8 @@ HttpRequest &HttpRequest::operator=(const HttpRequest &rhs)
 }
 
 /*
-** --------------------------------- PARSING METHODS ----------------------------------
+** --------------------------------- PARSING METHODS
+*----------------------------------
 */
 
 HttpRequest::ParseState HttpRequest::parseBuffer(RingBuffer &buffer, HttpResponse &response)
@@ -103,7 +104,8 @@ HttpRequest::ParseState HttpRequest::parseBuffer(RingBuffer &buffer, HttpRespons
 }
 
 /*
-** --------------------------------- ACCESSOR METHODS ----------------------------------
+** --------------------------------- ACCESSOR METHODS
+*----------------------------------
 */
 
 bool HttpRequest::isComplete() const
@@ -119,7 +121,8 @@ bool HttpRequest::hasError() const
 const std::vector<std::string> &HttpRequest::getHeader(const std::string &name) const
 {
 	static const std::vector<std::string> empty = std::vector<std::string>();
-	std::map<std::string, std::vector<std::string> >::const_iterator it = _headers.getHeaders().find(StringUtils::toLowerCase(name));
+	std::map<std::string, std::vector<std::string> >::const_iterator it =
+		_headers.getHeaders().find(StringUtils::toLowerCase(name));
 	return it != _headers.getHeaders().end() ? it->second : empty;
 }
 
@@ -135,12 +138,39 @@ void HttpRequest::reset()
 	_bytesReceived = 0;
 }
 
-const std::string &HttpRequest::getMethod() const { return _uri.getMethod(); };
-const std::string &HttpRequest::getUri() const { return _uri.getURI(); }
-const std::string &HttpRequest::getVersion() const { return _uri.getVersion(); };
-const std::map<std::string, std::vector<std::string> > &HttpRequest::getHeaders() const { return _headers.getHeaders(); };
-const std::string &HttpRequest::getBody() const { return _body.getRawBody(); };
-size_t HttpRequest::getContentLength() const { return _headers.getExpectedBodySize(); };
-bool HttpRequest::isChunked() const { return _headers.getBodyType() == HttpHeaders::BODY_TYPE_CHUNKED; };
-bool HttpRequest::isUsingTempFile() const { return _body.getIsUsingTempFile(); };
-std::string HttpRequest::getTempFile() const { return _body.getTempFilePath(); };
+const std::string &HttpRequest::getMethod() const
+{
+	return _uri.getMethod();
+};
+const std::string &HttpRequest::getUri() const
+{
+	return _uri.getURI();
+}
+const std::string &HttpRequest::getVersion() const
+{
+	return _uri.getVersion();
+};
+const std::map<std::string, std::vector<std::string> > &HttpRequest::getHeaders() const
+{
+	return _headers.getHeaders();
+};
+const std::string &HttpRequest::getBody() const
+{
+	return _body.getRawBody();
+};
+size_t HttpRequest::getContentLength() const
+{
+	return _headers.getExpectedBodySize();
+};
+bool HttpRequest::isChunked() const
+{
+	return _headers.getBodyType() == HttpHeaders::BODY_TYPE_CHUNKED;
+};
+bool HttpRequest::isUsingTempFile() const
+{
+	return _body.getIsUsingTempFile();
+};
+std::string HttpRequest::getTempFile() const
+{
+	return _body.getTempFilePath();
+};

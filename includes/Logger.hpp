@@ -1,15 +1,16 @@
 #ifndef LOGGER_HPP
 #define LOGGER_HPP
 
-#include <iostream>
-#include <sstream>
-#include <fstream>
+#include <cstring>
 #include <ctime>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <sys/epoll.h>
-#include <cstring>
+#include <sys/stat.h>
+#include <unistd.h>
 
-// Enhanced static logger class with better formatting
+// Enhanced session-based logger class with better formatting and file management
 class Logger
 {
 public:
@@ -29,87 +30,57 @@ private:
 	~Logger();
 	Logger &operator=(Logger const &rhs);
 
-	static std::string _getCurrentTime()
-	{
-		std::time_t now = std::time(0);
-		char buf[80];
-		std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
-		return std::string(buf);
-	}
+	// Session management
+	static std::string _sessionId;
+	static std::string _logDirectory;
+	static bool _sessionInitialized;
+	static std::ofstream _logFile;
+	static LogLevel _minLogLevel;
 
-	static std::string _getLevelString(LogLevel level)
-	{
-		switch (level)
-		{
-		case DEBUG:
-			return "[DEBUG]   ";
-		case INFO:
-			return "[INFO]    ";
-		case WARNING:
-			return "[WARNING] ";
-		case ERROR:
-			return "[ERROR]   ";
-		case CRITICAL:
-			return "[CRITICAL]";
-		default:
-			return "[UNKNOWN] ";
-		}
-	}
-
-	static std::ostream &_getOutputStream(LogLevel level)
-	{
-		return (level >= ERROR) ? std::cerr : std::cout;
-	}
+	// Private helper methods
+	static std::string _getCurrentTime();
+	static std::string _getLevelString(LogLevel level);
+	static void _logToConsole(LogLevel level, const std::string &logEntry);
+	static void _createLogDirectory();
+	static void _generateSessionId();
+	static void _openSessionLogFile();
+	static std::string _getProcessId();
 
 public:
-	// Primary logging method
-	static void log(LogLevel level, const std::string &message, const std::string &filename = "webserv.log")
+	// Session management
+	static void initializeSession(const std::string &logDir = "logs");
+	static void closeSession();
+	static void setMinLogLevel(LogLevel level);
+	static std::string getSessionId()
 	{
-		std::string timestamp = _getCurrentTime();
-		std::string levelStr = _getLevelString(level);
-
-		// Log to file
-		std::ofstream logFile(filename.c_str(), std::ios::out | std::ios::app);
-		if (logFile.is_open())
-		{
-			logFile << "[" << timestamp << "] " << levelStr << " " << message << std::endl;
-			logFile.close();
-		}
-
-		// Log to console
-		std::ostream &out = _getOutputStream(level);
-		out << "[" << timestamp << "] " << levelStr << " " << message << std::endl;
+		return _sessionId;
 	}
+	static std::string getLogDirectory()
+	{
+		return _logDirectory;
+	}
+
+	// Primary logging method
+	static void log(LogLevel level, const std::string &message);
 
 	// Convenience method for stringstream
-	static void log(LogLevel level, const std::stringstream &ss, const std::string &filename = "webserv.log")
-	{
-		log(level, ss.str(), filename);
-	}
+	static void log(LogLevel level, const std::stringstream &ss);
 
 	// Convenience methods for different levels
-	static void debug(const std::string &message) { log(DEBUG, message); }
-	static void info(const std::string &message) { log(INFO, message); }
-	static void warning(const std::string &message) { log(WARNING, message); }
-	static void error(const std::string &message) { log(ERROR, message); }
-	static void critical(const std::string &message) { log(CRITICAL, message); }
+	static void debug(const std::string &message);
+	static void info(const std::string &message);
+	static void warning(const std::string &message);
+	static void error(const std::string &message);
+	static void critical(const std::string &message);
 
-	// HTTP request logging
-	static void logRequest(const std::string &method, const std::string &uri,
-						   const std::string &clientIP, int statusCode)
-	{
-		std::stringstream ss;
-		ss << clientIP << " - \"" << method << " " << uri << "\" " << statusCode;
-		log(INFO, ss.str());
-	}
-
-	// Error with errno
-	static void logErrno(LogLevel level, const std::string &message)
-	{
-		std::stringstream ss;
-		ss << message << ": " << std::strerror(errno);
-		log(level, ss.str());
-	}
+	// Specialized logging methods
+	static void logRequest(const std::string &method, const std::string &uri, const std::string &clientIP,
+						   int statusCode);
+	static void logErrno(LogLevel level, const std::string &message);
+	static void logServerStart(const std::string &host, int port);
+	static void logClientConnect(const std::string &clientIP, int port);
+	static void logClientDisconnect(const std::string &clientIP, int port);
+	static void logCGIExecution(const std::string &scriptPath, int statusCode, const std::string &error = "");
 };
 
 #endif /* LOGGER_HPP */

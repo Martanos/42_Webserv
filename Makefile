@@ -40,7 +40,8 @@ SRC_FILES = main.cpp \
 			MethodHandlers/RequestRouter.cpp \
 			Wrappers/FileDescriptor.cpp \
 			Wrappers/SocketAddress.cpp \
-			Wrappers/AddrInfo.cpp
+			Wrappers/AddrInfo.cpp \
+			Wrappers/Logger.cpp
 #cgiexec/CgiEnv.cpp
 
 # Object files with proper path

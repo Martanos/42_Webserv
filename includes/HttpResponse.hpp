@@ -1,12 +1,12 @@
 #ifndef HTTPRESPONSE_HPP
 #define HTTPRESPONSE_HPP
 
-#include <iostream>
-#include <string>
-#include <map>
-#include <sstream>
 #include "Logger.hpp"
 #include "StringUtils.hpp"
+#include <iostream>
+#include <map>
+#include <sstream>
+#include <string>
 
 // This class is used to generate the response to the client
 // TODO: Set fields automatically depending on status code
@@ -53,4 +53,5 @@ public:
 	void reset();
 };
 
-#endif /* **************************************************** HTTPRESPONSE_H */
+#endif /* **************************************************** HTTPRESPONSE_H                                          \
+		*/

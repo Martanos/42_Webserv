@@ -1,17 +1,14 @@
 #ifndef FILEDESCRIPTOR_HPP
 #define FILEDESCRIPTOR_HPP
 
+#include <cstring>
+#include <fcntl.h>
 #include <iostream>
 #include <string>
-#include <unistd.h>
-#include <sstream>
-#include <stdexcept>
-#include <cstring>
-#include <sys/stat.h>
-#include <fcntl.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/types.h>
-#include "Logger.hpp"
+#include <unistd.h>
 
 // Class wrapper for file descriptors
 class FileDescriptor
@@ -20,7 +17,7 @@ private:
 	int _fd;
 
 public:
-	FileDescriptor(int fd = -1);
+	FileDescriptor(int fd);
 	FileDescriptor(FileDescriptor const &src);
 	~FileDescriptor();
 	FileDescriptor &operator=(FileDescriptor const &rhs);
@@ -82,4 +79,5 @@ public:
 
 std::ostream &operator<<(std::ostream &o, FileDescriptor const &i);
 
-#endif /* ************************************************** FILEDESCRIPTOR_H */
+#endif /* ************************************************** FILEDESCRIPTOR_H                                          \
+		*/

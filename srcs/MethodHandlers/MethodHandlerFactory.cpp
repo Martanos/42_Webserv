@@ -12,7 +12,8 @@ MethodHandlerFactory::MethodHandlerFactory()
 	_handlers["POST"] = new PostMethodHandler();
 	_handlers["DELETE"] = new DeleteMethodHandler();
 
-	Logger::log(Logger::INFO, "MethodHandlerFactory initialized with GET, HEAD, POST, DELETE handlers");
+	Logger::log(Logger::INFO, "MethodHandlerFactory initialized with GET, "
+							  "HEAD, POST, DELETE handlers");
 }
 
 MethodHandlerFactory::MethodHandlerFactory(const MethodHandlerFactory &src)
@@ -70,8 +71,7 @@ bool MethodHandlerFactory::isMethodSupported(const std::string &method) const
 std::vector<std::string> MethodHandlerFactory::getSupportedMethods() const
 {
 	std::vector<std::string> methods;
-	for (std::map<std::string, IMethodHandler *>::const_iterator it = _handlers.begin();
-		 it != _handlers.end(); ++it)
+	for (std::map<std::string, IMethodHandler *>::const_iterator it = _handlers.begin(); it != _handlers.end(); ++it)
 	{
 		if (it->first != "HEAD")
 		{ // Don't duplicate HEAD as it's handled by GET

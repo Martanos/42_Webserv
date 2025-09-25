@@ -1,14 +1,14 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
+#include "DefaultStatusMap.hpp"
+#include "Location.hpp"
+#include "Logger.hpp"
+#include "ServerConfig.hpp"
 #include <iostream>
+#include <map>
 #include <string>
 #include <vector>
-#include <map>
-#include "Logger.hpp"
-#include "Location.hpp"
-#include "ServerConfig.hpp"
-#include "DefaultStatusMap.hpp"
 
 // Main server object contains all required information for server
 // Param validation is done during parser stage, not here
@@ -34,7 +34,8 @@ private:
 public:
 	Server();
 	Server(Server const &src);
-	Server(const std::string &serverName, const std::string &host, const unsigned short &port, const ServerConfig &serverConfig);
+	Server(const std::string &serverName, const std::string &host, const unsigned short &port,
+		   const ServerConfig &serverConfig);
 	~Server();
 
 	Server &operator=(Server const &rhs);
@@ -73,4 +74,5 @@ public:
 
 std::ostream &operator<<(std::ostream &o, Server const &i);
 
-#endif /* ********************************************************** SERVER_H */
+#endif /* ********************************************************** SERVER_H                                          \
+		*/

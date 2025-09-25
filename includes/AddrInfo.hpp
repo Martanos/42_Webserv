@@ -1,10 +1,10 @@
 #ifndef ADDRINFO_HPP
 #define ADDRINFO_HPP
 
-#include <iostream>
-#include <string>
 #include <cstring>
+#include <iostream>
 #include <netdb.h>
+#include <string>
 
 #include "Logger.hpp"
 
@@ -36,4 +36,5 @@ public:
 
 std::ostream &operator<<(std::ostream &o, AddrInfo const &i);
 
-#endif /* ******************************************************** ADDRINFO_H */
+#endif /* ******************************************************** ADDRINFO_H                                          \
+		*/

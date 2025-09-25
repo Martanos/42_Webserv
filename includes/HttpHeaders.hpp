@@ -1,24 +1,24 @@
 #ifndef HTTPHEADERS_HPP
 #define HTTPHEADERS_HPP
 
+#include "Constants.hpp"
+#include "HttpBody.hpp"
+#include "HttpResponse.hpp"
+#include "Logger.hpp"
+#include "RingBuffer.hpp"
+#include "StringUtils.hpp"
+#include <algorithm>
+#include <cstddef>
+#include <cstdlib>
+#include <ctime>
 #include <iostream>
-#include <string>
+#include <limits>
 #include <map>
 #include <sstream>
-#include <cstdlib>
-#include <algorithm>
-#include <ctime>
-#include <vector>
+#include <string>
 #include <sys/types.h>
 #include <unistd.h>
-#include <cstddef>
-#include <limits>
-#include "Logger.hpp"
-#include "HttpResponse.hpp"
-#include "Constants.hpp"
-#include "StringUtils.hpp"
-#include "RingBuffer.hpp"
-#include "HttpBody.hpp"
+#include <vector>
 
 class HttpHeaders
 {
@@ -66,4 +66,5 @@ public:
 	void reset();
 };
 
-#endif /* ***************************************************** HTTPHEADERS_H */
+#endif /* ***************************************************** HTTPHEADERS_H                                          \
+		*/

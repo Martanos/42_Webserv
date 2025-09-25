@@ -58,7 +58,8 @@ std::ostream &operator<<(std::ostream &o, Location const &i)
 	o << "Path: " << i.getPath() << std::endl;
 	o << "Root: " << i.getRoot() << std::endl;
 	o << "Allowed Methods: ";
-	for (std::vector<std::string>::const_iterator it = i.getAllowedMethods().begin(); it != i.getAllowedMethods().end(); ++it)
+	for (std::vector<std::string>::const_iterator it = i.getAllowedMethods().begin(); it != i.getAllowedMethods().end();
+		 ++it)
 		o << *it << " ";
 	o << std::endl;
 	o << "Redirect: " << i.getRedirect() << std::endl;
@@ -66,7 +67,8 @@ std::ostream &operator<<(std::ostream &o, Location const &i)
 	o << "Index: " << i.getIndex() << std::endl;
 	o << "CgiPath: " << i.getCgiPath() << std::endl;
 	o << "CgiParams: ";
-	for (std::map<std::string, std::string>::const_iterator it = i.getCgiParams().begin(); it != i.getCgiParams().end(); ++it)
+	for (std::map<std::string, std::string>::const_iterator it = i.getCgiParams().begin(); it != i.getCgiParams().end();
+		 ++it)
 		o << it->first << "=" << it->second << " ";
 	o << std::endl;
 	o << "UploadPath: " << i.getUploadPath() << std::endl;
@@ -181,7 +183,8 @@ void Location::addAllowedMethod(const std::string &allowedMethod)
 	if (std::find(_allowedMethods.begin(), _allowedMethods.end(), allowedMethod) == _allowedMethods.end())
 		_allowedMethods.push_back(allowedMethod);
 	else
-		Logger::log(Logger::WARNING, "Allowed method " + allowedMethod + " already exists in location " + _path + " ignoring duplicate");
+		Logger::log(Logger::WARNING,
+					"Allowed method " + allowedMethod + " already exists in location " + _path + " ignoring duplicate");
 }
 
 void Location::addCgiParam(const std::string &cgiParam, const std::string &value)
@@ -189,7 +192,8 @@ void Location::addCgiParam(const std::string &cgiParam, const std::string &value
 	if (_cgiParams.find(cgiParam) == _cgiParams.end())
 		_cgiParams[cgiParam] = value;
 	else
-		Logger::log(Logger::WARNING, "Cgi param " + cgiParam + " already exists in location " + _path + " ignoring duplicate");
+		Logger::log(Logger::WARNING,
+					"Cgi param " + cgiParam + " already exists in location " + _path + " ignoring duplicate");
 }
 
 /* ************************************************************************** */

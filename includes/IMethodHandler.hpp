@@ -1,23 +1,23 @@
 #ifndef IMETHODHANDLER_HPP
 #define IMETHODHANDLER_HPP
 
-#include <string>
+#include "FileDescriptor.hpp"
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
-#include "Server.hpp"
 #include "Location.hpp"
-#include "FileDescriptor.hpp"
 #include "MimeTypes.hpp"
+#include "Server.hpp"
+#include <string>
 
 class IMethodHandler
 {
 public:
-	virtual ~IMethodHandler() {}
+	virtual ~IMethodHandler()
+	{
+	}
 
 	// Main handler method
-	virtual void handle(const HttpRequest &request,
-						HttpResponse &response,
-						const Server *server,
+	virtual void handle(const HttpRequest &request, HttpResponse &response, const Server *server,
 						const Location *location = NULL) = 0;
 
 	// Check if this handler can process the request
@@ -28,9 +28,7 @@ public:
 
 protected:
 	// Common utility methods that all handlers can use
-	static std::string resolveFilePath(const std::string &uri,
-									   const Server *server,
-									   const Location *location);
+	static std::string resolveFilePath(const std::string &uri, const Server *server, const Location *location);
 
 	static std::string getMimeType(const std::string &filePath);
 
@@ -40,12 +38,9 @@ protected:
 	static std::string readFileWithFd(const std::string &filePath);
 
 	// Write file using FileDescriptor
-	static bool writeFileWithFd(const std::string &filePath,
-								const std::string &content);
+	static bool writeFileWithFd(const std::string &filePath, const std::string &content);
 
-	static void setCommonHeaders(HttpResponse &response,
-								 const std::string &contentType,
-								 size_t contentLength);
+	static void setCommonHeaders(HttpResponse &response, const std::string &contentType, size_t contentLength);
 };
 
 #endif /* IMETHODHANDLER_HPP */

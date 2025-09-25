@@ -85,7 +85,8 @@ void FileDescriptor::closeDescriptor()
 }
 
 /*
-** --------------------------------- SOCKET OPERATIONS ---------------------------------
+** --------------------------------- SOCKET OPERATIONS
+*---------------------------------
 */
 
 void FileDescriptor::setNonBlocking()
@@ -185,7 +186,8 @@ void FileDescriptor::unsetReuseAddr()
 }
 
 /*
-** --------------------------------- COMPARATOR ---------------------------------
+** --------------------------------- COMPARATOR
+*---------------------------------
 */
 
 bool FileDescriptor::operator==(const FileDescriptor &rhs) const
@@ -219,7 +221,8 @@ bool FileDescriptor::operator>=(const FileDescriptor &rhs) const
 }
 
 /*
-** --------------------------------- VERIFICATION ---------------------------------
+** --------------------------------- VERIFICATION
+*---------------------------------
 */
 
 bool FileDescriptor::isSocket() const
@@ -317,7 +320,8 @@ size_t FileDescriptor::getFileSize() const
 }
 
 /*
-** --------------------------------- FILE OPERATIONS ---------------------------------
+** --------------------------------- FILE OPERATIONS
+*---------------------------------
 */
 
 ssize_t FileDescriptor::readFile(std::string &buffer)
@@ -359,7 +363,8 @@ ssize_t FileDescriptor::writeFile(const std::string &buffer)
 }
 
 /*
-** --------------------------------- SOCKET OPERATIONS ---------------------------------
+** --------------------------------- SOCKET OPERATIONS
+*---------------------------------
 */
 
 ssize_t FileDescriptor::receiveData(void *buffer, size_t size)
@@ -397,7 +402,8 @@ ssize_t FileDescriptor::sendData(const std::string &buffer)
 }
 
 /*
-** --------------------------------- PIPE OPERATIONS ---------------------------------
+** --------------------------------- PIPE OPERATIONS
+*---------------------------------
 */
 
 ssize_t FileDescriptor::readPipe(std::string &buffer, size_t maxSize)

@@ -1,30 +1,31 @@
 #ifndef HTTPBODY_HPP
 #define HTTPBODY_HPP
 
+#include "Constants.hpp"
+#include "FileDescriptor.hpp"
+#include "FileManager.hpp"
+#include "HttpResponse.hpp"
+#include "Logger.hpp"
+#include "RingBuffer.hpp"
+#include "StringUtils.hpp"
+#include <algorithm>
+#include <cerrno>
+#include <climits>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+#include <fcntl.h>
 #include <iostream>
 #include <string>
-#include <ctime>
-#include <cstdlib>
-#include <unistd.h>
-#include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
-#include <cerrno>
-#include <cstring>
-#include <algorithm>
+#include <sys/types.h>
+#include <unistd.h>
 #include <vector>
-#include <climits>
-#include "Constants.hpp"
-#include "HttpResponse.hpp"
-#include "FileDescriptor.hpp"
-#include "Logger.hpp"
-#include "StringUtils.hpp"
-#include "RingBuffer.hpp"
-#include "FileManager.hpp"
 
 // The responsibility of this class is to parse the body of the request
-// For example if chunked transfer encoding is used, this class will parse the body
-// It also manages the storage during buffering and switching to temp file if needed
+// For example if chunked transfer encoding is used, this class will parse the
+// body It also manages the storage during buffering and switching to temp file
+// if needed
 class HttpBody
 {
 public:
@@ -100,4 +101,5 @@ public:
 	void reset();
 };
 
-#endif /* ******************************************************** HTTPBODY_H */
+#endif /* ******************************************************** HTTPBODY_H                                          \
+		*/

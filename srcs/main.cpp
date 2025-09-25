@@ -11,18 +11,25 @@
 /* ************************************************************************** */
 
 #include "ConfigParser.hpp"
-#include "ServerConfig.hpp"
 #include "Logger.hpp"
+#include "ServerConfig.hpp"
 
 int main(int argc, char **argv)
 {
+	// Initialize logger session
+	Logger::initializeSession("logs");
+	
 	if (argc != 2)
 	{
 		Logger::log(Logger::ERROR, "Usage: " + std::string(argv[0]) + " <config_file>");
+		Logger::closeSession();
 		return 1;
 	}
 
-	try {
+	try
+	{
+		Logger::log(Logger::INFO, "Starting WebServ with config file: " + std::string(argv[1]));
+		
 		// Pseudo code structure
 		// 1. Parse the config file
 		ConfigParser parser(argv[1]);
@@ -31,7 +38,8 @@ int main(int argc, char **argv)
 		// for (size_t i = 0; i < servers.size(); ++i) {
 		//     const std::vector<int>& ports = servers[i].getPorts();
 		//     for (size_t j = 0; j < ports.size(); ++j) {
-		//         std::cout << "Server listening on port: " << ports[j] << std::endl;
+		//         std::cout << "Server listening on port: " << ports[j] <<
+		//         std::endl;
 		//     }
 		// }
 
@@ -42,10 +50,16 @@ int main(int argc, char **argv)
 		// 5. Handle the events
 		// 6. Close the sockets
 		// 7. Exit
+		
+		Logger::log(Logger::INFO, "WebServ initialization completed successfully");
 	}
-	catch (const std::exception& e) {
+	catch (const std::exception &e)
+	{
+		Logger::log(Logger::ERROR, "WebServ initialization failed: " + std::string(e.what()));
+		Logger::closeSession();
 		return 1;
 	}
-	
+
+	Logger::closeSession();
 	return 0;
 }

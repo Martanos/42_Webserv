@@ -18,7 +18,8 @@ Server::Server()
 	_locations = std::map<std::string, Location>();
 }
 
-Server::Server(const std::string &serverName, const std::string &host, const unsigned short &port, const ServerConfig &serverConfig)
+Server::Server(const std::string &serverName, const std::string &host, const unsigned short &port,
+			   const ServerConfig &serverConfig)
 {
 	_serverName = serverName;
 	_host = host;
@@ -81,11 +82,13 @@ std::ostream &operator<<(std::ostream &o, Server const &i)
 	o << "Client max body size: " << i.getClientMaxBodySize() << std::endl;
 	o << "Keep alive: " << (i.getKeepAlive() ? "true" : "false") << std::endl;
 	o << "Status pages: ";
-	for (std::map<int, std::string>::const_iterator it = i.getStatusPages().begin(); it != i.getStatusPages().end(); ++it)
+	for (std::map<int, std::string>::const_iterator it = i.getStatusPages().begin(); it != i.getStatusPages().end();
+		 ++it)
 		o << it->first << ": " << it->second << " ";
 	o << std::endl;
 	o << "Locations: ";
-	for (std::map<std::string, Location>::const_iterator it = i.getLocations().begin(); it != i.getLocations().end(); ++it)
+	for (std::map<std::string, Location>::const_iterator it = i.getLocations().begin(); it != i.getLocations().end();
+		 ++it)
 		o << it->first << ": " << it->second << " ";
 	o << std::endl;
 	o << "--------------------------------" << std::endl;
@@ -227,7 +230,8 @@ void Server::addIndex(const std::string &index)
 	if (std::find(_indexes.begin(), _indexes.end(), index) == _indexes.end())
 		_indexes.push_back(index);
 	else
-		Logger::log(Logger::WARNING, "Index " + index + " already exists in server " + _serverName + " ignoring duplicate");
+		Logger::log(Logger::WARNING,
+					"Index " + index + " already exists in server " + _serverName + " ignoring duplicate");
 }
 
 void Server::addLocation(const Location &location)
@@ -235,7 +239,8 @@ void Server::addLocation(const Location &location)
 	if (_locations.find(location.getPath()) == _locations.end())
 		_locations[location.getPath()] = location;
 	else
-		Logger::log(Logger::WARNING, "Location " + location.getPath() + " already exists in server " + _serverName + " ignoring duplicate");
+		Logger::log(Logger::WARNING, "Location " + location.getPath() + " already exists in server " + _serverName +
+										 " ignoring duplicate");
 }
 
 void Server::addStatusPage(const int &status, const std::string &path)
@@ -246,7 +251,8 @@ void Server::addStatusPage(const int &status, const std::string &path)
 	{
 		std::stringstream ss;
 		ss << status;
-		Logger::log(Logger::WARNING, "Status page " + ss.str() + " already exists in server " + _serverName + " ignoring duplicate");
+		Logger::log(Logger::WARNING,
+					"Status page " + ss.str() + " already exists in server " + _serverName + " ignoring duplicate");
 	}
 }
 

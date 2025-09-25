@@ -2,24 +2,24 @@
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
 
-#include <string>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/epoll.h>
-#include "Server.hpp"
-#include "Logger.hpp"
+#include "DefaultStatusMap.hpp"
+#include "FileDescriptor.hpp"
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
-#include "FileDescriptor.hpp"
-#include "SocketAddress.hpp"
-#include "ServerMap.hpp"
-#include "StringUtils.hpp"
-#include "RequestRouter.hpp"
-#include "DefaultStatusMap.hpp"
+#include "Logger.hpp"
 #include "MimeTypes.hpp"
+#include "RequestRouter.hpp"
 #include "RingBuffer.hpp"
+#include "Server.hpp"
+#include "ServerMap.hpp"
+#include "SocketAddress.hpp"
+#include "StringUtils.hpp"
+#include <fcntl.h>
+#include <netinet/in.h>
+#include <string>
+#include <sys/epoll.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 // This class represents the client connection it is simply the
 // orchestrator of client operations
@@ -90,4 +90,5 @@ public:
 	void setServer(const Server *server);
 };
 
-#endif /* ********************************************************** CLIENT_H */
+#endif /* ********************************************************** CLIENT_H                                          \
+		*/

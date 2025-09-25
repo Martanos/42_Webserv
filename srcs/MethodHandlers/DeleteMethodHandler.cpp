@@ -35,9 +35,7 @@ DeleteMethodHandler &DeleteMethodHandler::operator=(DeleteMethodHandler const &r
 ** --------------------------------- METHODS ----------------------------------
 */
 
-void DeleteMethodHandler::handle(const HttpRequest &request,
-								 HttpResponse &response,
-								 const Server *server,
+void DeleteMethodHandler::handle(const HttpRequest &request, HttpResponse &response, const Server *server,
 								 const Location *location)
 {
 	// Check if DELETE is allowed at this location
@@ -59,8 +57,7 @@ void DeleteMethodHandler::handle(const HttpRequest &request,
 			response.setStatus(405, "Method Not Allowed");
 			response.setBody(server->getStatusPage(405));
 			response.setHeader("Content-Type", "text/html");
-			response.setHeader("Content-Length",
-							   StringUtils::toString(response.getBody().length()));
+			response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
 			response.setHeader("Allow", "GET, HEAD, POST");
 			return;
 		}
@@ -71,14 +68,12 @@ void DeleteMethodHandler::handle(const HttpRequest &request,
 		response.setStatus(405, "Method Not Allowed");
 		response.setBody(server->getStatusPage(405));
 		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length",
-						   StringUtils::toString(response.getBody().length()));
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
 		return;
 	}
 
 	// Resolve the file path
-	std::string filePath = IMethodHandler::resolveFilePath(
-		request.getUri(), server, location);
+	std::string filePath = IMethodHandler::resolveFilePath(request.getUri(), server, location);
 
 	// Check if file exists
 	struct stat fileStat;
@@ -87,8 +82,7 @@ void DeleteMethodHandler::handle(const HttpRequest &request,
 		response.setStatus(404, "Not Found");
 		response.setBody(server->getStatusPage(404));
 		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length",
-						   StringUtils::toString(response.getBody().length()));
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
 		return;
 	}
 
@@ -98,8 +92,7 @@ void DeleteMethodHandler::handle(const HttpRequest &request,
 		response.setStatus(403, "Forbidden");
 		response.setBody(server->getStatusPage(403));
 		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length",
-						   StringUtils::toString(response.getBody().length()));
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
 		return;
 	}
 
@@ -109,8 +102,7 @@ void DeleteMethodHandler::handle(const HttpRequest &request,
 		response.setStatus(403, "Forbidden");
 		response.setBody(server->getStatusPage(403));
 		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length",
-						   StringUtils::toString(response.getBody().length()));
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
 		return;
 	}
 
@@ -129,8 +121,7 @@ void DeleteMethodHandler::handle(const HttpRequest &request,
 		response.setStatus(200, "OK");
 		response.setBody(html.str());
 		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length",
-						   StringUtils::toString(response.getBody().length()));
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
 	}
 	else
 	{
@@ -138,13 +129,11 @@ void DeleteMethodHandler::handle(const HttpRequest &request,
 		response.setStatus(500, "Internal Server Error");
 		response.setBody(server->getStatusPage(500));
 		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length",
-						   StringUtils::toString(response.getBody().length()));
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
 	}
 }
 
-bool DeleteMethodHandler::isDeletionAllowed(const std::string &filePath,
-											const Location *location) const
+bool DeleteMethodHandler::isDeletionAllowed(const std::string &filePath, const Location *location) const
 {
 	// Only allow deletion in upload directories
 	if (!location || location->getUploadPath().empty())

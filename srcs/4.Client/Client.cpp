@@ -61,7 +61,8 @@ Client &Client::operator=(Client const &rhs)
 }
 
 /*
-** --------------------------------- EVENT HANDLING ----------------------------------
+** --------------------------------- EVENT HANDLING
+*----------------------------------
 */
 
 // TODO: Encapsulate in a try catch block
@@ -190,15 +191,13 @@ void Client::sendResponse()
 
 		// Check if we should keep the connection alive
 		bool clientWantsKeepAlive = false;
-		const std::vector<std::string> &connectionHeaders =
-			_request.getHeader("Connection");
+		const std::vector<std::string> &connectionHeaders = _request.getHeader("Connection");
 
 		for (size_t i = 0; i < connectionHeaders.size(); ++i)
 		{
 			std::string header = connectionHeaders[i];
 			// Convert to lowercase for comparison
-			std::transform(header.begin(), header.end(),
-						   header.begin(), ::tolower);
+			std::transform(header.begin(), header.end(), header.begin(), ::tolower);
 
 			if (header.find("keep-alive") != std::string::npos)
 			{
@@ -217,9 +216,7 @@ void Client::sendResponse()
 		// HTTP/1.0 defaults to close, HTTP/1.1 defaults to keep-alive
 		bool defaultKeepAlive = (_request.getVersion() == "HTTP/1.1");
 
-		_keepAlive = serverAllowsKeepAlive &&
-					 (clientWantsKeepAlive ||
-					  (defaultKeepAlive && connectionHeaders.empty()));
+		_keepAlive = serverAllowsKeepAlive && (clientWantsKeepAlive || (defaultKeepAlive && connectionHeaders.empty()));
 
 		if (_keepAlive)
 		{
@@ -284,7 +281,8 @@ void Client::sendResponse()
 }
 
 /*
-** --------------------------------- PRIVATE METHODS ----------------------------------
+** --------------------------------- PRIVATE METHODS
+*----------------------------------
 */
 
 void Client::_identifyServer()
@@ -293,14 +291,16 @@ void Client::_identifyServer()
 	{
 		return;
 	}
-	// If host header is not present, use the first server in the potential servers
+	// If host header is not present, use the first server in the potential
+	// servers
 	if (_request.getHeader("host").empty())
 	{
 		_server = &(_potentialServers[0]);
 	}
 	else
 	{
-		// If host header is present, attempt to match host name to a server configuration
+		// If host header is present, attempt to match host name to a server
+		// configuration
 		for (std::vector<Server>::iterator it = _potentialServers.begin(); it != _potentialServers.end(); ++it)
 		{
 			if (it->getHost() == _request.getHeader("host"))
@@ -355,10 +355,8 @@ void Client::_processHTTPRequest()
 
 	// Log the response
 	std::stringstream logMsg;
-	logMsg << "Response: " << _response.getStatusCode()
-		   << " " << _response.getStatusMessage()
-		   << " for " << _request.getMethod()
-		   << " " << _request.getUri();
+	logMsg << "Response: " << _response.getStatusCode() << " " << _response.getStatusMessage() << " for "
+		   << _request.getMethod() << " " << _request.getUri();
 	Logger::log(Logger::INFO, logMsg.str());
 
 	// Transition to sending state
@@ -373,14 +371,14 @@ void Client::_generateErrorResponse(int statusCode, const std::string &message)
 	_response.setStatus(statusCode, message);
 	_response.setBody(DefaultStatusMap::getStatusBody(statusCode));
 	_response.setHeader("Content-Type", "text/html");
-	_response.setHeader("Content-Length",
-						StringUtils::toString(_response.getBody().length()));
+	_response.setHeader("Content-Length", StringUtils::toString(_response.getBody().length()));
 	_response.setHeader("Connection", _keepAlive ? "keep-alive" : "close");
 	_response.setHeader("Server", "42_Webserv/1.0");
 }
 
 /*
-** --------------------------------- ACCESSOR METHODS ----------------------------------
+** --------------------------------- ACCESSOR METHODS
+*----------------------------------
 */
 
 Client::State Client::getCurrentState() const

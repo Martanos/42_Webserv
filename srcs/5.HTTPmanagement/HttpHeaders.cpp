@@ -115,7 +115,8 @@ void HttpHeaders::parseHeaderLine(const std::string &line, HttpResponse &respons
 	}
 	name = line.substr(0, colonPos);
 
-	// Find if header already exists, if it doesnt create new key with empty vector
+	// Find if header already exists, if it doesnt create new key with empty
+	// vector
 	std::map<std::string, std::vector<std::string> >::iterator it = _headers.find(StringUtils::toLowerCase(name));
 	if (it == _headers.end())
 	{
@@ -159,8 +160,8 @@ void HttpHeaders::parseHeaderLine(const std::string &line, HttpResponse &respons
 
 void HttpHeaders::parseHeaders(HttpResponse &response, HttpBody &body)
 {
-	// RFC 9110 Section 5.4: Server MUST NOT apply request until entire header section received
-	// This validation happens after all headers are parsed
+	// RFC 9110 Section 5.4: Server MUST NOT apply request until entire header
+	// section received This validation happens after all headers are parsed
 
 	// === REQUIRED HEADERS VALIDATION ===
 
@@ -191,7 +192,8 @@ void HttpHeaders::parseHeaders(HttpResponse &response, HttpBody &body)
 	// RFC: Host is singleton header - multiple different values forbidden
 	if (hostIt->second.size() > 1)
 	{
-		// Check if all values are identical (allowed as per RFC 9110 Section 5.3)
+		// Check if all values are identical (allowed as per RFC 9110
+		// Section 5.3)
 		std::string firstHost = hostIt->second[0];
 		for (size_t i = 1; i < hostIt->second.size(); ++i)
 		{
@@ -212,9 +214,11 @@ void HttpHeaders::parseHeaders(HttpResponse &response, HttpBody &body)
 	// === MESSAGE BODY LENGTH VALIDATION ===
 
 	std::map<std::string, std::vector<std::string> >::const_iterator contentLengthIt = _headers.find("content-length");
-	std::map<std::string, std::vector<std::string> >::const_iterator transferEncodingIt = _headers.find("transfer-encoding");
+	std::map<std::string, std::vector<std::string> >::const_iterator transferEncodingIt =
+		_headers.find("transfer-encoding");
 
-	// RFC 9110 Section 8.6: Content-Length and Transfer-Encoding MUST NOT coexist
+	// RFC 9110 Section 8.6: Content-Length and Transfer-Encoding MUST NOT
+	// coexist
 	if (contentLengthIt != _headers.end() && transferEncodingIt != _headers.end())
 	{
 		Logger::log(Logger::ERROR, "Content-Length and Transfer-Encoding cannot both be present");
@@ -242,14 +246,15 @@ void HttpHeaders::parseHeaders(HttpResponse &response, HttpBody &body)
 			return;
 		}
 
-		// RFC 9110 Section 8.6: Multiple identical values allowed, different values forbidden
+		// RFC 9110 Section 8.6: Multiple identical values allowed, different
+		// values forbidden
 		std::string firstValue = contentLengthIt->second[0];
 		for (size_t i = 1; i < contentLengthIt->second.size(); ++i)
 		{
 			if (contentLengthIt->second[i] != firstValue)
 			{
-				Logger::log(Logger::ERROR, "Multiple different Content-Length values: " +
-											   firstValue + " vs " + contentLengthIt->second[i]);
+				Logger::log(Logger::ERROR, "Multiple different Content-Length values: " + firstValue + " vs " +
+											   contentLengthIt->second[i]);
 				response.setStatusCode(HTTP::STATUS_BAD_REQUEST);
 				response.setStatusMessage("Bad Request");
 				response.setBody("Bad Request");
@@ -327,8 +332,9 @@ void HttpHeaders::parseHeaders(HttpResponse &response, HttpBody &body)
 			return;
 		}
 
-		// RFC: Transfer-Encoding can have multiple encodings, but for WebServ we only support chunked
-		// The last encoding MUST be "chunked" if present
+		// RFC: Transfer-Encoding can have multiple encodings, but for WebServ
+		// we only support chunked The last encoding MUST be "chunked" if
+		// present
 		bool hasChunked = false;
 		for (size_t i = 0; i < transferEncodingIt->second.size(); ++i)
 		{
@@ -386,11 +392,11 @@ void HttpHeaders::parseHeaders(HttpResponse &response, HttpBody &body)
 	const size_t singletonCount = sizeof(HTTP::SINGLETON_HEADERS) / sizeof(HTTP::SINGLETON_HEADERS[0]);
 	for (size_t h = 0; h < singletonCount; ++h)
 	{
-		std::map<std::string, std::vector<std::string> >::const_iterator it =
-			_headers.find(HTTP::SINGLETON_HEADERS[h]);
+		std::map<std::string, std::vector<std::string> >::const_iterator it = _headers.find(HTTP::SINGLETON_HEADERS[h]);
 		if (it != _headers.end() && it->second.size() > 1)
 		{
-			// Check if values are identical (some allow duplicates if identical)
+			// Check if values are identical (some allow duplicates if
+			// identical)
 			std::string firstValue = it->second[0];
 			bool allIdentical = true;
 			for (size_t i = 1; i < it->second.size(); ++i)
@@ -405,13 +411,15 @@ void HttpHeaders::parseHeaders(HttpResponse &response, HttpBody &body)
 			{
 				Logger::log(Logger::WARNING, "Multiple different values for singleton header: " +
 												 std::string(HTTP::SINGLETON_HEADERS[h]));
-				// RFC suggests using last valid value for Content-Type, but we'll warn and continue
+				// RFC suggests using last valid value for Content-Type, but
+				// we'll warn and continue
 			}
 		}
 	}
 
 	// === VALIDATE DANGEROUS CHARACTERS ===
-	// RFC 9110 Section 5.5: Field values containing CR, LF, or NUL are invalid and dangerous
+	// RFC 9110 Section 5.5: Field values containing CR, LF, or NUL are invalid
+	// and dangerous
 	for (std::map<std::string, std::vector<std::string> >::const_iterator headerIt = _headers.begin();
 		 headerIt != _headers.end(); ++headerIt)
 	{
@@ -423,8 +431,8 @@ void HttpHeaders::parseHeaders(HttpResponse &response, HttpBody &body)
 				char c = value[j];
 				if (c == '\r' || c == '\n' || c == '\0')
 				{
-					Logger::log(Logger::ERROR, "Dangerous character in header " +
-												   headerIt->first + ": CR/LF/NUL detected");
+					Logger::log(Logger::ERROR,
+								"Dangerous character in header " + headerIt->first + ": CR/LF/NUL detected");
 					response.setStatusCode(HTTP::STATUS_BAD_REQUEST);
 					response.setStatusMessage("Bad Request");
 					response.setBody("Bad Request");
@@ -436,15 +444,16 @@ void HttpHeaders::parseHeaders(HttpResponse &response, HttpBody &body)
 				// RFC: Other control characters should be treated carefully
 				if (c > 0 && c < 32 && c != '\t')
 				{
-					Logger::log(Logger::WARNING, "Control character in header " +
-													 headerIt->first + " (char code: " + StringUtils::toString((int)c) + ")");
+					Logger::log(Logger::WARNING, "Control character in header " + headerIt->first +
+													 " (char code: " + StringUtils::toString((int)c) + ")");
 				}
 			}
 		}
 	}
 
 	// === CHECK FIELD SIZE LIMITS ===
-	// RFC 9110 Section 5.4: Server that receives oversized fields MUST respond with 4xx
+	// RFC 9110 Section 5.4: Server that receives oversized fields MUST respond
+	// with 4xx
 	size_t totalHeaderSize = 0;
 	for (std::map<std::string, std::vector<std::string> >::const_iterator headerIt = _headers.begin();
 		 headerIt != _headers.end(); ++headerIt)
@@ -461,7 +470,8 @@ void HttpHeaders::parseHeaders(HttpResponse &response, HttpBody &body)
 
 	if (totalHeaderSize > (sysconf(_SC_PAGE_SIZE) * 2))
 	{
-		Logger::log(Logger::ERROR, "Total header size exceeds limit: " + StringUtils::toString(totalHeaderSize) + " > " + StringUtils::toString(sysconf(_SC_PAGE_SIZE) * 2));
+		Logger::log(Logger::ERROR, "Total header size exceeds limit: " + StringUtils::toString(totalHeaderSize) +
+									   " > " + StringUtils::toString(sysconf(_SC_PAGE_SIZE) * 2));
 		response.setStatusCode(HTTP::STATUS_BAD_REQUEST);
 		response.setStatusMessage("Bad Request");
 		response.setBody("Bad Request");
@@ -471,8 +481,8 @@ void HttpHeaders::parseHeaders(HttpResponse &response, HttpBody &body)
 		return;
 	}
 
-	Logger::log(Logger::INFO, "Headers parsed successfully. Total headers: " +
-								  StringUtils::toString(_headers.size()) + ", Total size: " + StringUtils::toString(totalHeaderSize));
+	Logger::log(Logger::INFO, "Headers parsed successfully. Total headers: " + StringUtils::toString(_headers.size()) +
+								  ", Total size: " + StringUtils::toString(totalHeaderSize));
 	_headersState = HEADERS_PARSING_COMPLETE;
 	return;
 }

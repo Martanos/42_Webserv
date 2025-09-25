@@ -1,20 +1,21 @@
 #ifndef SERVERMANAGER_HPP
 #define SERVERMANAGER_HPP
 
+#include "Client.hpp"
+#include "EpollManager.hpp"
+#include "Logger.hpp"
+#include "ServerMap.hpp"
 #include <iostream>
+#include <map>
+#include <queue>
+#include <signal.h>
 #include <string>
 #include <sys/epoll.h>
 #include <unistd.h>
 #include <vector>
-#include <map>
-#include <queue>
-#include <signal.h>
-#include "Logger.hpp"
-#include "ServerMap.hpp"
-#include "Client.hpp"
-#include "EpollManager.hpp"
 
-// This class facilitates the main epoll loop and delegates to the appropriate classes to handle connections
+// This class facilitates the main epoll loop and delegates to the appropriate
+// classes to handle connections
 class ServerManager
 {
 private:
@@ -35,6 +36,7 @@ public:
 
 private:
 	void _addServerFdsToEpoll(ServerMap &serverMap);
+	void _checkClientTimeouts();
 
 	// Private methods
 
@@ -48,4 +50,5 @@ public:
 	static void setServerRunning(bool shouldRun);
 };
 
-#endif /* *************************************************** SERVERMANAGER_H */
+#endif /* *************************************************** SERVERMANAGER_H                                          \
+		*/

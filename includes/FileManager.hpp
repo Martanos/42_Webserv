@@ -1,25 +1,25 @@
 #ifndef FILEMANAGER_HPP
 #define FILEMANAGER_HPP
 
-#include <iostream>
-#include <string>
-#include <fstream>
-#include <sstream>
-#include <cstdlib>
-#include <ctime>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <cerrno>
-#include <cstring>
-#include <algorithm>
-#include <vector>
-#include "FileDescriptor.hpp"
-#include "RingBuffer.hpp"
-#include "Logger.hpp"
 #include "Constants.hpp"
+#include "FileDescriptor.hpp"
+#include "Logger.hpp"
+#include "RingBuffer.hpp"
 #include "StringUtils.hpp"
+#include <algorithm>
+#include <cerrno>
+#include <cstdlib>
+#include <cstring>
+#include <ctime>
+#include <fcntl.h>
+#include <fstream>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <vector>
 
 // This class is responsible for the creation and management of files
 // TODO: Integrate with FileDescriptor
@@ -59,4 +59,5 @@ public:
 	void clear();
 };
 
-#endif /* ***************************************************** FILEMANAGER_H */
+#endif /* ***************************************************** FILEMANAGER_H                                          \
+		*/

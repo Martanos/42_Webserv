@@ -1,12 +1,12 @@
 #ifndef IPADDRESSPARSER_HPP
 #define IPADDRESSPARSER_HPP
 
+#include <cstring>
 #include <iostream>
-#include <string>
+#include <limits.h>
 #include <netdb.h>
 #include <netinet/in.h>
-#include <limits.h>
-#include <cstring>
+#include <string>
 #include <vector>
 
 class IPAddressParser
@@ -123,7 +123,8 @@ public:
 		}
 
 		// This is a simplified IPv6 parser
-		// A full implementation would handle :: compression, mixed notation, etc.
+		// A full implementation would handle :: compression, mixed notation,
+		// etc.
 		std::vector<std::string> parts = splitString(ipStr, ':');
 
 		// Basic validation - IPv6 has 8 16-bit parts
@@ -277,8 +278,7 @@ public:
 		for (size_t i = 0; i < str.length(); ++i)
 		{
 			char c = str[i];
-			if (!(c == ':' || (c >= '0' && c <= '9') ||
-				  (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')))
+			if (!(c == ':' || (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F')))
 			{
 				return false;
 			}
@@ -287,4 +287,5 @@ public:
 	}
 };
 
-#endif /* ************************************************* IPADDRESSPARSER_H */
+#endif /* ************************************************* IPADDRESSPARSER_H                                          \
+		*/

@@ -36,9 +36,7 @@ GetMethodHandler &GetMethodHandler::operator=(GetMethodHandler const &rhs)
 */
 
 // Main handler method
-void GetMethodHandler::handle(const HttpRequest &request,
-							  HttpResponse &response,
-							  const Server *server,
+void GetMethodHandler::handle(const HttpRequest &request, HttpResponse &response, const Server *server,
 							  const Location *location)
 {
 	try
@@ -63,8 +61,7 @@ void GetMethodHandler::handle(const HttpRequest &request,
 			response.setStatus(404, "Not Found");
 			response.setBody(server->getStatusPage(404));
 			response.setHeader("Content-Type", "text/html");
-			response.setHeader("Content-Length",
-							   StringUtils::toString(response.getBody().length()));
+			response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
 			return;
 		}
 
@@ -103,16 +100,14 @@ void GetMethodHandler::handle(const HttpRequest &request,
 
 			if (autoindex)
 			{
-				generateDirectoryListing(filePath, request.getUri(),
-										 response, server, location);
+				generateDirectoryListing(filePath, request.getUri(), response, server, location);
 			}
 			else
 			{
 				response.setStatus(403, "Forbidden");
 				response.setBody(server->getStatusPage(403));
 				response.setHeader("Content-Type", "text/html");
-				response.setHeader("Content-Length",
-								   StringUtils::toString(response.getBody().length()));
+				response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
 			}
 		}
 		else if (S_ISREG(fileStat.st_mode))
@@ -126,8 +121,7 @@ void GetMethodHandler::handle(const HttpRequest &request,
 			response.setStatus(403, "Forbidden");
 			response.setBody(server->getStatusPage(403));
 			response.setHeader("Content-Type", "text/html");
-			response.setHeader("Content-Length",
-							   StringUtils::toString(response.getBody().length()));
+			response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
 		}
 
 		// Handle HEAD requests (no body)
@@ -142,8 +136,7 @@ void GetMethodHandler::handle(const HttpRequest &request,
 		response.setStatus(500, "Internal Server Error");
 		response.setBody(server->getStatusPage(500));
 		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length",
-						   StringUtils::toString(response.getBody().length()));
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
 	}
 }
 
@@ -206,12 +199,10 @@ void GetMethodHandler::serveFile(const std::string &filePath, HttpResponse &resp
 }
 
 // Try to serve index files from a directory
-bool GetMethodHandler::tryIndexFiles(const std::string &dirPath,
-									 const std::vector<std::string> &indexes,
+bool GetMethodHandler::tryIndexFiles(const std::string &dirPath, const std::vector<std::string> &indexes,
 									 HttpResponse &response) const
 {
-	for (std::vector<std::string>::const_iterator it = indexes.begin();
-		 it != indexes.end(); ++it)
+	for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); ++it)
 	{
 		std::string indexPath = dirPath;
 		if (indexPath[indexPath.length() - 1] != '/')
@@ -231,10 +222,8 @@ bool GetMethodHandler::tryIndexFiles(const std::string &dirPath,
 }
 
 // Generate directory listing HTML
-void GetMethodHandler::generateDirectoryListing(const std::string &dirPath,
-												const std::string &uri,
-												HttpResponse &response,
-												const Server *server,
+void GetMethodHandler::generateDirectoryListing(const std::string &dirPath, const std::string &uri,
+												HttpResponse &response, const Server *server,
 												const Location *location) const
 {
 	(void)server;
@@ -264,7 +253,8 @@ void GetMethodHandler::generateDirectoryListing(const std::string &dirPath,
 	html << "</head>\n<body>\n";
 	html << "<h1>Index of " << uri << "</h1>\n";
 	html << "<table>\n";
-	html << "<tr><th>Name</th><th>Last Modified</th><th class=\"size\">Size</th></tr>\n";
+	html << "<tr><th>Name</th><th>Last Modified</th><th "
+			"class=\"size\">Size</th></tr>\n";
 
 	// Add parent directory link if not root
 	if (uri != "/")
@@ -289,8 +279,7 @@ void GetMethodHandler::generateDirectoryListing(const std::string &dirPath,
 	std::sort(entries.begin(), entries.end());
 
 	// Generate table rows
-	for (std::vector<std::string>::const_iterator it = entries.begin();
-		 it != entries.end(); ++it)
+	for (std::vector<std::string>::const_iterator it = entries.begin(); it != entries.end(); ++it)
 	{
 		std::string entryPath = dirPath + "/" + *it;
 		struct stat entryStat;
@@ -376,16 +365,14 @@ std::string GetMethodHandler::urlEncode(const std::string &str) const
 	for (size_t i = 0; i < str.length(); ++i)
 	{
 		unsigned char c = str[i];
-		if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
-			(c >= '0' && c <= '9') || c == '-' || c == '_' ||
+		if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-' || c == '_' ||
 			c == '.' || c == '~')
 		{
 			encoded << c;
 		}
 		else
 		{
-			encoded << '%' << std::hex << std::uppercase << std::setw(2)
-					<< std::setfill('0') << static_cast<int>(c);
+			encoded << '%' << std::hex << std::uppercase << std::setw(2) << std::setfill('0') << static_cast<int>(c);
 		}
 	}
 	return encoded.str();

@@ -1,0 +1,16 @@
+# Test Makefile for Logger
+CC = c++
+CFLAGS = -Wall -Wextra -Werror -MMD -MP
+STD = -std=c++98
+INC_DIR = includes
+
+test_logger: test_logger.cpp includes/Logger.hpp srcs/Wrappers/Logger.cpp
+	@mkdir -p obj/test
+	@$(CC) $(CFLAGS) $(STD) -I$(INC_DIR) -c srcs/Wrappers/Logger.cpp -o obj/test/Logger.o
+	@$(CC) $(CFLAGS) $(STD) -I$(INC_DIR) test_logger.cpp obj/test/Logger.o -o test_logger
+	@echo "Test logger compiled successfully"
+
+clean_test:
+	@rm -rf obj/test test_logger test_logs
+
+.PHONY: test_logger clean_test

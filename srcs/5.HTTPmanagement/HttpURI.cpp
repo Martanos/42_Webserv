@@ -49,7 +49,8 @@ HttpURI &HttpURI::operator=(HttpURI const &rhs)
 
 int HttpURI::parseBuffer(RingBuffer &buffer, HttpResponse &response)
 {
-	// Check if buffer contains CLRF termination line and that the current buffer does not exceed the URI max size
+	// Check if buffer contains CLRF termination line and that the current
+	// buffer does not exceed the URI max size
 	size_t newlinePos = _rawURI.contains("\r\n", 2);
 	if (newlinePos == _rawURI.capacity())
 	{

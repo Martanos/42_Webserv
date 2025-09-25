@@ -1,21 +1,21 @@
 #ifndef HTTPREQUEST_HPP
 #define HTTPREQUEST_HPP
 
-#include <string>
-#include <map>
-#include <vector>
-#include <sstream>
-#include <cstdlib>
-#include <algorithm>
-#include <ctime>
-#include "Logger.hpp"
 #include "Constants.hpp"
-#include "StringUtils.hpp"
 #include "FileDescriptor.hpp"
-#include "HttpURI.hpp"
-#include "HttpHeaders.hpp"
 #include "HttpBody.hpp"
+#include "HttpHeaders.hpp"
+#include "HttpURI.hpp"
+#include "Logger.hpp"
 #include "RingBuffer.hpp"
+#include "StringUtils.hpp"
+#include <algorithm>
+#include <cstdlib>
+#include <ctime>
+#include <map>
+#include <sstream>
+#include <string>
+#include <vector>
 
 // TODO: Replace buffers with buffer wrapper
 // TODO: Include check for if is a URI contains a CGI route

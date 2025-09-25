@@ -1,21 +1,21 @@
 #ifndef GETMETHODHANDLER_HPP
 #define GETMETHODHANDLER_HPP
 
-#include <vector>
-#include <sys/stat.h>
-#include <dirent.h>
-#include <algorithm>
-#include <iomanip>
-#include <ctime>
-#include "HttpResponse.hpp"
-#include "Server.hpp"
-#include "Location.hpp"
-#include "HttpRequest.hpp"
-#include "MimeTypes.hpp"
-#include "Logger.hpp"
 #include "DefaultStatusMap.hpp"
-#include "StringUtils.hpp"
+#include "HttpRequest.hpp"
+#include "HttpResponse.hpp"
 #include "IMethodHandler.hpp"
+#include "Location.hpp"
+#include "Logger.hpp"
+#include "MimeTypes.hpp"
+#include "Server.hpp"
+#include "StringUtils.hpp"
+#include <algorithm>
+#include <ctime>
+#include <dirent.h>
+#include <iomanip>
+#include <sys/stat.h>
+#include <vector>
 
 class GetMethodHandler : public IMethodHandler
 {
@@ -23,14 +23,10 @@ private:
 	// Private methods for GET-specific operations
 	void serveFile(const std::string &filePath, HttpResponse &response) const;
 
-	void generateDirectoryListing(const std::string &dirPath,
-								  const std::string &uri,
-								  HttpResponse &response,
-								  const Server *server,
-								  const Location *location) const;
+	void generateDirectoryListing(const std::string &dirPath, const std::string &uri, HttpResponse &response,
+								  const Server *server, const Location *location) const;
 
-	bool tryIndexFiles(const std::string &dirPath,
-					   const std::vector<std::string> &indexes,
+	bool tryIndexFiles(const std::string &dirPath, const std::vector<std::string> &indexes,
 					   HttpResponse &response) const;
 
 	std::string formatFileSize(off_t size) const;
@@ -47,9 +43,7 @@ public:
 	GetMethodHandler &operator=(const GetMethodHandler &rhs);
 
 	// IMethodHandler interface implementation
-	virtual void handle(const HttpRequest &request,
-						HttpResponse &response,
-						const Server *server,
+	virtual void handle(const HttpRequest &request, HttpResponse &response, const Server *server,
 						const Location *location = NULL);
 
 	virtual bool canHandle(const std::string &method) const;

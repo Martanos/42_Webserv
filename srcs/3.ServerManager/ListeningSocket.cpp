@@ -1,15 +1,15 @@
-#include "ListeningSocket.hpp"
+#include "../../includes/ListeningSocket.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-ListeningSocket::ListeningSocket()
+ListeningSocket::ListeningSocket() : _socket(FileDescriptor(-1)), _address(SocketAddress())
 {
 	throw std::runtime_error("Default constructor not implemented");
 }
 
-ListeningSocket::ListeningSocket(const ListeningSocket &src)
+ListeningSocket::ListeningSocket(const ListeningSocket &src) : _socket(src._socket), _address(src._address)
 {
 	// has to be defined;
 
@@ -53,8 +53,6 @@ ListeningSocket::ListeningSocket(const std::string &host, const unsigned short p
 		throw;
 	}
 }
-
-
 
 /*
 ** -------------------------------- DESTRUCTOR --------------------------------
@@ -107,7 +105,8 @@ FileDescriptor ListeningSocket::accept() const
 }
 
 /*
-** --------------------------------- COMPARATOR ---------------------------------
+** --------------------------------- COMPARATOR
+*---------------------------------
 */
 
 bool ListeningSocket::operator<(const ListeningSocket &rhs) const

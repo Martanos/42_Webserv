@@ -1,15 +1,15 @@
 #ifndef STRINGUTILS_HPP
 #define STRINGUTILS_HPP
 
-#include <iostream>
-#include <string>
 #include <algorithm>
 #include <cctype>
-#include <string.h>
-#include <cstdlib>
 #include <cstddef>
-#include <vector>
+#include <cstdlib>
+#include <iostream>
 #include <sstream>
+#include <string.h>
+#include <string>
+#include <vector>
 
 // Static class for string operations
 class StringUtils
@@ -45,4 +45,5 @@ public:
 
 std::ostream &operator<<(std::ostream &o, StringUtils const &i);
 
-#endif /* ***************************************************** STRINGUTILS_H */
+#endif /* ***************************************************** STRINGUTILS_H                                          \
+		*/

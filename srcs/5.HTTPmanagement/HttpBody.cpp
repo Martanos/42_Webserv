@@ -1,4 +1,4 @@
-#include "HttpBody.hpp"
+#include "../../includes/HttpBody.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -25,7 +25,8 @@ HttpBody::HttpBody(const HttpBody &src)
 ** -------------------------------- DESTRUCTOR --------------------------------
 */
 
-// If the file isn't moved that means it wasn't used and hence needs to be cleaned up
+// If the file isn't moved that means it wasn't used and hence needs to be
+// cleaned up
 HttpBody::~HttpBody()
 {
 }
@@ -75,7 +76,8 @@ int HttpBody::parseBuffer(RingBuffer &buffer, HttpResponse &response)
 		{
 		case BODY_TYPE_CHUNKED:
 		{
-			// 1. Transfer incoming buffer data to either a buffer or a temp file
+			// 1. Transfer incoming buffer data to either a buffer or a temp
+			// file
 			_bodyState = _parseChunkedBody(buffer, response);
 			break;
 		}
@@ -122,7 +124,8 @@ HttpBody::BodyState HttpBody::_parseChunkedBody(RingBuffer &buffer, HttpResponse
 		if (_isUsingTempFile)
 		{
 			size_t newlinePos = _tempChunkedFile.getFd().contains("\r\n", 2);
-			if (newlinePos == _tempChunkedFile.getFd().capacity()) // No CLRF found transfer to local buffer and wait for more data
+			if (newlinePos == _tempChunkedFile.getFd().capacity()) // No CLRF found transfer to local
+																   // buffer and wait for more data
 			{
 				return BODY_PARSING;
 			}
@@ -130,15 +133,17 @@ HttpBody::BodyState HttpBody::_parseChunkedBody(RingBuffer &buffer, HttpResponse
 		else
 		{
 			size_t newlinePos = _chunkedBuffer.contains("\r\n", 2);
-			if (newlinePos == _chunkedBuffer.capacity()) // No CLRF found transfer to local buffer and wait for more data
+			if (newlinePos == _chunkedBuffer.capacity()) // No CLRF found transfer to local
+														 // buffer and wait for more data
 			{
 				return BODY_PARSING;
 			}
 		}
 		// Translate chunk size line to raw body
 		std::string chunkSizeLine;
-		_chunkedBuffer.readBuffer(chunkSizeLine, newlinePos + 2); // Include the CLRF to clear CLRF from the buffer
-		chunkSizeLine += chunkSizeLine.substr(0, newlinePos);	  // Exclude the CLRF to ignore it
+		_chunkedBuffer.readBuffer(chunkSizeLine,
+								  newlinePos + 2);			  // Include the CLRF to clear CLRF from the buffer
+		chunkSizeLine += chunkSizeLine.substr(0, newlinePos); // Exclude the CLRF to ignore it
 
 		size_t semicolonPos = chunkSizeLine.find(';');
 		std::string hexSize = chunkSizeLine.substr(0, semicolonPos);
@@ -170,8 +175,9 @@ HttpBody::BodyState HttpBody::_parseChunkedBody(RingBuffer &buffer, HttpResponse
 	{
 		// Extract data from chunked buffer and transfer to raw body
 		std::string chunkData;
-		_chunkedBuffer.readBuffer(chunkData, _expectedBodySize - 2); // -2 for the CLRF
-		if ( chunkData == ""
+		_chunkedBuffer.readBuffer(chunkData,
+								  _expectedBodySize - 2); // -2 for the CLRF
+				if ( chunkData == ""
 		_rawBody.writeBuffer(chunkData.c_str(), chunkData.size());
 		_chunkedBuffer.consume(_expectedBodySize - 2);
 		_chunkState = CHUNK_TRAILERS;
@@ -265,7 +271,8 @@ HttpBody::BodyState HttpBody::_parseContentLengthBody(RingBuffer &buffer, HttpRe
 }
 
 /*
-** --------------------------------- DECODING METHODS ----------------------------------
+** --------------------------------- DECODING METHODS
+*----------------------------------
 */
 
 // Parse hexadecimal chunk size

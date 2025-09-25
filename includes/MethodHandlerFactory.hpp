@@ -2,13 +2,13 @@
 #ifndef METHODHANDLERFACTORY_HPP
 #define METHODHANDLERFACTORY_HPP
 
-#include <map>
-#include <vector>
-#include <string>
-#include "IMethodHandler.hpp"
-#include "GetMethodHandler.hpp"
-#include "PostMethodHandler.hpp"
 #include "DeleteMethodHandler.hpp"
+#include "GetMethodHandler.hpp"
+#include "IMethodHandler.hpp"
+#include "PostMethodHandler.hpp"
+#include <map>
+#include <string>
+#include <vector>
 
 class MethodHandlerFactory
 {

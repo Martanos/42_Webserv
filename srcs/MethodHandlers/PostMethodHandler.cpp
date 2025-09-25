@@ -35,9 +35,7 @@ PostMethodHandler &PostMethodHandler::operator=(PostMethodHandler const &rhs)
 ** --------------------------------- METHODS ----------------------------------
 */
 
-void PostMethodHandler::handle(const HttpRequest &request,
-							   HttpResponse &response,
-							   const Server *server,
+void PostMethodHandler::handle(const HttpRequest &request, HttpResponse &response, const Server *server,
 							   const Location *location)
 {
 	// Check if location allows POST
@@ -59,8 +57,7 @@ void PostMethodHandler::handle(const HttpRequest &request,
 			response.setStatus(405, "Method Not Allowed");
 			response.setBody(server->getStatusPage(405));
 			response.setHeader("Content-Type", "text/html");
-			response.setHeader("Content-Length",
-							   StringUtils::toString(response.getBody().length()));
+			response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
 			response.setHeader("Allow", "GET, HEAD");
 			return;
 		}
@@ -81,14 +78,11 @@ void PostMethodHandler::handle(const HttpRequest &request,
 		response.setStatus(501, "Not Implemented");
 		response.setBody(server->getStatusPage(501));
 		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length",
-						   StringUtils::toString(response.getBody().length()));
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
 	}
 }
 
-void PostMethodHandler::handleFileUpload(const HttpRequest &request,
-										 HttpResponse &response,
-										 const Location *location,
+void PostMethodHandler::handleFileUpload(const HttpRequest &request, HttpResponse &response, const Location *location,
 										 const Server *server) const
 {
 	std::string uploadPath = location->getUploadPath();
@@ -101,8 +95,7 @@ void PostMethodHandler::handleFileUpload(const HttpRequest &request,
 		response.setStatus(500, "Internal Server Error");
 		response.setBody(server->getStatusPage(500));
 		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length",
-						   StringUtils::toString(response.getBody().length()));
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
 		return;
 	}
 
@@ -165,8 +158,7 @@ void PostMethodHandler::handleFileUpload(const HttpRequest &request,
 		response.setStatus(201, "Created");
 		response.setBody(html.str());
 		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length",
-						   StringUtils::toString(response.getBody().length()));
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
 		response.setHeader("Location", uploadPath + "/" + filename);
 	}
 	else
@@ -175,15 +167,13 @@ void PostMethodHandler::handleFileUpload(const HttpRequest &request,
 		response.setStatus(500, "Internal Server Error");
 		response.setBody(server->getStatusPage(500));
 		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length",
-						   StringUtils::toString(response.getBody().length()));
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
 	}
 }
 
 // TODO: Have more robust file name generation
 // TODO: Update to work with temp file
-bool PostMethodHandler::saveUploadedFile(const std::string &uploadPath,
-										 const std::string &filename,
+bool PostMethodHandler::saveUploadedFile(const std::string &uploadPath, const std::string &filename,
 										 const std::string &content) const
 {
 	std::string fullPath = uploadPath;
@@ -194,9 +184,7 @@ bool PostMethodHandler::saveUploadedFile(const std::string &uploadPath,
 	fullPath += filename;
 
 	// Use FileDescriptor for safe file handling
-	FileDescriptor fd(open(fullPath.c_str(),
-						   O_WRONLY | O_CREAT | O_EXCL,
-						   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH));
+	FileDescriptor fd(open(fullPath.c_str(), O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH));
 
 	if (!fd.isValid())
 	{
@@ -207,19 +195,14 @@ bool PostMethodHandler::saveUploadedFile(const std::string &uploadPath,
 			size_t dotPos = filename.find_last_of('.');
 			if (dotPos != std::string::npos)
 			{
-				newPath << uploadPath << "/"
-						<< filename.substr(0, dotPos)
-						<< "_" << i
-						<< filename.substr(dotPos);
+				newPath << uploadPath << "/" << filename.substr(0, dotPos) << "_" << i << filename.substr(dotPos);
 			}
 			else
 			{
 				newPath << uploadPath << "/" << filename << "_" << i;
 			}
 
-			fd.setFd(open(newPath.str().c_str(),
-						  O_WRONLY | O_CREAT | O_EXCL,
-						  S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH));
+			fd.setFd(open(newPath.str().c_str(), O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH));
 
 			if (fd.isValid())
 			{
@@ -261,47 +244,44 @@ std::string PostMethodHandler::extractFilename(const std::string &contentDisposi
 	return "";
 }
 
-void PostMethodHandler::handleCGI(const HttpRequest &request,
-								  HttpResponse &response,
-								  const Location *location,
+void PostMethodHandler::handleCGI(const HttpRequest &request, HttpResponse &response, const Location *location,
 								  const Server *server) const
 {
 	// Use the new CgiHandler for CGI execution
 	CgiHandler cgiHandler;
-	
+
 	CgiHandler::ExecutionResult result = cgiHandler.execute(request, response, server, location);
-	
+
 	if (result != CgiHandler::SUCCESS)
 	{
 		// CGI execution failed, return appropriate error
 		int statusCode = 500;
 		std::string statusMessage = "Internal Server Error";
-		
+
 		switch (result)
 		{
-			case CgiHandler::ERROR_SCRIPT_NOT_FOUND:
-				statusCode = 404;
-				statusMessage = "Not Found";
-				break;
-			case CgiHandler::ERROR_TIMEOUT:
-				statusCode = 504;
-				statusMessage = "Gateway Timeout";
-				break;
-			case CgiHandler::ERROR_INVALID_SCRIPT_PATH:
-				statusCode = 400;
-				statusMessage = "Bad Request";
-				break;
-			default:
-				statusCode = 500;
-				statusMessage = "Internal Server Error";
-				break;
+		case CgiHandler::ERROR_SCRIPT_NOT_FOUND:
+			statusCode = 404;
+			statusMessage = "Not Found";
+			break;
+		case CgiHandler::ERROR_TIMEOUT:
+			statusCode = 504;
+			statusMessage = "Gateway Timeout";
+			break;
+		case CgiHandler::ERROR_INVALID_SCRIPT_PATH:
+			statusCode = 400;
+			statusMessage = "Bad Request";
+			break;
+		default:
+			statusCode = 500;
+			statusMessage = "Internal Server Error";
+			break;
 		}
-		
+
 		response.setStatus(statusCode, statusMessage);
 		response.setBody(server->getStatusPage(statusCode));
 		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length",
-						   StringUtils::toString(response.getBody().length()));
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
 	}
 }
 

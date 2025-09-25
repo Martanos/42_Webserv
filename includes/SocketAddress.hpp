@@ -1,20 +1,20 @@
 #ifndef SOCKETADDRESS_HPP
 #define SOCKETADDRESS_HPP
 
-#include <iostream>
-#include <string>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <unistd.h>
-#include <cstring>
-#include <cstdlib>
-#include <cstdio>
+#include "AddrInfo.hpp"
+#include "IPAddressParser.hpp"
+#include "Logger.hpp"
 #include <cerrno>
 #include <cstddef>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
 #include <netdb.h>
-#include "Logger.hpp"
-#include "IPAddressParser.hpp"
-#include "AddrInfo.hpp"
+#include <netinet/in.h>
+#include <string>
+#include <sys/socket.h>
+#include <unistd.h>
 
 // Class wrapper for socket addresses c structs
 class SocketAddress
@@ -129,8 +129,9 @@ public:
 		}
 		else
 		{
-			// For hostname resolution, still need getaddrinfo (it's in allowed functions)
-			// This is the only way to resolve hostnames without banned functions
+			// For hostname resolution, still need getaddrinfo (it's in allowed
+			// functions) This is the only way to resolve hostnames without
+			// banned functions
 			AddrInfo addrInfo(host, "80"); // Use port 80 as dummy
 			const struct addrinfo *info = addrInfo.get();
 
@@ -162,4 +163,5 @@ public:
 
 std::ostream &operator<<(std::ostream &o, SocketAddress const &i);
 
-#endif /* *************************************************** SOCKETADDRESS_H */
+#endif /* *************************************************** SOCKETADDRESS_H                                          \
+		*/

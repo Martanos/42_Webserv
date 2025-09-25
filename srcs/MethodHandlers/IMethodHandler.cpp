@@ -36,9 +36,7 @@ IMethodHandler &IMethodHandler::operator=(IMethodHandler const &rhs)
 */
 
 // Resolve file path based on URI and server/location configuration
-std::string IMethodHandler::resolveFilePath(const std::string &uri,
-											const Server *server,
-											const Location *location)
+std::string IMethodHandler::resolveFilePath(const std::string &uri, const Server *server, const Location *location)
 {
 	// Remove query string if present
 	std::string cleanUri = uri;
@@ -215,9 +213,7 @@ std::string IMethodHandler::readFileWithFd(const std::string &filePath)
 	ssize_t totalRead = 0;
 	while (totalRead < fileStat.st_size)
 	{
-		ssize_t bytesRead = read(fd.getFd(),
-								 &content[totalRead],
-								 fileStat.st_size - totalRead);
+		ssize_t bytesRead = read(fd.getFd(), &content[totalRead], fileStat.st_size - totalRead);
 		if (bytesRead < 0)
 		{
 			if (errno == EINTR)
@@ -239,12 +235,9 @@ std::string IMethodHandler::readFileWithFd(const std::string &filePath)
 
 // TODO: Integrate this into FileDescriptor class
 // Write file using FileDescriptor
-bool IMethodHandler::writeFileWithFd(const std::string &filePath,
-									 const std::string &content)
+bool IMethodHandler::writeFileWithFd(const std::string &filePath, const std::string &content)
 {
-	FileDescriptor fd(open(filePath.c_str(),
-						   O_WRONLY | O_CREAT | O_TRUNC,
-						   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH));
+	FileDescriptor fd(open(filePath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH));
 
 	if (!fd.isValid())
 	{
@@ -255,9 +248,7 @@ bool IMethodHandler::writeFileWithFd(const std::string &filePath,
 	size_t totalWritten = 0;
 	while (totalWritten < content.length())
 	{
-		ssize_t written = write(fd.getFd(),
-								content.c_str() + totalWritten,
-								content.length() - totalWritten);
+		ssize_t written = write(fd.getFd(), content.c_str() + totalWritten, content.length() - totalWritten);
 		if (written < 0)
 		{
 			if (errno == EINTR)
@@ -274,9 +265,7 @@ bool IMethodHandler::writeFileWithFd(const std::string &filePath,
 }
 
 // Set common response headers
-void IMethodHandler::setCommonHeaders(HttpResponse &response,
-									  const std::string &contentType,
-									  size_t contentLength)
+void IMethodHandler::setCommonHeaders(HttpResponse &response, const std::string &contentType, size_t contentLength)
 {
 	response.setHeader("Content-Type", contentType);
 	response.setHeader("Content-Length", StringUtils::toString(contentLength));
@@ -286,8 +275,7 @@ void IMethodHandler::setCommonHeaders(HttpResponse &response,
 	time_t now = time(NULL);
 	char dateBuffer[100];
 	struct tm *tm = gmtime(&now);
-	strftime(dateBuffer, sizeof(dateBuffer),
-			 "%a, %d %b %Y %H:%M:%S GMT", tm);
+	strftime(dateBuffer, sizeof(dateBuffer), "%a, %d %b %Y %H:%M:%S GMT", tm);
 	response.setHeader("Date", std::string(dateBuffer));
 }
 

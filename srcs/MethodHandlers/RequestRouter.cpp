@@ -35,9 +35,7 @@ RequestRouter &RequestRouter::operator=(RequestRouter const &rhs)
 ** --------------------------------- METHODS ----------------------------------
 */
 
-void RequestRouter::route(const HttpRequest &request,
-						  HttpResponse &response,
-						  const Server *server)
+void RequestRouter::route(const HttpRequest &request, HttpResponse &response, const Server *server)
 {
 	if (!server)
 	{
@@ -62,8 +60,7 @@ void RequestRouter::route(const HttpRequest &request,
 		response.setStatus(405, "Method Not Allowed");
 		response.setBody(server->getStatusPage(405));
 		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length",
-						   StringUtils::toString(response.getBody().length()));
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
 		response.setHeader("Allow", getAllowedMethodsString(location, server));
 		return;
 	}
@@ -78,8 +75,7 @@ void RequestRouter::route(const HttpRequest &request,
 		response.setStatus(501, "Not Implemented");
 		response.setBody(server->getStatusPage(501));
 		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length",
-						   StringUtils::toString(response.getBody().length()));
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
 		return;
 	}
 
@@ -95,8 +91,7 @@ void RequestRouter::route(const HttpRequest &request,
 		time_t now = time(NULL);
 		char dateBuffer[100];
 		struct tm *tm = gmtime(&now);
-		strftime(dateBuffer, sizeof(dateBuffer),
-				 "%a, %d %b %Y %H:%M:%S GMT", tm);
+		strftime(dateBuffer, sizeof(dateBuffer), "%a, %d %b %Y %H:%M:%S GMT", tm);
 		response.setHeader("Date", std::string(dateBuffer));
 
 		// Add Connection header based on keep-alive settings
@@ -112,14 +107,12 @@ void RequestRouter::route(const HttpRequest &request,
 	}
 	catch (const std::exception &e)
 	{
-		Logger::log(Logger::ERROR, "Exception during request handling: " +
-									   std::string(e.what()));
+		Logger::log(Logger::ERROR, "Exception during request handling: " + std::string(e.what()));
 		generateErrorResponse(response, 500, server);
 	}
 }
 
-const Location *RequestRouter::matchLocation(const std::string &uri,
-											 const Server *server) const
+const Location *RequestRouter::matchLocation(const std::string &uri, const Server *server) const
 {
 	if (!server)
 	{
@@ -132,8 +125,7 @@ const Location *RequestRouter::matchLocation(const std::string &uri,
 	const Location *bestMatch = NULL;
 	size_t bestMatchLength = 0;
 
-	for (std::map<std::string, Location>::const_iterator it = locations.begin();
-		 it != locations.end(); ++it)
+	for (std::map<std::string, Location>::const_iterator it = locations.begin(); it != locations.end(); ++it)
 	{
 		const std::string &path = it->first;
 
@@ -152,9 +144,7 @@ const Location *RequestRouter::matchLocation(const std::string &uri,
 	return bestMatch;
 }
 
-bool RequestRouter::isMethodAllowed(const std::string &method,
-									const Location *location,
-									const Server *server) const
+bool RequestRouter::isMethodAllowed(const std::string &method, const Location *location, const Server *server) const
 {
 	(void)server;
 
@@ -174,8 +164,7 @@ bool RequestRouter::isMethodAllowed(const std::string &method,
 	}
 
 	// Check if method is in allowed list
-	for (std::vector<std::string>::const_iterator it = allowedMethods.begin();
-		 it != allowedMethods.end(); ++it)
+	for (std::vector<std::string>::const_iterator it = allowedMethods.begin(); it != allowedMethods.end(); ++it)
 	{
 		if (*it == method)
 		{
@@ -191,8 +180,7 @@ bool RequestRouter::isMethodAllowed(const std::string &method,
 	return false;
 }
 
-std::string RequestRouter::getAllowedMethodsString(const Location *location,
-												   const Server *server) const
+std::string RequestRouter::getAllowedMethodsString(const Location *location, const Server *server) const
 {
 	(void)server;
 
@@ -221,9 +209,7 @@ std::string RequestRouter::getAllowedMethodsString(const Location *location,
 	return allowed;
 }
 
-void RequestRouter::generateErrorResponse(HttpResponse &response,
-										  int statusCode,
-										  const Server *server) const
+void RequestRouter::generateErrorResponse(HttpResponse &response, int statusCode, const Server *server) const
 {
 	response.setStatus(statusCode, DefaultStatusMap::getStatusMessage(statusCode));
 
