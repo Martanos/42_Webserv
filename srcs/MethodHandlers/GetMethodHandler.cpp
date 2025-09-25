@@ -1,4 +1,4 @@
-#include "GetMethodHandler.hpp"
+#include "../../includes/GetMethodHandler.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -164,7 +164,7 @@ void GetMethodHandler::serveFile(const std::string &filePath, HttpResponse &resp
 
 	// Check file size (prevent loading huge files into memory)
 	const size_t MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB limit
-	if (fileStat.st_size > MAX_FILE_SIZE)
+	if (static_cast<size_t>(fileStat.st_size) > MAX_FILE_SIZE)
 	{
 		Logger::log(Logger::ERROR, "File too large: " + filePath);
 		response.setStatus(413, "Payload Too Large");

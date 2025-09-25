@@ -1,10 +1,10 @@
-#include "EpollManager.hpp"
+#include "../../includes/EpollManager.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-EpollManager::EpollManager(const EpollManager &src)
+EpollManager::EpollManager(const EpollManager &src) : _epollFd(src._epollFd)
 {
 	(void)src;
 	throw std::runtime_error("EpollManager: Copy constructor called");

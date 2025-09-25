@@ -1,4 +1,10 @@
 #include "../../includes/ListeningSocket.hpp"
+#include "../../includes/Logger.hpp"
+#include <cstring>
+#include <netinet/in.h>
+#include <sstream>
+#include <sys/socket.h>
+#include <unistd.h>
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -6,16 +12,17 @@
 
 ListeningSocket::ListeningSocket() : _socket(FileDescriptor(-1)), _address(SocketAddress())
 {
-	throw std::runtime_error("Default constructor not implemented");
+	// Default constructor - creates invalid socket
+	// Should be used with assignment operator or proper initialization
 }
 
 ListeningSocket::ListeningSocket(const ListeningSocket &src) : _socket(src._socket), _address(src._address)
 {
-	// has to be defined;
-
-	(void)src;
-	throw std::runtime_error("Copy constructor not implemented");
+	// Copy constructor - creates a copy of the socket
+	// Note: This creates a shallow copy of the file descriptor
+	// TODO: Implement proper socket duplication
 }
+
 ListeningSocket::ListeningSocket(const std::string &host, const unsigned short port)
 	: _socket(socket(AF_INET, SOCK_STREAM, 0)), _address(host, port)
 {
@@ -35,7 +42,7 @@ ListeningSocket::ListeningSocket(const std::string &host, const unsigned short p
 		if (bind(_socket, _address.getSockAddr(), _address.getSize()) == -1)
 		{
 			std::stringstream ss;
-			ss << "Failed to bind socket: " << strerror(errno);
+			ss << "Failed to bind socket: " << strerror(errno) << " on " << _address;
 			Logger::log(Logger::ERROR, ss.str());
 			throw std::runtime_error(ss.str());
 		}
@@ -50,7 +57,8 @@ ListeningSocket::ListeningSocket(const std::string &host, const unsigned short p
 	}
 	catch (...)
 	{
-		throw;
+		_socket.closeDescriptor();
+		_socket = FileDescriptor(-1);
 	}
 }
 
@@ -68,8 +76,12 @@ ListeningSocket::~ListeningSocket()
 
 ListeningSocket &ListeningSocket::operator=(ListeningSocket const &rhs)
 {
-	(void)rhs;
-	throw std::runtime_error("Assignment operator not implemented");
+	if (this != &rhs)
+	{
+		_socket = rhs._socket;
+		_address = rhs._address;
+	}
+	return *this;
 }
 
 std::ostream &operator<<(std::ostream &o, ListeningSocket const &i)
@@ -82,12 +94,11 @@ std::ostream &operator<<(std::ostream &o, ListeningSocket const &i)
 ** --------------------------------- METHODS ----------------------------------
 */
 
-FileDescriptor ListeningSocket::accept() const
+FileDescriptor ListeningSocket::accept(SocketAddress &remoteAddr) const
 {
-	struct sockaddr_storage clientAddr;
-	socklen_t clientAddrLen = sizeof(clientAddr);
-
-	int clientFd = ::accept(_socket, reinterpret_cast<struct sockaddr *>(&clientAddr), &clientAddrLen);
+	struct sockaddr_storage addr;
+	socklen_t addrLen = sizeof(addr);
+	int clientFd = ::accept(_socket.getFd(), reinterpret_cast<struct sockaddr *>(&addr), &addrLen);
 	if (clientFd == -1)
 	{
 		if (errno == EWOULDBLOCK || errno == EAGAIN)
@@ -95,11 +106,13 @@ FileDescriptor ListeningSocket::accept() const
 			Logger::log(Logger::INFO, "No connections available");
 			return FileDescriptor(-1);
 		}
+
 		std::stringstream ss;
 		ss << "accept failed: " << strerror(errno);
 		Logger::log(Logger::ERROR, ss.str());
 		throw std::runtime_error(ss.str());
 	}
+	remoteAddr = SocketAddress::createFromStorage(addr, addrLen);
 
 	return FileDescriptor(clientFd);
 }

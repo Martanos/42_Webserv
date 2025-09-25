@@ -2,11 +2,11 @@
 #define CONSTANTS_HPP
 
 #include <cstddef>
+#include <string>
 #include <sys/types.h>
 #include <unistd.h>
 
 // System constants all in one place
-// TODO: UPDATE HTTP status codes
 // HTTP Constants
 namespace HTTP
 {

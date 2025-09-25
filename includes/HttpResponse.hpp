@@ -9,7 +9,6 @@
 #include <string>
 
 // This class is used to generate the response to the client
-// TODO: Set fields automatically depending on status code
 class HttpResponse
 {
 private:
@@ -51,6 +50,7 @@ public:
 	// Methods
 	std::string toString() const;
 	void reset();
+	void setAutoFields(); // Automatically set fields based on status code
 };
 
 #endif /* **************************************************** HTTPRESPONSE_H                                          \

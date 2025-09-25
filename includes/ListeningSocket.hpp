@@ -2,7 +2,6 @@
 #define LISTENINGSOCKET_HPP
 
 #include "FileDescriptor.hpp"
-#include "Logger.hpp"
 #include "SocketAddress.hpp"
 #include <cerrno>
 #include <iostream>
@@ -28,7 +27,7 @@ public:
 	~ListeningSocket();
 
 	// Accept connection
-	FileDescriptor accept() const;
+	FileDescriptor accept(SocketAddress &address) const;
 
 	// Comparator overloads
 	bool operator<(const ListeningSocket &rhs) const;

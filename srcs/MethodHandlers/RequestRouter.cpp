@@ -1,4 +1,4 @@
-#include "RequestRouter.hpp"
+#include "../../includes/RequestRouter.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -6,11 +6,6 @@
 
 RequestRouter::RequestRouter()
 {
-}
-
-RequestRouter::RequestRouter(const RequestRouter &src)
-{
-	(void)src;
 }
 
 /*
@@ -24,12 +19,6 @@ RequestRouter::~RequestRouter()
 /*
 ** --------------------------------- OVERLOAD ---------------------------------
 */
-
-RequestRouter &RequestRouter::operator=(RequestRouter const &rhs)
-{
-	(void)rhs;
-	return *this;
-}
 
 /*
 ** --------------------------------- METHODS ----------------------------------

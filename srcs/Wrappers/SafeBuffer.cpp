@@ -1,4 +1,4 @@
-#include "SafeBuffer.hpp"
+#include "../../includes/SafeBuffer.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------

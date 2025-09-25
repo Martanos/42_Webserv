@@ -1,35 +1,16 @@
-#include "IMethodHandler.hpp"
+#include "../../includes/IMethodHandler.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-IMethodHandler::IMethodHandler()
-{
-}
-
-IMethodHandler::IMethodHandler(const IMethodHandler &src)
-{
-	(void)src;
-}
-
 /*
 ** -------------------------------- DESTRUCTOR --------------------------------
 */
 
-IMethodHandler::~IMethodHandler()
-{
-}
-
 /*
 ** --------------------------------- OVERLOAD ---------------------------------
 */
-
-IMethodHandler &IMethodHandler::operator=(IMethodHandler const &rhs)
-{
-	(void)rhs;
-	return *this;
-}
 
 /*
 ** --------------------------------- METHODS ----------------------------------
@@ -187,7 +168,6 @@ bool IMethodHandler::isPathAccessible(const std::string &path)
 	return true;
 }
 
-// TODO: Integrate this into FileDescriptor class
 // Read file using FileDescriptor
 std::string IMethodHandler::readFileWithFd(const std::string &filePath)
 {
@@ -233,7 +213,6 @@ std::string IMethodHandler::readFileWithFd(const std::string &filePath)
 	return content;
 }
 
-// TODO: Integrate this into FileDescriptor class
 // Write file using FileDescriptor
 bool IMethodHandler::writeFileWithFd(const std::string &filePath, const std::string &content)
 {

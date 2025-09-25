@@ -1,26 +1,20 @@
 #ifndef HTTPBODY_HPP
 #define HTTPBODY_HPP
 
-#include "Constants.hpp"
 #include "FileDescriptor.hpp"
 #include "FileManager.hpp"
 #include "HttpResponse.hpp"
-#include "Logger.hpp"
 #include "RingBuffer.hpp"
-#include "StringUtils.hpp"
-#include <algorithm>
 #include <cerrno>
 #include <climits>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
 #include <fcntl.h>
-#include <iostream>
 #include <string>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <vector>
 
 // The responsibility of this class is to parse the body of the request
 // For example if chunked transfer encoding is used, this class will parse the

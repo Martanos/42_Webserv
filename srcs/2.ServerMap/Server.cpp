@@ -1,5 +1,5 @@
-#include "Server.hpp"
-#include "Constants.hpp"
+#include "../../includes/Server.hpp"
+#include "../../includes/Constants.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------

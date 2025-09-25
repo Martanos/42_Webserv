@@ -193,9 +193,7 @@ void ConfigParser::_parseServerBlock(std::stringstream &buffer, double &lineNumb
 			break;
 		case SERVER_UNKNOWN:
 		default:
-			// TODO: Handle unknown directive or log warning
 			Logger::log(Logger::WARNING, "Unknown server directive: " + directive);
-
 			break;
 		}
 		// For now, just create a basic server config
@@ -379,4 +377,9 @@ void ConfigParser::_parseLocationBlock(std::stringstream &buffer, double &lineNu
 	{
 		Logger::log(Logger::WARNING, "Duplicate location found: " + currentLocation.getPath());
 	}
+}
+
+const std::vector<ServerConfig>& ConfigParser::getServerConfigs() const
+{
+	return _serverConfigs;
 }

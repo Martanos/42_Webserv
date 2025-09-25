@@ -1,8 +1,22 @@
-#include "FileDescriptor.hpp"
+#include "../../includes/FileDescriptor.hpp"
+#include "../../includes/Logger.hpp"
+#include <cerrno>
+#include <cstring>
+#include <fcntl.h>
+#include <iostream>
+#include <sstream>
+#include <stdexcept>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
+
+FileDescriptor::FileDescriptor() : _fd(-1)
+{
+}
 
 FileDescriptor::FileDescriptor(int fd) : _fd(fd)
 {

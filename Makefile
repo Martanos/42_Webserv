@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: malee <malee@student.42singapore.sg>       +#+  +:+       +#+         #
+#    By: malee <malee@student.42.fr>                +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/07/24 16:54:44 by malee             #+#    #+#              #
-#    Updated: 2025/09/04 20:37:41 by malee            ###   ########.fr        #
+#    Updated: 2025/09/25 13:12:18 by malee            ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -32,6 +32,9 @@ SRC_FILES = main.cpp \
 			4.Client/Client.cpp \
 			5.HTTPmanagement/HttpRequest.cpp \
 			5.HTTPmanagement/HttpResponse.cpp \
+			5.HTTPmanagement/HttpHeaders.cpp \
+			5.HTTPmanagement/HttpBody.cpp \
+			5.HTTPmanagement/HttpURI.cpp \
 			MethodHandlers/IMethodHandler.cpp \
 			MethodHandlers/GetMethodHandler.cpp \
 			MethodHandlers/PostMethodHandler.cpp \
@@ -41,8 +44,13 @@ SRC_FILES = main.cpp \
 			Wrappers/FileDescriptor.cpp \
 			Wrappers/SocketAddress.cpp \
 			Wrappers/AddrInfo.cpp \
-			Wrappers/Logger.cpp
-#cgiexec/CgiEnv.cpp
+			Wrappers/RingBuffer.cpp \
+			Wrappers/FileManager.cpp \
+			Wrappers/Logger.cpp \
+			cgiexec/CgiEnv.cpp \
+			cgiexec/CgiExecutor.cpp \
+			cgiexec/CgiHandler.cpp \
+			cgiexec/CgiResponse.cpp
 
 # Object files with proper path
 OBJ = $(addprefix $(OBJ_DIR)/, $(SRC_FILES:.cpp=.o))

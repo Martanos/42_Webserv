@@ -17,8 +17,6 @@
 #include <string>
 #include <vector>
 
-// TODO: Replace buffers with buffer wrapper
-// TODO: Include check for if is a URI contains a CGI route
 // This class ingests and parses http requests recieved from the client
 // It provides an interface for accessing the request data
 // HttpRequest handles http operations and response formatting
@@ -61,12 +59,12 @@ public:
 	void reset();
 
 	// Getters
-	const std::string &getMethod() const;
-	const std::string &getUri() const;
-	const std::string &getVersion() const;
-	const std::map<std::string, std::vector<std::string> > &getHeaders() const;
+	std::string getMethod() const;
+	std::string getUri() const;
+	std::string getVersion() const;
+	std::map<std::string, std::vector<std::string> > getHeaders() const;
 	const std::vector<std::string> &getHeader(const std::string &name) const;
-	const std::string &getBody() const;
+	std::string getBody() const;
 	size_t getContentLength() const;
 	bool isChunked() const;
 	bool isUsingTempFile() const;

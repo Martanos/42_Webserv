@@ -22,7 +22,6 @@
 #include <vector>
 
 // This class is responsible for the creation and management of files
-// TODO: Integrate with FileDescriptor
 class FileManager
 {
 private:

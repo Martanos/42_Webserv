@@ -3,13 +3,8 @@
 
 #include "Client.hpp"
 #include "EpollManager.hpp"
-#include "Logger.hpp"
 #include "ServerMap.hpp"
-#include <iostream>
 #include <map>
-#include <queue>
-#include <signal.h>
-#include <string>
 #include <sys/epoll.h>
 #include <unistd.h>
 #include <vector>
@@ -30,9 +25,9 @@ public:
 	~ServerManager();
 
 	// Internal members
-	ServerMap _serverMap;					   // Map to servers via their host_port/connection fd
-	std::map<FileDescriptor, Client> _clients; // clients that are currently active
-	EpollManager _epollManager;				   // epoll instance class
+	ServerMap _serverMap;			// Map to servers via their host_port/connection fd
+	std::map<int, Client> _clients; // clients that are currently active
+	EpollManager _epollManager;		// epoll instance class
 
 private:
 	void _addServerFdsToEpoll(ServerMap &serverMap);
@@ -40,7 +35,7 @@ private:
 
 	// Private methods
 
-	void _handleEpollEvents(int ready_events, ServerMap &serverMap, std::vector<epoll_event> &events);
+	void _handleEpollEvents(int ready_events, std::vector<epoll_event> &events);
 
 public:
 	void run(std::vector<ServerConfig> &serverConfigs);

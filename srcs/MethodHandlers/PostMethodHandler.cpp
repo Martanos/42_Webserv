@@ -1,4 +1,4 @@
-#include "PostMethodHandler.hpp"
+#include "../../includes/PostMethodHandler.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -171,8 +171,6 @@ void PostMethodHandler::handleFileUpload(const HttpRequest &request, HttpRespons
 	}
 }
 
-// TODO: Have more robust file name generation
-// TODO: Update to work with temp file
 bool PostMethodHandler::saveUploadedFile(const std::string &uploadPath, const std::string &filename,
 										 const std::string &content) const
 {
@@ -181,7 +179,10 @@ bool PostMethodHandler::saveUploadedFile(const std::string &uploadPath, const st
 	{
 		fullPath += '/';
 	}
-	fullPath += filename;
+	
+	// Generate robust filename with timestamp and random component
+	std::string safeFilename = generateSafeFilename(filename);
+	fullPath += safeFilename;
 
 	// Use FileDescriptor for safe file handling
 	FileDescriptor fd(open(fullPath.c_str(), O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH));
@@ -283,6 +284,28 @@ void PostMethodHandler::handleCGI(const HttpRequest &request, HttpResponse &resp
 		response.setHeader("Content-Type", "text/html");
 		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
 	}
+}
+
+std::string PostMethodHandler::generateSafeFilename(const std::string &originalFilename) const
+{
+	std::string safeFilename = originalFilename;
+	
+	// Remove or replace dangerous characters
+	for (size_t i = 0; i < safeFilename.length(); ++i)
+	{
+		char c = safeFilename[i];
+		if (c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' || c == '"' || c == '<' || c == '>' || c == '|')
+		{
+			safeFilename[i] = '_';
+		}
+	}
+	
+	// Add timestamp to make filename unique
+	std::time_t now = std::time(0);
+	std::stringstream ss;
+	ss << std::time(&now) << "_" << safeFilename;
+	
+	return ss.str();
 }
 
 /*

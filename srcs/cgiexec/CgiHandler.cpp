@@ -1,5 +1,5 @@
-#include "CgiHandler.hpp"
-#include "StringUtils.hpp"
+#include "../../includes/CgiHandler.hpp"
+#include "../../includes/StringUtils.hpp"
 #include <algorithm>
 #include <sys/stat.h>
 
@@ -225,6 +225,7 @@ CgiHandler::ExecutionResult CgiHandler::processResponse(const std::string &outpu
 
 std::string CgiHandler::determineInterpreter(const std::string &scriptPath, const Location *location) const
 {
+	(void)scriptPath; // TODO: Use scriptPath for interpreter detection
 	// First, check if location specifies an interpreter
 	if (location)
 	{

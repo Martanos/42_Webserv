@@ -17,6 +17,7 @@ private:
 	int _fd;
 
 public:
+	FileDescriptor();
 	FileDescriptor(int fd);
 	FileDescriptor(FileDescriptor const &src);
 	~FileDescriptor();

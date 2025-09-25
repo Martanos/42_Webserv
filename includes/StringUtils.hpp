@@ -9,7 +9,6 @@
 #include <sstream>
 #include <string.h>
 #include <string>
-#include <vector>
 
 // Static class for string operations
 class StringUtils

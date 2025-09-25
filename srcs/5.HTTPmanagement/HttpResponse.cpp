@@ -1,4 +1,5 @@
-#include "HttpResponse.hpp"
+#include "../../includes/HttpResponse.hpp"
+#include "../../includes/StringUtils.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -166,11 +167,6 @@ void HttpResponse::setHeaders(const std::map<std::string, std::string> &headers)
 	_headers = headers;
 }
 
-void HttpResponse::setBody(const std::string &body)
-{
-	_body = body;
-}
-
 void HttpResponse::setBytesSent(size_t bytesSent)
 {
 	_bytesSent = bytesSent;
@@ -179,6 +175,60 @@ void HttpResponse::setBytesSent(size_t bytesSent)
 void HttpResponse::setRawResponse(const std::string &rawResponse)
 {
 	_rawResponse = rawResponse;
+}
+
+void HttpResponse::setAutoFields()
+{
+	// Set default version if not set
+	if (_version.empty())
+	{
+		_version = "HTTP/1.1";
+	}
+	
+	// Set default status message if not set
+	if (_statusMessage.empty())
+	{
+		switch (_statusCode)
+		{
+		case 200: _statusMessage = "OK"; break;
+		case 201: _statusMessage = "Created"; break;
+		case 204: _statusMessage = "No Content"; break;
+		case 301: _statusMessage = "Moved Permanently"; break;
+		case 302: _statusMessage = "Found"; break;
+		case 400: _statusMessage = "Bad Request"; break;
+		case 401: _statusMessage = "Unauthorized"; break;
+		case 403: _statusMessage = "Forbidden"; break;
+		case 404: _statusMessage = "Not Found"; break;
+		case 405: _statusMessage = "Method Not Allowed"; break;
+		case 413: _statusMessage = "Payload Too Large"; break;
+		case 414: _statusMessage = "URI Too Long"; break;
+		case 500: _statusMessage = "Internal Server Error"; break;
+		case 501: _statusMessage = "Not Implemented"; break;
+		case 503: _statusMessage = "Service Unavailable"; break;
+		default: _statusMessage = "Unknown"; break;
+		}
+	}
+	
+	// Set Content-Length if body exists and not already set
+	if (!_body.empty() && _headers.find("content-length") == _headers.end())
+	{
+		_headers["content-length"] = StringUtils::toString(_body.length());
+	}
+	
+	// Set Date header if not already set
+	if (_headers.find("date") == _headers.end())
+	{
+		std::time_t now = std::time(0);
+		char buf[80];
+		std::strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&now));
+		_headers["date"] = std::string(buf);
+	}
+	
+	// Set Server header if not already set
+	if (_headers.find("server") == _headers.end())
+	{
+		_headers["server"] = "42_Webserv/1.0";
+	}
 }
 
 /* ************************************************************************** */

@@ -11,7 +11,6 @@
 
 #include <vector>
 
-// TODO: Make these configurable
 #define DEFAULT_SERVER_NAME "default"
 
 // Temp container to gather all config data

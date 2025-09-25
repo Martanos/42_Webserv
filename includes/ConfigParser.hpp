@@ -63,6 +63,7 @@ public:
 
 	bool parseConfig(const std::string &filename);
 	void printAllConfigs() const;
+	const std::vector<ServerConfig>& getServerConfigs() const;
 };
 
 #endif

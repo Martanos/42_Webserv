@@ -1,32 +1,34 @@
 #include "../../includes/HttpBody.hpp"
+#include "../../includes/HttpResponse.hpp"
+#include "../../includes/Logger.hpp"
+#include "../../includes/StringUtils.hpp"
+#include <algorithm>
+#include <cctype>
+#include <cstdlib>
+#include <sstream>
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-HttpBody::HttpBody()
+HttpBody::HttpBody() : _bodyState(BODY_PARSING), _bodyType(BODY_TYPE_NO_BODY), 
+	_chunkState(CHUNK_SIZE), _expectedBodySize(0), _chunkedBuffer(), _rawBody(), 
+	_tempChunkedFile(), _tempFile(), _isUsingTempFile(false)
 {
-	_bodyState = BODY_PARSING;
-	_bodyType = BODY_TYPE_NO_BODY;
-	_chunkState = CHUNK_SIZE;
-	_expectedBodySize = 0;
-	_rawBody = RingBuffer(HTTP::MAX_BODY_SIZE);
-	_chunkedBuffer = RingBuffer(HTTP::MAX_BODY_SIZE);
-	_tempFile = FileManager();
-	_isUsingTempFile = false;
 }
 
-HttpBody::HttpBody(const HttpBody &src)
+HttpBody::HttpBody(HttpBody const &src) : _bodyState(src._bodyState), 
+	_bodyType(src._bodyType), _chunkState(src._chunkState), 
+	_expectedBodySize(src._expectedBodySize), _chunkedBuffer(src._chunkedBuffer), 
+	_rawBody(src._rawBody), _tempChunkedFile(src._tempChunkedFile), 
+	_tempFile(src._tempFile), _isUsingTempFile(src._isUsingTempFile)
 {
-	*this = src;
 }
 
 /*
 ** -------------------------------- DESTRUCTOR --------------------------------
 */
 
-// If the file isn't moved that means it wasn't used and hence needs to be
-// cleaned up
 HttpBody::~HttpBody()
 {
 }
@@ -40,12 +42,13 @@ HttpBody &HttpBody::operator=(HttpBody const &rhs)
 	if (this != &rhs)
 	{
 		_bodyState = rhs._bodyState;
-		_expectedBodySize = rhs._expectedBodySize;
 		_bodyType = rhs._bodyType;
 		_chunkState = rhs._chunkState;
-		_tempFile = rhs._tempFile;
-		_rawBody = rhs._rawBody;
+		_expectedBodySize = rhs._expectedBodySize;
 		_chunkedBuffer = rhs._chunkedBuffer;
+		_rawBody = rhs._rawBody;
+		_tempChunkedFile = rhs._tempChunkedFile;
+		_tempFile = rhs._tempFile;
 		_isUsingTempFile = rhs._isUsingTempFile;
 	}
 	return *this;
@@ -55,280 +58,220 @@ HttpBody &HttpBody::operator=(HttpBody const &rhs)
 ** --------------------------------- METHODS ----------------------------------
 */
 
-void HttpBody::reset()
-{
-	_bodyState = BODY_PARSING;
-	_expectedBodySize = 0;
-	_bodyType = BODY_TYPE_NO_BODY;
-	_chunkState = CHUNK_SIZE;
-	_rawBody.reset();
-	_tempFile.reset();
-	_isUsingTempFile = false;
-}
-
 int HttpBody::parseBuffer(RingBuffer &buffer, HttpResponse &response)
 {
-	switch (_bodyState)
+	if (_bodyState == BODY_PARSING_COMPLETE)
+		return BODY_PARSING_COMPLETE;
+
+	if (_bodyState == BODY_PARSING_ERROR)
+		return BODY_PARSING_ERROR;
+
+	if (_bodyType == BODY_TYPE_NO_BODY)
 	{
-	case BODY_PARSING:
+		_bodyState = BODY_PARSING_COMPLETE;
+		return BODY_PARSING_COMPLETE;
+	}
+	else if (_bodyType == BODY_TYPE_CHUNKED)
 	{
-		switch (_bodyType)
-		{
-		case BODY_TYPE_CHUNKED:
-		{
-			// 1. Transfer incoming buffer data to either a buffer or a temp
-			// file
-			_bodyState = _parseChunkedBody(buffer, response);
-			break;
-		}
-		case BODY_TYPE_CONTENT_LENGTH:
-			_bodyState = _parseContentLengthBody(buffer, response);
-			break;
-		case BODY_TYPE_NO_BODY:
-			_bodyState = BODY_PARSING_COMPLETE;
-			break;
-		default:
-			_bodyState = BODY_PARSING_ERROR;
-			break;
-		}
-		break;
+		BodyState result = _parseChunkedBody(buffer, response);
+		_bodyState = result;
+		return result;
 	}
-	case BODY_PARSING_COMPLETE:
-		return _bodyState;
+	else if (_bodyType == BODY_TYPE_CONTENT_LENGTH)
+	{
+		BodyState result = _parseContentLengthBody(buffer, response);
+		_bodyState = result;
+		return result;
 	}
-	return _bodyState;
+
+	_bodyState = BODY_PARSING_ERROR;
+	return BODY_PARSING_ERROR;
 }
 
 HttpBody::BodyState HttpBody::_parseChunkedBody(RingBuffer &buffer, HttpResponse &response)
 {
-	// First attempt to transfer buffer to either a buffer or a temp file
-	if (_chunkedBuffer.writable() >= buffer.readable() && !_isUsingTempFile)
+	(void)response; // TODO: Use response for error handling
+	while (buffer.readable() > 0)
 	{
-		_chunkedBuffer.transferFrom(buffer, buffer.readable());
-	}
-	else
-	{
-		if (_chunkedBuffer.readable() > 0)
+		switch (_chunkState)
 		{
-			_chunkedBuffer.flushToFile(_tempChunkedFile.getFd());
-			_chunkedBuffer.clear();
-		}
-		buffer.flushToFile(_tempChunkedFile.getFd());
-		_isUsingTempFile = true;
-	}
-	switch (_chunkState)
-	{
-	case CHUNK_SIZE:
-	{
-		// Look for CLRF to get chunk size line
-		if (_isUsingTempFile)
+		case CHUNK_SIZE:
 		{
-			size_t newlinePos = _tempChunkedFile.getFd().contains("\r\n", 2);
-			if (newlinePos == _tempChunkedFile.getFd().capacity()) // No CLRF found transfer to local
-																   // buffer and wait for more data
+			std::string line;
+			buffer.peekBuffer(line, buffer.readable());
+			
+			size_t crlfPos = line.find("\r\n");
+			if (crlfPos == std::string::npos)
 			{
-				return BODY_PARSING;
+				crlfPos = line.find('\n');
+				if (crlfPos == std::string::npos)
+				{
+					// Need more data
+					return BODY_PARSING;
+				}
+				crlfPos += 1; // Include the \n
 			}
-		}
-		else
-		{
-			size_t newlinePos = _chunkedBuffer.contains("\r\n", 2);
-			if (newlinePos == _chunkedBuffer.capacity()) // No CLRF found transfer to local
-														 // buffer and wait for more data
+			else
 			{
-				return BODY_PARSING;
+				crlfPos += 2; // Include the \r\n
 			}
-		}
-		// Translate chunk size line to raw body
-		std::string chunkSizeLine;
-		_chunkedBuffer.readBuffer(chunkSizeLine,
-								  newlinePos + 2);			  // Include the CLRF to clear CLRF from the buffer
-		chunkSizeLine += chunkSizeLine.substr(0, newlinePos); // Exclude the CLRF to ignore it
 
-		size_t semicolonPos = chunkSizeLine.find(';');
-		std::string hexSize = chunkSizeLine.substr(0, semicolonPos);
+			std::string sizeLine = line.substr(0, crlfPos - 2);
+			if (sizeLine.empty())
+			{
+				Logger::log(Logger::ERROR, "Empty chunk size line");
+				return BODY_PARSING_ERROR;
+			}
 
-		size_t chunkSize = _parseHexSize(hexSize);
-		if (chunkSize == -1) // Invalid hex
-		{
-			Logger::log(Logger::ERROR, "Invalid chunk size: " + hexSize);
-			response.setStatusCode(HTTP::STATUS_BAD_REQUEST);
-			response.setStatusMessage("Bad Request");
-			response.setBody("Bad Request");
-			response.setHeader("Content-Length", StringUtils::toString(response.getBody().size()));
-			response.setHeader("Connection", "close");
-			return BODY_PARSING_ERROR;
-		}
-		if (chunkSize == 0) // No data to read
-		{
-			_chunkState = CHUNK_TRAILERS;
-		}
-		else
-		{
-			_expectedBodySize = chunkSize + 2; // +2 for the CLRF
-			_chunkedBuffer.reserve(chunkSize);
+			size_t chunkSize = _parseHexSize(sizeLine);
+			if (chunkSize == 0)
+			{
+				// End of chunks
+				_chunkState = CHUNK_COMPLETE;
+				buffer.consume(crlfPos);
+				continue;
+			}
+
+			_expectedBodySize = chunkSize;
 			_chunkState = CHUNK_DATA;
+			buffer.consume(crlfPos);
+			break;
 		}
-		break;
-	}
-	case CHUNK_DATA:
-	{
-		// Extract data from chunked buffer and transfer to raw body
-		std::string chunkData;
-		_chunkedBuffer.readBuffer(chunkData,
-								  _expectedBodySize - 2); // -2 for the CLRF
-				if ( chunkData == ""
-		_rawBody.writeBuffer(chunkData.c_str(), chunkData.size());
-		_chunkedBuffer.consume(_expectedBodySize - 2);
-		_chunkState = CHUNK_TRAILERS;
-		break;
-	}
-	case CHUNK_TRAILERS:
-	{
-	}
-	break;
-		_rawBody.writeBuffer(chunkData.c_str(), chunkData.size());
-		if (_rawBody.readable() == _expectedBodySize)
+		case CHUNK_DATA:
 		{
-			_bodyState = BODY_PARSING_COMPLETE;
-			return _bodyState;
+			size_t available = buffer.readable();
+			size_t toRead = std::min(available, _expectedBodySize);
+
+			if (toRead > 0)
+			{
+				std::string chunkData;
+				buffer.readBuffer(chunkData, toRead);
+				_rawBody.writeBuffer(chunkData.c_str(), chunkData.length());
+				_expectedBodySize -= toRead;
+			}
+
+			if (_expectedBodySize == 0)
+			{
+				_chunkState = CHUNK_TRAILERS;
+			}
+			break;
 		}
-		break;
+		case CHUNK_TRAILERS:
+		{
+			std::string line;
+			buffer.peekBuffer(line, buffer.readable());
+			
+			size_t crlfPos = line.find("\r\n");
+			if (crlfPos == std::string::npos)
+			{
+				crlfPos = line.find('\n');
+				if (crlfPos == std::string::npos)
+				{
+					// Need more data
+					return BODY_PARSING;
+				}
+				crlfPos += 1; // Include the \n
+			}
+			else
+			{
+				crlfPos += 2; // Include the \r\n
+			}
+
+			buffer.consume(crlfPos);
+			_chunkState = CHUNK_SIZE;
+			break;
+		}
+		case CHUNK_COMPLETE:
+		{
+			return BODY_PARSING_COMPLETE;
+		}
+		}
 	}
+
+	return BODY_PARSING;
 }
 
 HttpBody::BodyState HttpBody::_parseContentLengthBody(RingBuffer &buffer, HttpResponse &response)
 {
-	// Check if the body is meant to be empty
-	if (_expectedBodySize == 0)
+	(void)response; // TODO: Use response for error handling
+	size_t available = buffer.readable();
+	size_t needed = _expectedBodySize - _rawBody.readable();
+
+	if (needed == 0)
 	{
-		_bodyState = BODY_PARSING_COMPLETE;
-		return;
-	}
-	// Check that if appended the buffer + digested data is within expected size
-	if (_isUsingTempFile)
-	{
-		if (_tempFile.getFileSize() + buffer.readable() > _expectedBodySize)
-		{
-			// Received more data than expected - protocol violation
-			_bodyState = BODY_PARSING_ERROR;
-		}
-	}
-	else
-	{
-		if (_rawBody.readable() + buffer.readable() > _expectedBodySize)
-		{
-			_bodyState = BODY_PARSING_ERROR;
-		}
-	}
-	if (_bodyState == BODY_PARSING_ERROR)
-	{
-		Logger::log(Logger::ERROR, "Received more body data than Content-Length specified");
-		response.setStatusCode(HTTP::STATUS_BAD_REQUEST);
-		response.setStatusMessage("Bad Request");
-		response.setBody("Bad Request");
-		response.setHeader("Content-Length", StringUtils::toString(response.getBody().size()));
-		response.setHeader("Connection", "close");
-		return _bodyState;
+		return BODY_PARSING_COMPLETE;
 	}
 
-	// If not attempt to write body to buffer
-	if (_rawBody.writable() >= buffer.readable() && !_isUsingTempFile)
+	size_t toRead = std::min(available, needed);
+	if (toRead > 0)
 	{
-		_rawBody.writeBuffer(buffer, buffer.readable());
-	}
-	else // if internal buffer has reached its limit, flush to temp file
-	{
-
-		// If there is data in the buffer, flush it to the temp file
-		if (_rawBody.readable() > 0)
-		{
-			_rawBody.flushToFile(_tempFile.getFd());
-		}
-		// Write remaining buffer to temp file
-		buffer.flushToFile(_tempFile.getFd());
-		_isUsingTempFile = true;
+		std::string bodyData;
+		buffer.readBuffer(bodyData, toRead);
+		_rawBody.writeBuffer(bodyData.c_str(), bodyData.length());
 	}
 
-	// Check if data contains entire body
-	if (_isUsingTempFile)
+	if (_rawBody.readable() >= _expectedBodySize)
 	{
-		if (_tempFile.getFileSize() == _expectedBodySize)
-		{
-			_bodyState = BODY_PARSING_COMPLETE;
-			return _bodyState;
-		}
+		return BODY_PARSING_COMPLETE;
 	}
-	else
-	{
-		if (_rawBody.readable() == _expectedBodySize)
-		{
-			_bodyState = BODY_PARSING_COMPLETE;
-			return _bodyState;
-		}
-	}
-	return _bodyState;
+
+	return BODY_PARSING;
 }
 
-/*
-** --------------------------------- DECODING METHODS
-*----------------------------------
-*/
-
-// Parse hexadecimal chunk size
 size_t HttpBody::_parseHexSize(const std::string &hexStr) const
 {
 	if (hexStr.empty())
+		return 0;
+
+	// Remove any whitespace
+	std::string trimmed = hexStr.substr(hexStr.find_first_not_of(" \t\r\n"), 
+		hexStr.find_last_not_of(" \t\r\n") - hexStr.find_first_not_of(" \t\r\n") + 1);
+	
+	// Check if it's a valid hex string
+	for (size_t i = 0; i < trimmed.length(); ++i)
 	{
-		return static_cast<size_t>(-1);
+		if (!std::isxdigit(trimmed[i]))
+		{
+			Logger::log(Logger::ERROR, "Invalid hex chunk size: " + trimmed);
+			return 0;
+		}
 	}
 
-	size_t result = 0;
-	for (size_t i = 0; i < hexStr.length(); ++i)
+	char *endPtr;
+	unsigned long size = std::strtoul(trimmed.c_str(), &endPtr, 16);
+	if (*endPtr != '\0')
 	{
-		char c = hexStr[i];
-		int digit = -1;
-
-		if (c >= '0' && c <= '9')
-		{
-			digit = c - '0';
-		}
-		else if (c >= 'A' && c <= 'F')
-		{
-			digit = c - 'A' + 10;
-		}
-		else if (c >= 'a' && c <= 'f')
-		{
-			digit = c - 'a' + 10;
-		}
-		else
-		{
-			// Invalid hex character
-			return static_cast<size_t>(-1);
-		}
-
-		// Check for overflow
-		if (result > (SIZE_MAX - digit) / 16)
-		{
-			Logger::log(Logger::ERROR, "Chunk size too large: " + hexStr);
-			return static_cast<size_t>(-1);
-		}
-
-		result = result * 16 + digit;
+		Logger::log(Logger::ERROR, "Invalid hex chunk size: " + trimmed);
+		return 0;
 	}
 
-	return result;
+	return static_cast<size_t>(size);
 }
 
-// TODO: 64bit decoding
-
 /*
-** --------------------------------- ACCESSOR ---------------------------------
+** --------------------------------- ACCESSORS --------------------------------
 */
 
 HttpBody::BodyState HttpBody::getBodyState() const
 {
 	return _bodyState;
+}
+
+std::string HttpBody::getRawBody() const
+{
+	std::string body;
+	_rawBody.peekBuffer(body, _rawBody.readable());
+	return body;
+}
+
+size_t HttpBody::getBodySize() const
+{
+	return _rawBody.readable();
+}
+
+size_t HttpBody::getBodyBytesRead() const
+{
+	return _rawBody.readable();
 }
 
 bool HttpBody::getIsChunked() const
@@ -338,16 +281,16 @@ bool HttpBody::getIsChunked() const
 
 bool HttpBody::getIsUsingTempFile() const
 {
-	return _tempFile.getIsUsingTempFile();
+	return _isUsingTempFile;
 }
-
-/*
-** --------------------------------- MUTATORS ---------------------------------
-*/
 
 std::string HttpBody::getTempFilePath() const
 {
-	return _tempFile.getFilePath();
+	if (_isUsingTempFile)
+	{
+		return _tempFile.getFilePath();
+	}
+	return "";
 }
 
 FileDescriptor &HttpBody::getTempFd()
@@ -355,9 +298,18 @@ FileDescriptor &HttpBody::getTempFd()
 	return _tempFile.getFd();
 }
 
+/*
+** --------------------------------- MUTATORS --------------------------------
+*/
+
 void HttpBody::setBodyState(BodyState bodyState)
 {
 	_bodyState = bodyState;
+}
+
+void HttpBody::setBodyType(BodyType bodyType)
+{
+	_bodyType = bodyType;
 }
 
 void HttpBody::setExpectedBodySize(size_t expectedBodySize)
@@ -365,9 +317,15 @@ void HttpBody::setExpectedBodySize(size_t expectedBodySize)
 	_expectedBodySize = expectedBodySize;
 }
 
+void HttpBody::setBodySize(size_t bodySize)
+{
+	// This method is not used in the current implementation
+	(void)bodySize;
+}
+
 void HttpBody::setIsUsingTempFile(bool isUsingTempFile)
 {
-	_tempFile.setIsUsingTempFile(isUsingTempFile);
+	_isUsingTempFile = isUsingTempFile;
 }
 
 void HttpBody::setTempFilePath(const std::string &tempFilePath)
@@ -380,9 +338,19 @@ void HttpBody::setTempFd(const FileDescriptor &tempFd)
 	_tempFile.setFd(tempFd);
 }
 
-void HttpBody::setBodyType(BodyType bodyType)
-{
-	_bodyType = bodyType;
-}
+/*
+** --------------------------------- METHODS ----------------------------------
+*/
 
-/* ************************************************************************** */
+void HttpBody::reset()
+{
+	_bodyState = BODY_PARSING;
+	_bodyType = BODY_TYPE_NO_BODY;
+	_chunkState = CHUNK_SIZE;
+	_expectedBodySize = 0;
+	_chunkedBuffer.clear();
+	_rawBody.clear();
+	_tempChunkedFile.reset();
+	_tempFile.reset();
+	_isUsingTempFile = false;
+}

@@ -11,7 +11,7 @@ ServerMap::ServerMap()
 
 ServerMap::ServerMap(const ServerMap &src)
 {
-	_serverMap = src._serverMap;
+	*this = src;
 }
 
 ServerMap::ServerMap(std::vector<ServerConfig> &serverConfigs)
@@ -67,8 +67,11 @@ std::vector<Server> ServerMap::_spawnServers(std::vector<ServerConfig> &serverCo
 			{
 				// Spawn a server
 				servers.push_back(Server(*serverName, host_port->first, host_port->second, *it));
-				_serverMap.insert(
-					std::make_pair(ListeningSocket(host_port->first, host_port->second), std::vector<Server>()));
+				ListeningSocket listeningSocket(host_port->first, host_port->second);
+				if (listeningSocket.getFd() != -1)
+				{
+					_serverMap.insert(std::make_pair(listeningSocket, std::vector<Server>()));
+				}
 			}
 		}
 	}
@@ -118,14 +121,18 @@ void ServerMap::_populateServerMap(std::vector<Server> &servers)
 *----------------------------------
 */
 
-const std::vector<Server> &ServerMap::getServers(ListeningSocket &key) const
+std::vector<Server> &ServerMap::getServers(int fd)
 {
-	return _serverMap.at(key);
+	printf("Getting servers for key: %d\n", fd);
+	std::map<ListeningSocket, std::vector<Server> >::iterator it = _serverMap.find(getListeningSocket(fd));
+	if (it == _serverMap.end())
+		throw std::out_of_range("ServerMap: Server not found");
+	return _serverMap[getListeningSocket(fd)];
 }
 
 const Server &ServerMap::getServer(ListeningSocket &key, std::string &serverName)
 {
-	std::vector<Server> servers = getServers(key);
+	std::vector<Server> servers = getServers(key.getFd());
 	for (std::vector<Server>::const_iterator server = servers.begin(); server != servers.end(); ++server)
 	{
 		if (server->getServerName() == serverName)
@@ -143,6 +150,22 @@ bool ServerMap::hasFd(int &fd) const
 			return true;
 	}
 	return false;
+}
+
+const ListeningSocket &ServerMap::getListeningSocket(int &fd)
+{
+	for (std::map<ListeningSocket, std::vector<Server> >::const_iterator it = _serverMap.begin();
+		 it != _serverMap.end(); ++it)
+	{
+		if (it->first.getFd() == fd)
+			return it->first;
+	}
+	throw std::out_of_range("ServerMap: Listening socket not found");
+}
+
+const std::map<ListeningSocket, std::vector<Server> > &ServerMap::getServerMap() const
+{
+	return _serverMap;
 }
 
 /* ************************************************************************** */

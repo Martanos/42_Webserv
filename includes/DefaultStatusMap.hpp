@@ -202,7 +202,7 @@ private:
 		init300Statuses();
 		init400Statuses();
 		init500Statuses();
-		Logger::log(Logger::DEBUG, "StatusMap", "Initialized default status map");
+		Logger::log(Logger::DEBUG, "StatusMap: Initialized default status map");
 	}
 
 	// HTML Body generation - Nginx-style default error pages
@@ -289,7 +289,7 @@ private:
 			std::stringstream ss;
 			ss << "Generated status info for " << status << " with message " << message << " and body "
 			   << (can_have_body && generate_body ? "true" : "false");
-			Logger::log(Logger::DEBUG, "StatusMap", ss.str());
+			Logger::log(Logger::DEBUG, "StatusMap: " + ss.str());
 		}
 		return (message_body);
 	}

@@ -1,5 +1,5 @@
-#include "CgiResponse.hpp"
-#include "StringUtils.hpp"
+#include "../../includes/CgiResponse.hpp"
+#include "../../includes/StringUtils.hpp"
 #include <algorithm>
 #include <cctype>
 #include <sstream>

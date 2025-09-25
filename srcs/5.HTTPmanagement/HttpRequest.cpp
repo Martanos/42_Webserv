@@ -1,4 +1,4 @@
-#include "HttpRequest.hpp"
+#include "../../includes/HttpRequest.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -73,7 +73,7 @@ HttpRequest::ParseState HttpRequest::parseBuffer(RingBuffer &buffer, HttpRespons
 	}
 	case PARSING_HEADERS:
 	{
-		int result = _headers.parseBuffer(_rawBuffer, response);
+		int result = _headers.parseBuffer(_rawBuffer, response, _body);
 		if (result == HttpHeaders::HEADERS_PARSING_COMPLETE)
 		{
 			_parseState = PARSING_BODY;
@@ -110,12 +110,12 @@ HttpRequest::ParseState HttpRequest::parseBuffer(RingBuffer &buffer, HttpRespons
 
 bool HttpRequest::isComplete() const
 {
-	return _parseState == PARSE_COMPLETE;
+	return _parseState == PARSING_COMPLETE;
 }
 
 bool HttpRequest::hasError() const
 {
-	return _parseState == PARSE_ERROR;
+	return _parseState == PARSING_ERROR;
 }
 
 const std::vector<std::string> &HttpRequest::getHeader(const std::string &name) const
@@ -129,32 +129,32 @@ const std::vector<std::string> &HttpRequest::getHeader(const std::string &name) 
 // Enhanced reset method
 void HttpRequest::reset()
 {
-	_headers.clear();
-	_body.clear();
+	_headers.reset();
+	_body.reset();
 	_headers.setExpectedBodySize(0);
-	_headers.setBodyType(HttpHeaders::BODY_TYPE_NO_BODY);
-	_parseState = PARSE_REQUEST_LINE;
+	_body.setBodyType(HttpBody::BODY_TYPE_NO_BODY);
+	_parseState = PARSING_REQUEST_LINE;
 	_rawBuffer.clear();
 	_bytesReceived = 0;
 }
 
-const std::string &HttpRequest::getMethod() const
+std::string HttpRequest::getMethod() const
 {
 	return _uri.getMethod();
 };
-const std::string &HttpRequest::getUri() const
+std::string HttpRequest::getUri() const
 {
 	return _uri.getURI();
 }
-const std::string &HttpRequest::getVersion() const
+std::string HttpRequest::getVersion() const
 {
 	return _uri.getVersion();
 };
-const std::map<std::string, std::vector<std::string> > &HttpRequest::getHeaders() const
+std::map<std::string, std::vector<std::string> > HttpRequest::getHeaders() const
 {
 	return _headers.getHeaders();
 };
-const std::string &HttpRequest::getBody() const
+std::string HttpRequest::getBody() const
 {
 	return _body.getRawBody();
 };
@@ -164,7 +164,7 @@ size_t HttpRequest::getContentLength() const
 };
 bool HttpRequest::isChunked() const
 {
-	return _headers.getBodyType() == HttpHeaders::BODY_TYPE_CHUNKED;
+	return _body.getIsChunked();
 };
 bool HttpRequest::isUsingTempFile() const
 {

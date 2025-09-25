@@ -85,8 +85,8 @@ void Logger::setMinLogLevel(LogLevel level)
 
 void Logger::log(LogLevel level, const std::string &message)
 {
-	if (level < _minLogLevel)
-		return;
+	// if (level < _minLogLevel)
+	// 	return;
 
 	std::string timestamp = _getCurrentTime();
 	std::string levelStr = _getLevelString(level);

@@ -44,13 +44,14 @@ private:
 	// Objects
 	FileDescriptor _clientFd;
 	int _socketFd;
-	SocketAddress _clientAddr;
+	SocketAddress _localAddr;
+	SocketAddress _remoteAddr;
 
 	size_t _totalBytesRead;
 	HttpRequest _request;
 	HttpResponse _response;
 	RingBuffer _readBuffer;
-	std::vector<Server> &_potentialServers;
+	const std::vector<Server> *_potentialServers;
 	bool _serverFound;
 	Server *_server;
 
@@ -65,7 +66,7 @@ private:
 
 public:
 	Client();
-	Client(FileDescriptor socketFd, SocketAddress clientAddr);
+	Client(FileDescriptor socketFd, SocketAddress clientAddr, SocketAddress remoteAddr);
 	Client(const Client &other);
 	Client &operator=(const Client &other);
 	~Client();
@@ -83,10 +84,11 @@ public:
 
 	// Accessors
 	int getSocketFd() const;
-	const std::string &getClientIP() const;
+	const SocketAddress &getLocalAddr() const;
+	const SocketAddress &getRemoteAddr() const;
 	const Server *getServer() const;
-	const std::vector<Server> &getPotentialServers() const;
-	void setPotentialServers(const std::vector<Server> &potentialServers) const;
+	const std::vector<Server> *getPotentialServers() const;
+	void setPotentialServers(std::vector<Server> *potentialServers);
 	void setServer(const Server *server);
 };
 

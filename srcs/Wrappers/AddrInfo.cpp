@@ -1,4 +1,4 @@
-#include "AddrInfo.hpp"
+#include "../../includes/AddrInfo.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -8,7 +8,7 @@ AddrInfo::AddrInfo() : _result(NULL)
 {
 }
 
-AddrInfo::AddrInfo(const std::string &host, const std::string &port, int family = AF_UNSPEC) : _result(NULL)
+AddrInfo::AddrInfo(const std::string &host, const std::string &port, int family) : _result(NULL)
 {
 	struct addrinfo hints;
 	std::memset(&hints, 0, sizeof(hints));

@@ -23,6 +23,9 @@ private:
 
 	// Extract filename from multipart boundary (if needed)
 	std::string extractFilename(const std::string &contentDisposition) const;
+	
+	// Generate safe filename for uploads
+	std::string generateSafeFilename(const std::string &originalFilename) const;
 
 public:
 	// Orthodox Canonical Form

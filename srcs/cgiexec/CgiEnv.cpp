@@ -1,9 +1,9 @@
-#include "CgiEnv.hpp"
-#include "HttpRequest.hpp"
-#include "Location.hpp"
-#include "Logger.hpp"
-#include "Server.hpp"
-#include "StringUtils.hpp"
+#include "../../includes/CgiEnv.hpp"
+#include "../../includes/HttpRequest.hpp"
+#include "../../includes/Location.hpp"
+#include "../../includes/Logger.hpp"
+#include "../../includes/Server.hpp"
+#include "../../includes/StringUtils.hpp"
 #include <cstdlib>
 #include <sstream>
 

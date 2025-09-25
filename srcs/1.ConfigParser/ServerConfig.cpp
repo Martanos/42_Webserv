@@ -462,7 +462,6 @@ void ServerConfig::addAutoindex(std::string line, double lineNumber)
 	_autoindex = (token == "on");
 }
 
-// TODO: Move access log validation here
 void ServerConfig::addAccessLog(std::string line, double lineNumber)
 {
 	lineValidation(line, lineNumber);
@@ -484,7 +483,6 @@ void ServerConfig::addAccessLog(std::string line, double lineNumber)
 	}
 }
 
-// TODO: Move error log validation here
 void ServerConfig::addErrorLog(std::string line, double lineNumber)
 {
 	lineValidation(line, lineNumber);

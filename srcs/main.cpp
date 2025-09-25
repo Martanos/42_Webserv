@@ -3,22 +3,24 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: seayeo <seayeo@42.sg>                      +#+  +:+       +#+        */
+/*   By: malee <malee@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/24 18:16:26 by malee             #+#    #+#             */
-/*   Updated: 2025/09/23 16:34:07 by seayeo           ###   ########.fr       */
+/*   Updated: 2025/09/25 17:41:28 by malee            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "ConfigParser.hpp"
-#include "Logger.hpp"
-#include "ServerConfig.hpp"
+#include "../includes/ConfigParser.hpp"
+#include "../includes/Logger.hpp"
+#include "../includes/ServerConfig.hpp"
+#include "../includes/ServerManager.hpp"
+#include "../includes/StringUtils.hpp"
 
 int main(int argc, char **argv)
 {
 	// Initialize logger session
 	Logger::initializeSession("logs");
-	
+
 	if (argc != 2)
 	{
 		Logger::log(Logger::ERROR, "Usage: " + std::string(argv[0]) + " <config_file>");
@@ -29,33 +31,40 @@ int main(int argc, char **argv)
 	try
 	{
 		Logger::log(Logger::INFO, "Starting WebServ with config file: " + std::string(argv[1]));
-		
-		// Pseudo code structure
+
 		// 1. Parse the config file
 		ConfigParser parser(argv[1]);
 
-		// const std::vector<ServerConfig>& servers = parser.getServerConfigs();
-		// for (size_t i = 0; i < servers.size(); ++i) {
-		//     const std::vector<int>& ports = servers[i].getPorts();
-		//     for (size_t j = 0; j < ports.size(); ++j) {
-		//         std::cout << "Server listening on port: " << ports[j] <<
-		//         std::endl;
-		//     }
-		// }
+		// Get server configurations
+		const std::vector<ServerConfig> &servers = parser.getServerConfigs();
+		if (servers.empty())
+		{
+			Logger::log(Logger::ERROR, "No server configurations found in config file");
+			Logger::closeSession();
+			return 1;
+		}
 
+		Logger::log(Logger::INFO, "Parsed " + StringUtils::toString(servers.size()) + " server configurations");
+
+		// Print configuration for debugging
 		parser.printAllConfigs();
-		// 2. Setup the listening sockets
-		// 3. Setup the poll_fds
-		// 4. Wait for events
-		// 5. Handle the events
-		// 6. Close the sockets
-		// 7. Exit
-		
-		Logger::log(Logger::INFO, "WebServ initialization completed successfully");
+
+		// 2. Create and run ServerManager
+		ServerManager serverManager;
+
+		// Convert const reference to non-const for ServerManager
+		std::vector<ServerConfig> serverConfigs = servers;
+
+		Logger::log(Logger::INFO, "Starting server manager...");
+
+		// 3. Run the server (this handles all the socket setup, epoll, and event loop)
+		serverManager.run(serverConfigs);
+
+		Logger::log(Logger::INFO, "WebServ shutdown completed successfully");
 	}
 	catch (const std::exception &e)
 	{
-		Logger::log(Logger::ERROR, "WebServ initialization failed: " + std::string(e.what()));
+		Logger::log(Logger::ERROR, "WebServ failed: " + std::string(e.what()));
 		Logger::closeSession();
 		return 1;
 	}

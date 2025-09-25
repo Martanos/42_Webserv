@@ -1,28 +1,28 @@
-#include "RingBuffer.hpp"
+#include "../../includes/RingBuffer.hpp"
+#include "../../includes/Logger.hpp"
+#include <algorithm>
+#include <cstring>
+#include <fstream>
+#include <stdexcept>
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-RingBuffer::RingBuffer()
+RingBuffer::RingBuffer() : _head(0), _tail(0), _capacity(4096)
 {
-	_buffer.resize(sysconf(_SC_PAGESIZE));
-	_head = 0;
-	_tail = 0;
-	_capacity = sysconf(_SC_PAGESIZE);
+	_buffer.resize(_capacity);
 }
 
-RingBuffer::RingBuffer(size_t size)
+RingBuffer::RingBuffer(size_t size) : _head(0), _tail(0), _capacity(size)
 {
-	_buffer.resize(size);
-	_head = 0;
-	_tail = 0;
-	_capacity = size;
+	if (_capacity == 0)
+		_capacity = 4096;
+	_buffer.resize(_capacity);
 }
 
-RingBuffer::RingBuffer(const RingBuffer &src)
+RingBuffer::RingBuffer(const RingBuffer &src) : _buffer(src._buffer), _head(src._head), _tail(src._tail), _capacity(src._capacity)
 {
-	*this = src;
 }
 
 /*
@@ -31,144 +31,39 @@ RingBuffer::RingBuffer(const RingBuffer &src)
 
 RingBuffer::~RingBuffer()
 {
-	clear();
 }
 
 /*
 ** --------------------------------- OVERLOAD ---------------------------------
 */
 
-RingBuffer &RingBuffer::operator=(RingBuffer const &rhs)
+RingBuffer &RingBuffer::operator=(const RingBuffer &rhs)
 {
 	if (this != &rhs)
 	{
-		this->_buffer = rhs._buffer;
-		this->_head = rhs._head;
-		this->_tail = rhs._tail;
-		this->_capacity = rhs._capacity;
+		_buffer = rhs._buffer;
+		_head = rhs._head;
+		_tail = rhs._tail;
+		_capacity = rhs._capacity;
 	}
 	return *this;
 }
 
 /*
-** --------------------------------- METHODS ----------------------------------
+** --------------------------------- ACCESSORS --------------------------------
 */
 
-// Convenience: read + consume
-size_t RingBuffer::readBuffer(char *dest, size_t len)
-{
-	size_t n = peekBuffer(dest, len);
-	consume(n);
-	return n;
-}
-
-size_t RingBuffer::readBuffer(std::string &dest, size_t len)
-{
-	size_t n = peekBuffer(dest, len);
-	consume(n);
-	return n;
-}
-
-// Returns position of data in buffer
-size_t RingBuffer::contains(const char *data, size_t len) const
-{
-	size_t pos = 0;
-	while (pos < _capacity)
-	{
-		if (std::memcmp(&_buffer[pos], data, len) == 0)
-			return pos;
-		pos++;
-	}
-	return _capacity;
-}
-
-size_t RingBuffer::flushToFile(const std::string &filePath)
-{
-	FileDescriptor fd(open(filePath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH));
-	if (!fd.isValid())
-	{
-		Logger::log(Logger::ERROR, "Failed to open file: " + filePath);
-		return 0;
-	}
-	std::string buffer;
-	buffer.resize(readable());
-	peekBuffer(buffer, readable());
-	return fd.writeFile(buffer);
-}
-
-size_t RingBuffer::flushToFile(FileDescriptor &fd)
-{
-	std::string buffer;
-	buffer.resize(readable());
-	peekBuffer(buffer, readable());
-	return fd.writeFile(buffer);
-}
-
-/*
-** --------------------------------- ACCESSOR ---------------------------------
-*/
-
-// Write from another RingBuffer (peek without consuming source)
-size_t RingBuffer::writeBuffer(const RingBuffer &src, size_t len)
-{
-	size_t availableToRead = src.readable();
-	size_t availableToWrite = writable();
-	size_t toTransfer = std::min(len, std::min(availableToRead, availableToWrite));
-
-	if (toTransfer == 0)
-		return 0;
-
-	// Handle potential wrap-around in source buffer
-	size_t srcTail = src._tail;
-	size_t firstChunk = std::min(toTransfer, src._capacity - srcTail);
-
-	// Write first chunk
-	size_t written1 = writeBuffer(&src._buffer[srcTail], firstChunk);
-
-	// Write second chunk if source wraps around
-	size_t secondChunk = toTransfer - written1;
-	size_t written2 = 0;
-	if (secondChunk > 0 && written1 == firstChunk)
-	{
-		written2 = writeBuffer(&src._buffer[0], secondChunk);
-	}
-
-	return written1 + written2;
-}
-
-// Transfer with consumption from source
-size_t RingBuffer::transferFrom(RingBuffer &src, size_t len)
-{
-	size_t transferred = writeBuffer(src, len);
-	src.consume(transferred);
-	return transferred;
-}
-
-// Transfer to destination with consumption from this buffer
-size_t RingBuffer::transferTo(RingBuffer &dest, size_t len)
-{
-	return dest.transferFrom(*this, len);
-}
-
-// Append entire contents
-size_t RingBuffer::appendBuffer(const RingBuffer &src)
-{
-	return writeBuffer(src, src.readable());
-}
-
-// Readable space in the buffer
 size_t RingBuffer::readable() const
 {
-	if (_head >= _tail)
-		return _head - _tail;
-	return _capacity - _tail + _head;
+	if (_tail >= _head)
+		return _tail - _head;
+	else
+		return _capacity - _head + _tail;
 }
 
-// This is the space available to write to the buffer
-// Not the space available to read from the buffer
 size_t RingBuffer::writable() const
 {
-	return _capacity - readable() - 1;
+	return _capacity - readable() - 1; // Leave one byte free to distinguish full from empty
 }
 
 bool RingBuffer::empty() const
@@ -178,89 +73,31 @@ bool RingBuffer::empty() const
 
 bool RingBuffer::full() const
 {
-	return _advance(_head, 1) == _tail;
+	return (_tail + 1) % _capacity == _head;
 }
 
-// Read data from buffer without consuming
-size_t RingBuffer::peekBuffer(char *dest, size_t len) const
+size_t RingBuffer::contains(const char *data, size_t len) const
 {
-	size_t avail = readable();
-	size_t toRead = std::min(len, avail);
+	if (len == 0 || len > readable())
+		return 0;
 
-	size_t firstPart = std::min(toRead, _capacity - _tail);
-	std::memcpy(dest, &_buffer[_tail], firstPart);
+	size_t readPos = _head;
+	size_t found = 0;
 
-	size_t secondPart = toRead - firstPart;
-	if (secondPart > 0)
-		std::memcpy(dest + firstPart, &_buffer[0], secondPart);
-
-	return toRead;
-}
-
-size_t RingBuffer::peekBuffer(std::string &dest, size_t len) const
-{
-	size_t avail = readable();
-	size_t toRead = std::min(len, avail);
-	dest.assign(&_buffer[_tail], toRead);
-	return toRead;
-}
-
-/*
-** --------------------------------- MUTATORS ---------------------------------
-*/
-
-// Write and consume
-size_t RingBuffer::writeBuffer(const char *data, size_t len)
-{
-	size_t toWrite = std::min(len, writable());
-
-	// Two-step copy if wrapping around
-	size_t firstChunk = std::min(toWrite, _capacity - _head);
-	std::memcpy(&_buffer[_head], data, firstChunk);
-
-	size_t secondChunk = toWrite - firstChunk;
-	if (secondChunk > 0)
-		std::memcpy(&_buffer[0], data + firstChunk, secondChunk);
-
-	_head = _advance(_head, toWrite);
-	return toWrite;
-}
-
-// Clears the buffer and sets the new capacity
-void RingBuffer::reserve(size_t newCapacity)
-{
-	if (newCapacity > _capacity)
+	for (size_t i = 0; i < readable() && found < len; ++i)
 	{
-		_buffer.resize(newCapacity);
-		_capacity = newCapacity;
+		if (_buffer[readPos] == data[found])
+		{
+			found++;
+		}
+		else
+		{
+			found = 0;
+		}
+		readPos = (readPos + 1) % _capacity;
 	}
-}
 
-// Consume bytes after reading
-void RingBuffer::consume(size_t n)
-{
-	size_t toConsume = std::min(n, readable());
-	_tail = _advance(_tail, toConsume);
-}
-
-size_t RingBuffer::_advance(size_t pos, size_t n) const
-{
-	return (pos + n) % _capacity;
-}
-
-void RingBuffer::reset()
-{
-	_head = 0;
-	_tail = 0;
-	_buffer.clear();
-}
-
-void RingBuffer::clear()
-{
-	_buffer.clear();
-	_head = 0;
-	_tail = 0;
-	_capacity = 0;
+	return found;
 }
 
 size_t RingBuffer::capacity() const
@@ -268,4 +105,254 @@ size_t RingBuffer::capacity() const
 	return _capacity;
 }
 
-/* ************************************************************************** */
+/*
+** --------------------------------- MUTATORS --------------------------------
+*/
+
+size_t RingBuffer::writeBuffer(const char *data, size_t len)
+{
+	if (len == 0)
+		return 0;
+
+	size_t available = writable();
+	size_t toWrite = std::min(len, available);
+
+	if (toWrite == 0)
+		return 0;
+
+	// Write data to buffer
+	for (size_t i = 0; i < toWrite; ++i)
+	{
+		_buffer[_tail] = data[i];
+		_tail = (_tail + 1) % _capacity;
+	}
+
+	return toWrite;
+}
+
+size_t RingBuffer::writeBuffer(const RingBuffer &src, size_t len)
+{
+	size_t toRead = std::min(len, src.readable());
+	if (toRead == 0)
+		return 0;
+
+	size_t written = 0;
+	size_t srcPos = src._head;
+
+	for (size_t i = 0; i < toRead; ++i)
+	{
+		if (writable() == 0)
+			break;
+
+		_buffer[_tail] = src._buffer[srcPos];
+		_tail = (_tail + 1) % _capacity;
+		srcPos = (srcPos + 1) % src._capacity;
+		written++;
+	}
+
+	return written;
+}
+
+size_t RingBuffer::readBuffer(std::string &dest, size_t len)
+{
+	size_t toRead = std::min(len, readable());
+	if (toRead == 0)
+	{
+		dest.clear();
+		return 0;
+	}
+
+	dest.resize(toRead);
+	size_t readPos = _head;
+
+	for (size_t i = 0; i < toRead; ++i)
+	{
+		dest[i] = _buffer[readPos];
+		readPos = (readPos + 1) % _capacity;
+	}
+
+	_head = readPos;
+	return toRead;
+}
+
+size_t RingBuffer::peekBuffer(std::string &dest, size_t len) const
+{
+	size_t toRead = std::min(len, readable());
+	if (toRead == 0)
+	{
+		dest.clear();
+		return 0;
+	}
+
+	dest.resize(toRead);
+	size_t readPos = _head;
+
+	for (size_t i = 0; i < toRead; ++i)
+	{
+		dest[i] = _buffer[readPos];
+		readPos = (readPos + 1) % _capacity;
+	}
+
+	return toRead;
+}
+
+size_t RingBuffer::transferFrom(RingBuffer &src, size_t len)
+{
+	size_t toTransfer = std::min(len, std::min(src.readable(), writable()));
+	if (toTransfer == 0)
+		return 0;
+
+	size_t transferred = 0;
+	for (size_t i = 0; i < toTransfer; ++i)
+	{
+		_buffer[_tail] = src._buffer[src._head];
+		_tail = (_tail + 1) % _capacity;
+		src._head = (src._head + 1) % src._capacity;
+		transferred++;
+	}
+
+	return transferred;
+}
+
+size_t RingBuffer::transferTo(RingBuffer &dest, size_t len)
+{
+	return dest.transferFrom(*this, len);
+}
+
+size_t RingBuffer::appendBuffer(const RingBuffer &src)
+{
+	return writeBuffer(src, src.readable());
+}
+
+size_t RingBuffer::readBuffer(char *dest, size_t len)
+{
+	size_t toRead = std::min(len, readable());
+	if (toRead == 0)
+		return 0;
+
+	size_t readPos = _head;
+	for (size_t i = 0; i < toRead; ++i)
+	{
+		dest[i] = _buffer[readPos];
+		readPos = (readPos + 1) % _capacity;
+	}
+
+	_head = readPos;
+	return toRead;
+}
+
+size_t RingBuffer::peekBuffer(char *dest, size_t len) const
+{
+	size_t toRead = std::min(len, readable());
+	if (toRead == 0)
+		return 0;
+
+	size_t readPos = _head;
+	for (size_t i = 0; i < toRead; ++i)
+	{
+		dest[i] = _buffer[readPos];
+		readPos = (readPos + 1) % _capacity;
+	}
+
+	return toRead;
+}
+
+size_t RingBuffer::flushToFile(const std::string &filePath)
+{
+	std::ofstream file(filePath.c_str(), std::ios::app);
+	if (!file.is_open())
+	{
+		Logger::log(Logger::ERROR, "Failed to open file for writing: " + filePath);
+		return 0;
+	}
+
+	size_t written = 0;
+	size_t readPos = _head;
+
+	while (readPos != _tail)
+	{
+		file.put(_buffer[readPos]);
+		readPos = (readPos + 1) % _capacity;
+		written++;
+	}
+
+	file.close();
+	_head = _tail; // Mark all data as consumed
+	return written;
+}
+
+size_t RingBuffer::flushToFile(FileDescriptor &fd)
+{
+	if (!fd.isOpen())
+	{
+		Logger::log(Logger::ERROR, "File descriptor is not open");
+		return 0;
+	}
+
+	size_t written = 0;
+	size_t readPos = _head;
+
+	while (readPos != _tail)
+	{
+		std::string data(1, _buffer[readPos]);
+		ssize_t result = fd.sendData(data);
+		if (result <= 0)
+			break;
+
+		readPos = (readPos + 1) % _capacity;
+		written++;
+	}
+
+	_head = readPos; // Mark consumed data
+	return written;
+}
+
+void RingBuffer::reserve(size_t newCapacity)
+{
+	if (newCapacity <= _capacity)
+		return;
+
+	std::vector<char> newBuffer(newCapacity);
+	size_t dataSize = readable();
+
+	if (dataSize > 0)
+	{
+		size_t readPos = _head;
+		for (size_t i = 0; i < dataSize; ++i)
+		{
+			newBuffer[i] = _buffer[readPos];
+			readPos = (readPos + 1) % _capacity;
+		}
+	}
+
+	_buffer = newBuffer;
+	_capacity = newCapacity;
+	_head = 0;
+	_tail = dataSize;
+}
+
+void RingBuffer::consume(size_t len)
+{
+	size_t toConsume = std::min(len, readable());
+	_head = (_head + toConsume) % _capacity;
+}
+
+void RingBuffer::reset()
+{
+	_head = 0;
+	_tail = 0;
+}
+
+void RingBuffer::clear()
+{
+	reset();
+}
+
+/*
+** --------------------------------- PRIVATE METHODS --------------------------
+*/
+
+size_t RingBuffer::_advance(size_t pos, size_t n) const
+{
+	return (pos + n) % _capacity;
+}

@@ -19,7 +19,6 @@
 #include <unistd.h>
 #include <vector>
 
-// TODO: get rid of server objects and map via references
 // The job of this class is to divide up the information taken from the config
 // into manageble maps for later server operations
 // 1. Divide up ServerConfigs into Server classes (This reduces navigation
@@ -50,10 +49,13 @@ public:
 	const std::map<ListeningSocket, std::vector<Server> > &getServerMap() const;
 
 	// Server vectors
-	const std::vector<Server> &getServers(ListeningSocket &key) const;
+	std::vector<Server> &getServers(int fd);
 
 	// Individual servers
 	const Server &getServer(ListeningSocket &key, std::string &serverName);
+
+	// Listening sockets
+	const ListeningSocket &getListeningSocket(int &fd);
 
 	// Utility Methods
 	bool hasFd(int &fd) const;
