@@ -528,11 +528,6 @@ ssize_t FileDescriptor::readPipe(std::string &buffer, size_t maxSize)
 	ssize_t bytesRead = read(_ctrl->fd, &buffer[0], bufferSize);
 	if (bytesRead == -1)
 	{
-		if (errno == EAGAIN || errno == EWOULDBLOCK)
-		{
-			buffer.clear();
-			return 0; // No data available (non-blocking)
-		}
 		std::stringstream ss;
 		ss << "FileDescriptor: Failed to read pipe: " << strerror(errno);
 		Logger::log(Logger::ERROR, ss.str());
@@ -570,17 +565,6 @@ ssize_t FileDescriptor::writePipe(const std::string &buffer)
 		ssize_t bytesWritten = write(_ctrl->fd, data + totalWritten, dataSize - totalWritten);
 		if (bytesWritten == -1)
 		{
-			if (errno == EINTR)
-				continue;
-			if (errno == EAGAIN || errno == EWOULDBLOCK)
-				break; // Non-blocking write would block
-			if (errno == EPIPE)
-			{
-				std::stringstream ss;
-				ss << "FileDescriptor: Pipe broken (EPIPE)";
-				Logger::log(Logger::WARNING, ss.str());
-				return totalWritten;
-			}
 			std::stringstream ss;
 			ss << "FileDescriptor: Failed to write pipe: " << strerror(errno);
 			Logger::error(ss.str(), __FILE__, __LINE__);
