@@ -15,27 +15,20 @@
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-FileDescriptor::FileDescriptor() : _fd(-1)
+FileDescriptor::FileDescriptor()
 {
 }
 
-FileDescriptor::FileDescriptor(int fd) : _fd(fd)
+FileDescriptor::FileDescriptor(int fd)
 {
+	_ctrl = (fd == -1 ? new Control(-1) : new Control(fd));
 }
 
-FileDescriptor::FileDescriptor(const FileDescriptor &src) : _fd(src._fd)
+FileDescriptor::FileDescriptor(const FileDescriptor &src)
 {
-	if (isOpen() && src._fd != -1)
-	{
-		_fd = dup(src._fd);
-		if (_fd == -1)
-		{
-			std::stringstream ss;
-			ss << "FileDescriptor: Failed to duplicate file descriptor: " << strerror(errno);
-			Logger::error(ss.str(), __FILE__, __LINE__);
-			throw std::runtime_error(ss.str());
-		}
-	}
+	_ctrl = src._ctrl;
+	if (_ctrl)
+		_ctrl->count++;
 }
 
 /*
@@ -44,14 +37,11 @@ FileDescriptor::FileDescriptor(const FileDescriptor &src) : _fd(src._fd)
 
 FileDescriptor::~FileDescriptor()
 {
-	if (isOpen() && _fd != -1)
-	{
-		closeDescriptor();
-	}
+	closeDescriptor();
 }
 
 /*
-** --------------------------------- OVERLOAD ---------------------------------
+** --------------------------------- OVERLOADS ---------------------------------
 */
 
 FileDescriptor &FileDescriptor::operator=(const FileDescriptor &other)
@@ -59,17 +49,9 @@ FileDescriptor &FileDescriptor::operator=(const FileDescriptor &other)
 	if (this != &other)
 	{
 		closeDescriptor();
-		if (other.isOpen() && other._fd != -1)
-		{
-			_fd = dup(other.getFd());
-			if (_fd == -1)
-			{
-				std::stringstream ss;
-				ss << "FileDescriptor: Failed to duplicate file descriptor: " << strerror(errno);
-				Logger::error(ss.str(), __FILE__, __LINE__);
-				throw std::runtime_error(ss.str());
-			}
-		}
+		_ctrl = other._ctrl;
+		if (_ctrl)
+			_ctrl->count++;
 	}
 	return *this;
 }
@@ -86,18 +68,21 @@ std::ostream &operator<<(std::ostream &o, FileDescriptor const &i)
 
 void FileDescriptor::closeDescriptor()
 {
-	if (_fd != -1)
+	if (_ctrl && --_ctrl->count == 0)
 	{
-		// Logger::debug("FileDescriptor: Closing file descriptor " + StringUtils::toString(_fd));
-		if (close(_fd) == -1 && errno != EBADF)
+		if (_ctrl->fd != -1)
 		{
-			std::stringstream ss;
-			ss << "FileDescriptor: Failed to close file descriptor: " << strerror(errno);
-			Logger::error(ss.str(), __FILE__, __LINE__);
-			throw std::runtime_error(ss.str());
+			if (::close(_ctrl->fd) == -1 && errno != EBADF)
+			{
+				std::stringstream ss;
+				ss << "FileDescriptor: Failed to close file descriptor: " << strerror(errno);
+				Logger::error(ss.str(), __FILE__, __LINE__);
+				throw std::runtime_error(ss.str());
+			}
 		}
-		_fd = -1;
+		delete _ctrl;
 	}
+	_ctrl = NULL;
 }
 
 /*
@@ -107,7 +92,7 @@ void FileDescriptor::closeDescriptor()
 
 void FileDescriptor::setNonBlocking()
 {
-	int flags = fcntl(_fd, F_GETFL, 0);
+	int flags = fcntl(_ctrl->fd, F_GETFL, 0);
 	if (flags == -1)
 	{
 		std::stringstream ss;
@@ -116,7 +101,7 @@ void FileDescriptor::setNonBlocking()
 		throw std::runtime_error(ss.str());
 	}
 	flags |= O_NONBLOCK;
-	if (fcntl(_fd, F_SETFL, flags) == -1)
+	if (fcntl(_ctrl->fd, F_SETFL, flags) == -1)
 	{
 		std::stringstream ss;
 		ss << "FileDescriptor: Failed to set file descriptor to non-blocking: " << strerror(errno);
@@ -127,7 +112,7 @@ void FileDescriptor::setNonBlocking()
 
 void FileDescriptor::setBlocking()
 {
-	int flags = fcntl(_fd, F_GETFL, 0);
+	int flags = fcntl(_ctrl->fd, F_GETFL, 0);
 	if (flags == -1)
 	{
 		std::stringstream ss;
@@ -136,7 +121,7 @@ void FileDescriptor::setBlocking()
 		throw std::runtime_error(ss.str());
 	}
 	flags &= ~O_NONBLOCK;
-	if (fcntl(_fd, F_SETFL, flags) == -1)
+	if (fcntl(_ctrl->fd, F_SETFL, flags) == -1)
 	{
 		std::stringstream ss;
 		ss << "FileDescriptor: Failed to set file descriptor to blocking: " << strerror(errno);
@@ -147,7 +132,7 @@ void FileDescriptor::setBlocking()
 
 void FileDescriptor::setCloseOnExec()
 {
-	int flags = fcntl(_fd, F_GETFD, 0);
+	int flags = fcntl(_ctrl->fd, F_GETFD, 0);
 	if (flags == -1)
 	{
 		std::stringstream ss;
@@ -156,7 +141,7 @@ void FileDescriptor::setCloseOnExec()
 		throw std::runtime_error(ss.str());
 	}
 	flags |= FD_CLOEXEC;
-	if (fcntl(_fd, F_SETFD, flags) == -1)
+	if (fcntl(_ctrl->fd, F_SETFD, flags) == -1)
 	{
 		std::stringstream ss;
 		ss << "FileDescriptor: Failed to set file descriptor to close on exec: " << strerror(errno);
@@ -167,7 +152,7 @@ void FileDescriptor::setCloseOnExec()
 
 void FileDescriptor::unsetCloseOnExec()
 {
-	int flags = fcntl(_fd, F_GETFD, 0);
+	int flags = fcntl(_ctrl->fd, F_GETFD, 0);
 	if (flags == -1)
 	{
 		std::stringstream ss;
@@ -180,7 +165,7 @@ void FileDescriptor::unsetCloseOnExec()
 void FileDescriptor::setReuseAddr()
 {
 	int opt = 1;
-	if (setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
+	if (setsockopt(_ctrl->fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
 	{
 		std::stringstream ss;
 		ss << "FileDescriptor: Failed to set SO_REUSEADDR: " << strerror(errno);
@@ -192,7 +177,7 @@ void FileDescriptor::setReuseAddr()
 void FileDescriptor::unsetReuseAddr()
 {
 	int opt = 0;
-	if (setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
+	if (setsockopt(_ctrl->fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
 	{
 		std::stringstream ss;
 		ss << "FileDescriptor: Failed to unset SO_REUSEADDR: " << strerror(errno);
@@ -206,34 +191,112 @@ void FileDescriptor::unsetReuseAddr()
 *---------------------------------
 */
 
+bool FileDescriptor::operator==(int rhs) const
+{
+	if (_ctrl)
+	{
+		return _ctrl->fd == rhs;
+	}
+	return false;
+}
+
+bool FileDescriptor::operator!=(int rhs) const
+{
+	if (_ctrl)
+	{
+		return _ctrl->fd != rhs;
+	}
+	return false;
+}
+
+bool FileDescriptor::operator<(int rhs) const
+{
+	if (_ctrl)
+	{
+		return _ctrl->fd < rhs;
+	}
+	return false;
+}
+
+bool FileDescriptor::operator>(int rhs) const
+{
+	if (_ctrl)
+	{
+		return _ctrl->fd > rhs;
+	}
+	return false;
+}
+
+bool FileDescriptor::operator<=(int rhs) const
+{
+	if (_ctrl)
+	{
+		return _ctrl->fd <= rhs;
+	}
+	return false;
+}
+
+bool FileDescriptor::operator>=(int rhs) const
+{
+	if (_ctrl)
+	{
+		return _ctrl->fd >= rhs;
+	}
+	return false;
+}
+
 bool FileDescriptor::operator==(const FileDescriptor &rhs) const
 {
-	return _fd == rhs._fd;
+	if (_ctrl && rhs._ctrl)
+	{
+		return _ctrl->fd == rhs._ctrl->fd;
+	}
+	return false;
 }
 
 bool FileDescriptor::operator!=(const FileDescriptor &rhs) const
 {
-	return _fd != rhs._fd;
+	if (_ctrl && rhs._ctrl)
+	{
+		return _ctrl->fd != rhs._ctrl->fd;
+	}
+	return false;
 }
 
 bool FileDescriptor::operator<(const FileDescriptor &rhs) const
 {
-	return _fd < rhs._fd;
+	if (_ctrl && rhs._ctrl)
+	{
+		return _ctrl->fd < rhs._ctrl->fd;
+	}
+	return false;
 }
 
 bool FileDescriptor::operator>(const FileDescriptor &rhs) const
 {
-	return _fd > rhs._fd;
+	if (_ctrl && rhs._ctrl)
+	{
+		return _ctrl->fd > rhs._ctrl->fd;
+	}
+	return false;
 }
 
 bool FileDescriptor::operator<=(const FileDescriptor &rhs) const
 {
-	return _fd <= rhs._fd;
+	if (_ctrl && rhs._ctrl)
+	{
+		return _ctrl->fd <= rhs._ctrl->fd;
+	}
+	return false;
 }
 
 bool FileDescriptor::operator>=(const FileDescriptor &rhs) const
 {
-	return _fd >= rhs._fd;
+	if (_ctrl && rhs._ctrl)
+	{
+		return _ctrl->fd >= rhs._ctrl->fd;
+	}
+	return false;
 }
 
 /*
@@ -244,7 +307,7 @@ bool FileDescriptor::operator>=(const FileDescriptor &rhs) const
 bool FileDescriptor::isSocket() const
 {
 	struct stat st;
-	if (_fd == -1 || fstat(_fd, &st) == -1)
+	if (_ctrl == NULL || _ctrl->fd == -1 || fstat(_ctrl->fd, &st) == -1)
 		return false;
 	return S_ISSOCK(st.st_mode);
 }
@@ -252,7 +315,7 @@ bool FileDescriptor::isSocket() const
 bool FileDescriptor::isPipe() const
 {
 	struct stat st;
-	if (_fd == -1 || fstat(_fd, &st) == -1)
+	if (_ctrl == NULL || _ctrl->fd == -1 || fstat(_ctrl->fd, &st) == -1)
 		return false;
 	return S_ISFIFO(st.st_mode);
 }
@@ -260,7 +323,7 @@ bool FileDescriptor::isPipe() const
 bool FileDescriptor::isFile() const
 {
 	struct stat st;
-	if (_fd == -1 || fstat(_fd, &st) == -1)
+	if (_ctrl == NULL || _ctrl->fd == -1 || fstat(_ctrl->fd, &st) == -1)
 		return false;
 	return S_ISREG(st.st_mode);
 }
@@ -268,7 +331,7 @@ bool FileDescriptor::isFile() const
 bool FileDescriptor::isDirectory() const
 {
 	struct stat st;
-	if (_fd == -1 || fstat(_fd, &st) == -1)
+	if (_ctrl == NULL || _ctrl->fd == -1 || fstat(_ctrl->fd, &st) == -1)
 		return false;
 	return S_ISDIR(st.st_mode);
 }
@@ -276,7 +339,7 @@ bool FileDescriptor::isDirectory() const
 bool FileDescriptor::isRegularFile() const
 {
 	struct stat st;
-	if (_fd == -1 || fstat(_fd, &st) == -1)
+	if (_ctrl == NULL || _ctrl->fd == -1 || fstat(_ctrl->fd, &st) == -1)
 		return false;
 	return S_ISREG(st.st_mode);
 }
@@ -284,7 +347,7 @@ bool FileDescriptor::isRegularFile() const
 bool FileDescriptor::isSymbolicLink() const
 {
 	struct stat st;
-	if (_fd == -1 || fstat(_fd, &st) == -1)
+	if (_ctrl == NULL || _ctrl->fd == -1 || fstat(_ctrl->fd, &st) == -1)
 		return false;
 	return S_ISLNK(st.st_mode);
 }
@@ -292,7 +355,7 @@ bool FileDescriptor::isSymbolicLink() const
 bool FileDescriptor::isValid() const
 {
 	struct stat st;
-	if (_fd == -1 || fstat(_fd, &st) == -1)
+	if (_ctrl == NULL || _ctrl->fd == -1 || fstat(_ctrl->fd, &st) == -1)
 		return false;
 	return true;
 }
@@ -303,34 +366,60 @@ bool FileDescriptor::isValid() const
 
 void FileDescriptor::setFd(int fd)
 {
-	if (isOpen())
+	if (_ctrl)
 	{
-		closeDescriptor();
+		if (_ctrl->fd != -1)
+		{
+			if (fd == _ctrl->fd)
+				return; // no-op
+			if (dup2(_ctrl->fd, fd) == -1)
+			{
+				std::stringstream ss;
+				ss << "FileDescriptor: Failed to dup2 file descriptor: " << strerror(errno);
+				Logger::log(Logger::ERROR, ss.str());
+				throw std::runtime_error(ss.str());
+			}
+			if (close(_ctrl->fd) == -1)
+			{
+				std::stringstream ss;
+				ss << "FileDescriptor: Failed to close file descriptor: " << strerror(errno);
+				Logger::log(Logger::ERROR, ss.str());
+				throw std::runtime_error(ss.str());
+			}
+			_ctrl->fd = fd;
+		}
+		else
+		{
+			_ctrl->fd = fd;
+		}
 	}
-	_fd = fd;
+	else
+	{
+		_ctrl = new Control(fd);
+	}
 }
 
 bool FileDescriptor::isOpen() const
 {
-	if (_fd == -1)
+	if (_ctrl == NULL || _ctrl->fd == -1)
 		return false;
-	return fcntl(_fd, F_GETFD) != -1 || errno != EBADF;
+	return fcntl(_ctrl->fd, F_GETFD) != -1 || errno != EBADF;
 }
 
 int FileDescriptor::getFd() const
 {
-	return _fd;
+	return _ctrl ? _ctrl->fd : -1;
 }
 
 FileDescriptor::operator int() const
 {
-	return _fd;
+	return _ctrl ? _ctrl->fd : -1;
 }
 
 size_t FileDescriptor::getFileSize() const
 {
 	struct stat st;
-	if (_fd == -1 || fstat(_fd, &st) == -1)
+	if (_ctrl == NULL || _ctrl->fd == -1 || fstat(_ctrl->fd, &st) == -1)
 		return 0;
 	return st.st_size;
 }
@@ -340,6 +429,7 @@ size_t FileDescriptor::getFileSize() const
 *---------------------------------
 */
 
+// TODO: May overflow if the file is too large
 ssize_t FileDescriptor::readFile(std::string &buffer)
 {
 	if (buffer.empty())
@@ -351,7 +441,7 @@ ssize_t FileDescriptor::readFile(std::string &buffer)
 		Logger::log(Logger::ERROR, ss.str());
 		throw std::runtime_error(ss.str());
 	}
-	ssize_t bytesRead = read(_fd, &buffer[0], buffer.size());
+	ssize_t bytesRead = read(_ctrl->fd, &buffer[0], buffer.size());
 	if (bytesRead == -1)
 	{
 		std::stringstream ss;
@@ -367,7 +457,7 @@ ssize_t FileDescriptor::writeFile(const std::string &buffer)
 {
 	if (buffer.empty())
 		return 0;
-	ssize_t bytesWritten = write(_fd, buffer.data(), buffer.size());
+	ssize_t bytesWritten = write(_ctrl->fd, buffer.data(), buffer.size());
 	if (bytesWritten == -1)
 	{
 		std::stringstream ss;
@@ -392,7 +482,7 @@ ssize_t FileDescriptor::receiveData(void *buffer, size_t size)
 		Logger::log(Logger::ERROR, ss.str());
 		throw std::runtime_error(ss.str());
 	}
-	return recv(_fd, buffer, size, MSG_NOSIGNAL);
+	return recv(_ctrl->fd, buffer, size, MSG_NOSIGNAL);
 }
 
 ssize_t FileDescriptor::sendData(const std::string &buffer)
@@ -406,7 +496,7 @@ ssize_t FileDescriptor::sendData(const std::string &buffer)
 		Logger::log(Logger::ERROR, ss.str());
 		throw std::runtime_error(ss.str());
 	}
-	ssize_t bytesSent = send(_fd, &buffer[0], buffer.size(), 0);
+	ssize_t bytesSent = send(_ctrl->fd, &buffer[0], buffer.size(), 0);
 	if (bytesSent == -1)
 	{
 		std::stringstream ss;
@@ -435,7 +525,7 @@ ssize_t FileDescriptor::readPipe(std::string &buffer, size_t maxSize)
 	size_t bufferSize = (maxSize > 0) ? maxSize : 4096;
 	buffer.resize(bufferSize);
 
-	ssize_t bytesRead = read(_fd, &buffer[0], bufferSize);
+	ssize_t bytesRead = read(_ctrl->fd, &buffer[0], bufferSize);
 	if (bytesRead == -1)
 	{
 		if (errno == EAGAIN || errno == EWOULDBLOCK)
@@ -477,7 +567,7 @@ ssize_t FileDescriptor::writePipe(const std::string &buffer)
 
 	while (totalWritten < static_cast<ssize_t>(dataSize))
 	{
-		ssize_t bytesWritten = write(_fd, data + totalWritten, dataSize - totalWritten);
+		ssize_t bytesWritten = write(_ctrl->fd, data + totalWritten, dataSize - totalWritten);
 		if (bytesWritten == -1)
 		{
 			if (errno == EINTR)
@@ -510,8 +600,8 @@ bool FileDescriptor::waitForPipeReady(bool forReading, int timeoutMs) const
 	}
 
 	fd_set fds;
-	FD_ZERO(&fds);	   // clear the set
-	FD_SET(_fd, &fds); // add file descriptor to the set
+	FD_ZERO(&fds);			 // clear the set
+	FD_SET(_ctrl->fd, &fds); // add file descriptor to the set
 
 	struct timeval timeout;
 	timeout.tv_sec = timeoutMs / 1000;
@@ -520,14 +610,14 @@ bool FileDescriptor::waitForPipeReady(bool forReading, int timeoutMs) const
 	int result;
 	if (forReading)
 	{
-		result = select(_fd + 1, &fds, NULL, NULL, &timeout);
+		result = select(_ctrl->fd + 1, &fds, NULL, NULL, &timeout);
 	}
 	else
 	{
 		// for writing
-		result = select(_fd + 1, NULL, &fds, NULL, &timeout);
+		result = select(_ctrl->fd + 1, NULL, &fds, NULL, &timeout);
 	}
-	return result > 0 && FD_ISSET(_fd, &fds);
+	return result > 0 && FD_ISSET(_ctrl->fd, &fds);
 }
 
 bool FileDescriptor::createPipe(FileDescriptor &readEnd, FileDescriptor &writeEnd)

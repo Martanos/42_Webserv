@@ -1,7 +1,6 @@
 #ifndef FILEDESCRIPTOR_HPP
 #define FILEDESCRIPTOR_HPP
 
-#include "Logger.hpp"
 #include <cstring>
 #include <fcntl.h>
 #include <iostream>
@@ -15,7 +14,13 @@
 class FileDescriptor
 {
 private:
-	int _fd;
+	struct Control
+	{
+		int fd;
+		double count;
+		Control(int fd) : fd(fd), count(1){};
+	};
+	Control *_ctrl;
 
 public:
 	FileDescriptor();
@@ -54,6 +59,12 @@ public:
 	operator int() const;
 
 	// Comparator overloads
+	bool operator==(int rhs) const;
+	bool operator!=(int rhs) const;
+	bool operator<(int rhs) const;
+	bool operator>(int rhs) const;
+	bool operator<=(int rhs) const;
+	bool operator>=(int rhs) const;
 	bool operator==(const FileDescriptor &rhs) const;
 	bool operator!=(const FileDescriptor &rhs) const;
 	bool operator<(const FileDescriptor &rhs) const;

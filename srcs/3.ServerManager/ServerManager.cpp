@@ -61,27 +61,32 @@ void ServerManager::_handleEpollEvents(int ready_events, std::vector<epoll_event
 	{
 		int fd = events[i].data.fd;
 
-		// TODO: Apply reference fix
 		if (_serverMap.hasFd(fd))
 		{
-			const ListeningSocket &listeningSocket = _serverMap.getListeningSocket(fd);
-			SocketAddress localAddr = listeningSocket.getAddress();
-			SocketAddress remoteAddr;
-			FileDescriptor clientFd;
-			listeningSocket.accept(remoteAddr, clientFd);
-			if (clientFd.getFd() != -1)
+			try
 			{
-				clientFd.setNonBlocking();
-				Client newClient(clientFd, localAddr, remoteAddr);
-				newClient.setPotentialServers(_serverMap.getServers(listeningSocket));
-				_clients.insert(std::make_pair(newClient.getSocketFd(), newClient));
-				_epollManager.addFd(newClient.getSocketFd(), EPOLLIN | EPOLLET);
-				Logger::logClientConnect(remoteAddr.getHost(), remoteAddr.getPort());
-				Logger::debug("ServerManager: Client " + StringUtils::toString(newClient.getSocketFd()) +
-							  " added to epoll");
+				const ListeningSocket &listeningSocket = _serverMap.getListeningSocket(fd);
+				SocketAddress localAddr = listeningSocket.getAddress();
+				SocketAddress remoteAddr;
+				FileDescriptor clientFd;
+				listeningSocket.accept(remoteAddr, clientFd);
+				if (clientFd.getFd() != -1)
+				{
+					clientFd.setNonBlocking();
+					_clients.insert(std::make_pair(clientFd.getFd(), Client(clientFd, localAddr, remoteAddr)));
+					_clients[clientFd.getFd()].setPotentialServers(_serverMap.getServers(listeningSocket));
+					_epollManager.addFd(clientFd.getFd(), EPOLLIN | EPOLLET);
+					Logger::logClientConnect(remoteAddr.getHost(), remoteAddr.getPort());
+					Logger::debug("ServerManager: Client " + StringUtils::toString(newClient.getSocketFd()) +
+								  " added to epoll");
 
-				// Record connection for performance monitoring
-				PERF_RECORD_CONNECTION();
+					// Record connection for performance monitoring
+					PERF_RECORD_CONNECTION();
+				}
+			}
+			catch (const std::exception &e)
+			{
+				Logger::log(Logger::ERROR, "ServerManager: Error accepting client: " + std::string(e.what()));
 			}
 		}
 		else if (_clients.find(fd) != _clients.end())

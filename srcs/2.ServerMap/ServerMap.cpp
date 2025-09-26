@@ -127,19 +127,16 @@ void ServerMap::_populateServerMap(std::vector<Server> &servers)
 
 std::vector<Server> &ServerMap::getServers(const ListeningSocket &key)
 {
-	printf("Getting servers for key: %d\n", key.getFd());
-	printServerMap();
-	printf("Memory address of key: %p\n", &key);
-
-	std::map<ListeningSocket, std::vector<Server> >::iterator it = _serverMap.find(key);
-	printf("Memory address of first key: %p\n", &it->first);
-	if (it == _serverMap.end())
+	for (std::map<ListeningSocket, std::vector<Server> >::iterator it = _serverMap.begin(); it != _serverMap.end();
+		 ++it)
 	{
-		std::stringstream ss;
-		ss << "[" << __FILE__ << ":" << __LINE__ << "] ServerMap: Server not found for key: " << key;
-		Logger::log(Logger::ERROR, ss.str());
+		if (it->first == key)
+			return it->second;
 	}
-	return _serverMap.at(key);
+	std::stringstream ss;
+	ss << "[" << __FILE__ << ":" << __LINE__ << "] ServerMap: Server not found for key: " << key;
+	Logger::log(Logger::ERROR, ss.str());
+	throw std::out_of_range(ss.str());
 }
 
 const Server &ServerMap::getServer(const ListeningSocket &key, const std::string &serverName)
