@@ -107,6 +107,7 @@ int HttpURI::parseBuffer(RingBuffer &buffer, HttpResponse &response)
 	_uri = uri;
 	_version = version;
 
+	Logger::debug("HttpURI: Parsed request line: " + method + " " + uri + " " + version);
 	_uriState = URI_PARSING_COMPLETE;
 	return URI_PARSING_COMPLETE;
 }

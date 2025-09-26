@@ -37,7 +37,9 @@ public:
 	bool operator==(const ListeningSocket &rhs) const;
 	bool operator!=(const ListeningSocket &rhs) const;
 
-	int getFd() const;
+	FileDescriptor &getFd();
+	const FileDescriptor &getFd() const;
+	SocketAddress &getAddress();
 	const SocketAddress &getAddress() const;
 };
 

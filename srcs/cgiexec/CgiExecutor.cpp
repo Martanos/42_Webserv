@@ -1,6 +1,6 @@
 #include "../../includes/CgiExecutor.hpp"
-#include "../../includes/StringUtils.hpp"
 #include "../../includes/PerformanceMonitor.hpp"
+#include "../../includes/StringUtils.hpp"
 #include <cstring>
 #include <fcntl.h>
 #include <fstream>
@@ -16,9 +16,9 @@ CgiExecutor::CgiExecutor() : _childPid(-1), _timeoutSeconds(DEFAULT_TIMEOUT_SECO
 	// Initialize pipe file descriptors to invalid state
 	for (int i = 0; i < 2; ++i)
 	{
-		_stdinPipe[i].setFd(-1);
-		_stdoutPipe[i].setFd(-1);
-		_stderrPipe[i].setFd(-1);
+		_stdinPipe[i] = FileDescriptor();
+		_stdoutPipe[i] = FileDescriptor();
+		_stderrPipe[i] = FileDescriptor();
 	}
 }
 
@@ -27,9 +27,9 @@ CgiExecutor::CgiExecutor(int timeoutSeconds) : _childPid(-1), _timeoutSeconds(ti
 	// Initialize pipe file descriptors to invalid state
 	for (int i = 0; i < 2; ++i)
 	{
-		_stdinPipe[i].setFd(-1);
-		_stdoutPipe[i].setFd(-1);
-		_stderrPipe[i].setFd(-1);
+		_stdinPipe[i] = FileDescriptor();
+		_stdoutPipe[i] = FileDescriptor();
+		_stderrPipe[i] = FileDescriptor();
 	}
 }
 
@@ -39,9 +39,9 @@ CgiExecutor::CgiExecutor(const CgiExecutor &other)
 	// Initialize pipe file descriptors to invalid state
 	for (int i = 0; i < 2; ++i)
 	{
-		_stdinPipe[i].setFd(-1);
-		_stdoutPipe[i].setFd(-1);
-		_stderrPipe[i].setFd(-1);
+		_stdinPipe[i] = FileDescriptor();
+		_stdoutPipe[i] = FileDescriptor();
+		_stderrPipe[i] = FileDescriptor();
 	}
 	// Note: We don't copy the process state or pipes as they are not copyable
 }
@@ -84,9 +84,9 @@ CgiExecutor &CgiExecutor::operator=(const CgiExecutor &other)
 		// Initialize pipe file descriptors to invalid state
 		for (int i = 0; i < 2; ++i)
 		{
-			_stdinPipe[i].setFd(-1);
-			_stdoutPipe[i].setFd(-1);
-			_stderrPipe[i].setFd(-1);
+			_stdinPipe[i] = FileDescriptor();
+			_stdoutPipe[i] = FileDescriptor();
+			_stderrPipe[i] = FileDescriptor();
 		}
 	}
 	return *this;
@@ -101,7 +101,7 @@ CgiExecutor::ExecutionResult CgiExecutor::execute(const std::string &scriptPath,
 												  std::string &errorData)
 {
 	PERF_SCOPED_TIMER(cgi_execution);
-	
+
 	// Clear output buffers
 	outputData.clear();
 	errorData.clear();

@@ -40,7 +40,7 @@ void PostMethodHandler::handle(const HttpRequest &request, HttpResponse &respons
 							   const Location *location)
 {
 	PERF_SCOPED_TIMER(post_method_handler);
-	
+
 	Logger::info("PostMethodHandler: Handling POST request for URI: " + request.getUri());
 	// Check if location allows POST
 	if (location)
@@ -183,13 +183,14 @@ bool PostMethodHandler::saveUploadedFile(const std::string &uploadPath, const st
 	{
 		fullPath += '/';
 	}
-	
+
 	// Generate robust filename with timestamp and random component
 	std::string safeFilename = generateSafeFilename(filename);
 	fullPath += safeFilename;
 
 	// Use FileDescriptor for safe file handling
-	FileDescriptor fd(open(fullPath.c_str(), O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH));
+	FileDescriptor fd = FileDescriptor::createFromOpen(fullPath.c_str(), O_WRONLY | O_CREAT | O_EXCL,
+													   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
 	if (!fd.isValid())
 	{
@@ -207,8 +208,8 @@ bool PostMethodHandler::saveUploadedFile(const std::string &uploadPath, const st
 				newPath << uploadPath << "/" << filename << "_" << i;
 			}
 
-			fd.setFd(open(newPath.str().c_str(), O_WRONLY | O_CREAT | O_EXCL, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH));
-
+			fd = FileDescriptor::createFromOpen(newPath.str().c_str(), O_WRONLY | O_CREAT | O_EXCL,
+												S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 			if (fd.isValid())
 			{
 				break;
@@ -293,7 +294,7 @@ void PostMethodHandler::handleCGI(const HttpRequest &request, HttpResponse &resp
 std::string PostMethodHandler::generateSafeFilename(const std::string &originalFilename) const
 {
 	std::string safeFilename = originalFilename;
-	
+
 	// Remove or replace dangerous characters
 	for (size_t i = 0; i < safeFilename.length(); ++i)
 	{
@@ -303,12 +304,12 @@ std::string PostMethodHandler::generateSafeFilename(const std::string &originalF
 			safeFilename[i] = '_';
 		}
 	}
-	
+
 	// Add timestamp to make filename unique
 	std::time_t now = std::time(0);
 	std::stringstream ss;
 	ss << std::time(&now) << "_" << safeFilename;
-	
+
 	return ss.str();
 }
 

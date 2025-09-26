@@ -21,16 +21,6 @@ private:
 
 	static bool serverRunning;
 
-public:
-	ServerManager();
-	~ServerManager();
-
-	// Internal members
-	ServerMap _serverMap;			// Map to servers via their host_port/connection fd
-	std::map<int, Client> _clients; // clients that are currently active
-	EpollManager _epollManager;		// epoll instance class
-
-private:
 	void _addServerFdsToEpoll(ServerMap &serverMap);
 	void _checkClientTimeouts();
 
@@ -39,6 +29,14 @@ private:
 	void _handleEpollEvents(int ready_events, std::vector<epoll_event> &events);
 
 public:
+	ServerManager();
+	~ServerManager();
+
+	// Internal members
+	ServerMap _serverMap;					   // Map to servers via their host_port/connection fd
+	std::map<FileDescriptor, Client> _clients; // clients that are currently active
+	EpollManager _epollManager;				   // epoll instance class
+
 	void run(std::vector<ServerConfig> &serverConfigs);
 	static void _handleSignal(int signal);
 

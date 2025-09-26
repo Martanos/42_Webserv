@@ -41,7 +41,7 @@ void GetMethodHandler::handle(const HttpRequest &request, HttpResponse &response
 							  const Location *location)
 {
 	PERF_SCOPED_TIMER(get_method_handler);
-	
+
 	Logger::info("GetMethodHandler: Handling GET request for URI: " + request.getUri());
 	try
 	{
@@ -149,7 +149,7 @@ void GetMethodHandler::handle(const HttpRequest &request, HttpResponse &response
 void GetMethodHandler::serveFile(const std::string &filePath, HttpResponse &response) const
 {
 	// Use FileDescriptor for RAII file management
-	FileDescriptor fd(open(filePath.c_str(), O_RDONLY));
+	FileDescriptor fd = FileDescriptor::createFromOpen(filePath.c_str(), O_RDONLY);
 
 	if (!fd.isValid())
 	{

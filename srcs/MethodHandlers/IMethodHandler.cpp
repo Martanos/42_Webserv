@@ -171,7 +171,7 @@ bool IMethodHandler::isPathAccessible(const std::string &path)
 // Read file using FileDescriptor
 std::string IMethodHandler::readFileWithFd(const std::string &filePath)
 {
-	FileDescriptor fd(open(filePath.c_str(), O_RDONLY));
+	FileDescriptor fd = FileDescriptor::createFromOpen(filePath.c_str(), O_RDONLY);
 
 	if (!fd.isValid())
 	{
@@ -216,7 +216,8 @@ std::string IMethodHandler::readFileWithFd(const std::string &filePath)
 // Write file using FileDescriptor
 bool IMethodHandler::writeFileWithFd(const std::string &filePath, const std::string &content)
 {
-	FileDescriptor fd(open(filePath.c_str(), O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH));
+	FileDescriptor fd = FileDescriptor::createFromOpen(filePath.c_str(), O_WRONLY | O_CREAT | O_TRUNC,
+													   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 
 	if (!fd.isValid())
 	{

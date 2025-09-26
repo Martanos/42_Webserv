@@ -6,7 +6,7 @@
 /*   By: malee <malee@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/24 18:16:26 by malee             #+#    #+#             */
-/*   Updated: 2025/09/25 17:41:28 by malee            ###   ########.fr       */
+/*   Updated: 2025/09/26 15:08:30 by malee            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,7 +21,7 @@ int main(int argc, char **argv)
 {
 	// Initialize logger session
 	Logger::initializeSession("logs");
-	
+
 	// Initialize performance monitoring
 	PerformanceMonitor &perfMonitor = PerformanceMonitor::getInstance();
 	perfMonitor.setPerformanceThresholds(1000.0, 5000.0, 100 * 1024 * 1024); // 1s, 5s, 100MB
@@ -67,17 +67,17 @@ int main(int argc, char **argv)
 		serverManager.run(serverConfigs);
 
 		Logger::log(Logger::INFO, "WebServ shutdown completed successfully");
-		
+
 		// Log final performance report
 		perfMonitor.logPerformanceReport();
 	}
 	catch (const std::exception &e)
 	{
 		Logger::error("WebServ failed: " + std::string(e.what()), __FILE__, __LINE__);
-		
+
 		// Log performance report even on failure
 		perfMonitor.logPerformanceSummary();
-		
+
 		Logger::closeSession();
 		return 1;
 	}

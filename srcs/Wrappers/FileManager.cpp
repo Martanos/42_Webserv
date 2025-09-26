@@ -7,7 +7,7 @@
 FileManager::FileManager()
 {
 	_filePath = _generateTempFilePath();
-	_fd = FileDescriptor(open(_filePath.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644));
+	_fd = FileDescriptor::createFromOpen(_filePath.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
 	_isUsingTempFile = true;
 }
 
@@ -139,13 +139,13 @@ void FileManager::append(const RingBuffer &buffer)
 void FileManager::reset()
 {
 	unlink(_filePath.c_str());
-	_fd = FileDescriptor(open(_filePath.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644));
+	_fd = FileDescriptor::createFromOpen(_filePath.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
 }
 
 void FileManager::clear()
 {
 	unlink(_filePath.c_str());
-	_fd = FileDescriptor(open(_filePath.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644));
+	_fd = FileDescriptor::createFromOpen(_filePath.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
 }
 
 size_t FileManager::contains(const char *data, size_t len) const
@@ -173,11 +173,6 @@ FileDescriptor &FileManager::getFd()
 bool FileManager::getIsUsingTempFile() const
 {
 	return _isUsingTempFile;
-}
-
-size_t FileManager::getFileSize() const
-{
-	return _fd.getFileSize();
 }
 
 /*

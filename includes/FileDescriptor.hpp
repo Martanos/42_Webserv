@@ -17,14 +17,15 @@ private:
 	struct Control
 	{
 		int fd;
-		double count;
+		int count;
 		Control(int fd) : fd(fd), count(1){};
 	};
 	Control *_ctrl;
 
+	FileDescriptor(int fd); // Private constructor for factory methods
+
 public:
 	FileDescriptor();
-	FileDescriptor(int fd);
 	FileDescriptor(FileDescriptor const &src);
 	~FileDescriptor();
 	FileDescriptor &operator=(FileDescriptor const &rhs);
@@ -35,7 +36,6 @@ public:
 	// Accessors
 	int getFd() const;
 	bool isOpen() const;
-	void setFd(int fd);
 	size_t getFileSize() const;
 
 	// Verification
@@ -54,9 +54,6 @@ public:
 	void unsetCloseOnExec();
 	void setReuseAddr();
 	void unsetReuseAddr();
-
-	// overloads
-	operator int() const;
 
 	// Comparator overloads
 	bool operator==(int rhs) const;
@@ -85,9 +82,18 @@ public:
 	ssize_t writePipe(const std::string &buffer);
 	bool waitForPipeReady(bool forReading, int timeoutMs = 1000) const;
 
-	// Pipe creation utilities
+	// Pipe creating utilities
 	static bool createPipe(FileDescriptor &readEnd, FileDescriptor &writeEnd);
-	static bool createPipeNonBlocking(FileDescriptor &readEnd, FileDescriptor &writeEnd);
+
+	// Static factory methods for all fd-creating functions
+	static FileDescriptor createSocket(int domain, int type, int protocol);
+	static FileDescriptor createFromAccept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+	static FileDescriptor createFromOpen(const char *pathname, int flags);
+	static FileDescriptor createFromOpen(const char *pathname, int flags, mode_t mode);
+	static FileDescriptor createFromDup(int oldfd);
+	static FileDescriptor createFromDup2(int oldfd, int newfd);
+	static FileDescriptor createFromOpendir(const char *name); // Returns fd from dirfd()
+	static FileDescriptor createEpoll(int flags);
 };
 
 std::ostream &operator<<(std::ostream &o, FileDescriptor const &i);

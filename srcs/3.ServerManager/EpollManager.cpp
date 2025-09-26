@@ -20,8 +20,9 @@ EpollManager &EpollManager::operator=(const EpollManager &rhs)
 	return *this;
 }
 
-EpollManager::EpollManager() : _epollFd(epoll_create1(EPOLL_CLOEXEC))
+EpollManager::EpollManager()
 {
+	_epollFd = FileDescriptor::createEpoll(EPOLL_CLOEXEC);
 	if (!_epollFd.isValid())
 	{
 		std::stringstream ss;
@@ -29,7 +30,8 @@ EpollManager::EpollManager() : _epollFd(epoll_create1(EPOLL_CLOEXEC))
 		Logger::error(ss.str(), __FILE__, __LINE__);
 		throw std::runtime_error(ss.str());
 	}
-	Logger::info("EpollManager: Epoll instance created successfully with fd " + StringUtils::toString(_epollFd.getFd()));
+	Logger::info("EpollManager: Epoll instance created successfully with fd " +
+				 StringUtils::toString(_epollFd.getFd()));
 }
 
 /*
@@ -44,38 +46,32 @@ EpollManager::~EpollManager()
 ** --------------------------------- OVERLOAD ---------------------------------
 */
 
-std::ostream &operator<<(std::ostream &o, EpollManager const &i)
-{
-	o << "EpollManager(" << i.getFd() << ")";
-	return o;
-}
-
 /*
 ** --------------------------------- METHODS ----------------------------------
 */
 
-void EpollManager::addFd(int fd, uint32_t events)
+void EpollManager::addFd(FileDescriptor fd, uint32_t events)
 {
 	epoll_event event;
 	event.events = events;
-	event.data.fd = fd;
+	event.data.fd = fd.getFd();
 
-	if (epoll_ctl(_epollFd, EPOLL_CTL_ADD, fd, &event) == -1)
+	if (epoll_ctl(_epollFd.getFd(), EPOLL_CTL_ADD, fd.getFd(), &event) == -1)
 	{
 		std::stringstream ss;
-		ss << "epoll_ctl ADD failed for fd: " << fd;
+		ss << "epoll_ctl ADD failed for fd: " << fd.getFd();
 		Logger::error(ss.str(), __FILE__, __LINE__);
 		throw std::runtime_error(ss.str());
 	}
 }
 
-void EpollManager::modifyFd(int fd, uint32_t events)
+void EpollManager::modifyFd(FileDescriptor fd, uint32_t events)
 {
 	epoll_event event;
 	event.events = events;
-	event.data.fd = fd;
+	event.data.fd = fd.getFd();
 
-	if (epoll_ctl(_epollFd, EPOLL_CTL_MOD, fd, &event) == -1)
+	if (epoll_ctl(_epollFd.getFd(), EPOLL_CTL_MOD, fd.getFd(), &event) == -1)
 	{
 		std::stringstream ss;
 		ss << "epoll_ctl MOD failed for fd: " << fd;
@@ -84,9 +80,9 @@ void EpollManager::modifyFd(int fd, uint32_t events)
 	}
 }
 
-void EpollManager::removeFd(int fd)
+void EpollManager::removeFd(FileDescriptor fd)
 {
-	if (epoll_ctl(_epollFd, EPOLL_CTL_DEL, fd, NULL) == -1)
+	if (epoll_ctl(_epollFd.getFd(), EPOLL_CTL_DEL, fd.getFd(), NULL) == -1)
 	{
 		std::stringstream ss;
 		ss << "epoll_ctl DEL failed for fd: " << fd;
@@ -101,13 +97,9 @@ int EpollManager::wait(std::vector<epoll_event> &events, int timeout)
 		events.resize(128); // Default buffer size
 	}
 
-	int readyCount = epoll_wait(_epollFd, &events[0], events.size(), timeout);
+	int readyCount = epoll_wait(_epollFd.getFd(), &events[0], events.size(), timeout);
 	if (readyCount == -1)
 	{
-		if (errno == EINTR)
-		{
-			return 0;
-		}
 		std::stringstream ss;
 		ss << "epoll_wait failed: " << strerror(errno);
 		Logger::error(ss.str(), __FILE__, __LINE__);
@@ -119,9 +111,9 @@ int EpollManager::wait(std::vector<epoll_event> &events, int timeout)
 /*
 ** --------------------------------- ACCESSOR ---------------------------------
 */
-int EpollManager::getFd() const
+FileDescriptor &EpollManager::getFd()
 {
-	return _epollFd.getFd();
+	return _epollFd;
 }
 
 /* ************************************************************************** */

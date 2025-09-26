@@ -1,6 +1,7 @@
 #include "../../includes/Client.hpp"
 #include "../../includes/Logger.hpp"
 #include "../../includes/PerformanceMonitor.hpp"
+#include <cstdio>
 #include <sstream>
 #include <sys/epoll.h>
 #include <sys/resource.h>
@@ -170,10 +171,15 @@ void Client::readRequest()
 		Logger::log(Logger::WARNING, ss.str());
 		_readBuffer.clear();
 	}
+	Logger::debug("Client: Reading request from client " + StringUtils::toString(_clientFd.getFd()));
 	// Buffer should be empty each loop
 	// Read data into a temporary buffer first
 	char tempBuffer[4096];
 	ssize_t bytesRead = _clientFd.receiveData(tempBuffer, sizeof(tempBuffer));
+	Logger::debug("Client: Received " + StringUtils::toString(bytesRead) + " bytes from client " +
+				  StringUtils::toString(_clientFd.getFd()));
+	std::string tempBufferString(tempBuffer, bytesRead);
+	Logger::debug("Client: Temp buffer: " + tempBufferString);
 	if (bytesRead > 0)
 	{
 		_readBuffer.writeBuffer(tempBuffer, bytesRead);
@@ -199,6 +205,7 @@ void Client::readRequest()
 		_currentState = CLIENT_SENDING_RESPONSE;
 		return;
 	}
+
 	// Parse the request
 	HttpRequest::ParseState parseResult = _request.parseBuffer(_readBuffer, _response);
 
