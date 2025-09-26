@@ -549,6 +549,7 @@ void ServerConfig::printConfig() const
 	}
 	std::cout << std::endl;
 	std::cout << "Client Max Body Size: " << _clientMaxBodySize << " bytes" << std::endl;
+	std::cout << "Autoindex: " << (_autoindex ? "on" : "off") << std::endl;
 
 	if (!_serverNames.empty())
 	{
@@ -587,6 +588,7 @@ void ServerConfig::printConfig() const
 	{
 		std::cout << "Error Log: " << _errorLog << std::endl;
 	}
+	std::cout << "Keep Alive: " << (_keepAlive ? "on" : "off") << std::endl;
 }
 
 // Utils

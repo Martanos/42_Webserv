@@ -381,47 +381,45 @@ void LocationConfig::printConfig() const
 {
 	std::cout << "    Location Configuration:" << std::endl;
 	std::cout << "      Path: " << _path << std::endl;
+	std::cout << "      Root: " << _root << std::endl;
 
-	if (!_root.empty())
-		std::cout << "      Root: " << _root << std::endl;
-
+	std::cout << "      Allowed Methods: ";
 	if (!_allowedMethods.empty())
 	{
-		std::cout << "      Allowed Methods: ";
 		for (size_t i = 0; i < _allowedMethods.size(); ++i)
 		{
 			if (i > 0)
 				std::cout << ", ";
 			std::cout << _allowedMethods[i];
 		}
-		std::cout << std::endl;
 	}
+	else
+	{
+		std::cout << "(none)";
+	}
+	std::cout << std::endl;
 
-	if (!_redirect.empty())
-		std::cout << "      Redirect: " << _redirect << std::endl;
-
+	std::cout << "      Redirect: " << _redirect << std::endl;
 	std::cout << "      Auto Index: " << (_autoIndex ? "on" : "off") << std::endl;
+	std::cout << "      Index: " << _index << std::endl;
+	std::cout << "      CGI Path: " << _cgiPath << std::endl;
+	std::cout << "      CGI Index: " << _cgiIndex << std::endl;
 
-	if (!_index.empty())
-		std::cout << "      Index: " << _index << std::endl;
-
-	if (!_cgiPath.empty())
-		std::cout << "      CGI Path: " << _cgiPath << std::endl;
-
-	if (!_cgiIndex.empty())
-		std::cout << "      CGI Index: " << _cgiIndex << std::endl;
-
+	std::cout << "      CGI Parameters: ";
 	if (!_cgiParams.empty())
 	{
-		std::cout << "      CGI Parameters:" << std::endl;
+		std::cout << std::endl;
 		for (std::map<std::string, std::string>::const_iterator it = _cgiParams.begin(); it != _cgiParams.end(); ++it)
 		{
 			std::cout << "        " << it->first << " = " << it->second << std::endl;
 		}
 	}
+	else
+	{
+		std::cout << "(none)" << std::endl;
+	}
 
-	if (!_uploadPath.empty())
-		std::cout << "      Upload Path: " << _uploadPath << std::endl;
+	std::cout << "      Upload Path: " << _uploadPath << std::endl;
 }
 
 // Utils
