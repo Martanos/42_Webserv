@@ -87,8 +87,8 @@ public:
 	const SocketAddress &getLocalAddr() const;
 	const SocketAddress &getRemoteAddr() const;
 	const Server *getServer() const;
-	const std::vector<Server> *getPotentialServers() const;
-	void setPotentialServers(std::vector<Server> *potentialServers);
+	const std::vector<Server> &getPotentialServers() const;
+	void setPotentialServers(const std::vector<Server> &potentialServers);
 	void setServer(const Server *server);
 };
 

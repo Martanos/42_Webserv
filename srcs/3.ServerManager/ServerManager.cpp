@@ -1,4 +1,5 @@
 #include "../../includes/ServerManager.hpp"
+#include "../../includes/PerformanceMonitor.hpp"
 #include "../../includes/StringUtils.hpp"
 
 // Static member definition
@@ -50,6 +51,8 @@ void ServerManager::_addServerFdsToEpoll(ServerMap &serverMap)
 	{
 		_epollManager.addFd(it->first.getFd());
 	}
+	Logger::info("ServerManager: Added " + StringUtils::toString(serverMap.getServerMap().size()) +
+				 " server file descriptors to epoll");
 }
 
 void ServerManager::_handleEpollEvents(int ready_events, std::vector<epoll_event> &events)
@@ -64,24 +67,25 @@ void ServerManager::_handleEpollEvents(int ready_events, std::vector<epoll_event
 			const ListeningSocket &listeningSocket = _serverMap.getListeningSocket(fd);
 			SocketAddress localAddr = listeningSocket.getAddress();
 			SocketAddress remoteAddr;
-			FileDescriptor clientFd = listeningSocket.accept(remoteAddr);
+			FileDescriptor clientFd;
+			listeningSocket.accept(remoteAddr, clientFd);
 			if (clientFd.getFd() != -1)
 			{
 				clientFd.setNonBlocking();
-				SocketAddress clientAddr;
-				Client newClient(clientFd, clientAddr, remoteAddr);
-				newClient.setPotentialServers(&_serverMap.getServers(listeningSocket.getFd()));
+				Client newClient(clientFd, localAddr, remoteAddr);
+				newClient.setPotentialServers(_serverMap.getServers(listeningSocket));
 				_clients.insert(std::make_pair(newClient.getSocketFd(), newClient));
 				_epollManager.addFd(newClient.getSocketFd(), EPOLLIN | EPOLLET);
+				Logger::logClientConnect(remoteAddr.getHost(), remoteAddr.getPort());
+				Logger::debug("ServerManager: Client " + StringUtils::toString(newClient.getSocketFd()) +
+							  " added to epoll");
 
-				std::stringstream ss;
-				ss << "New client connected: " << newClient.getSocketFd();
-				Logger::log(Logger::INFO, ss.str());
+				// Record connection for performance monitoring
+				PERF_RECORD_CONNECTION();
 			}
 		}
 		else if (_clients.find(fd) != _clients.end())
 		{
-			printf("Client found: %d\n", fd);
 			try
 			{
 				Client::State oldState = _clients[fd].getCurrentState();
@@ -128,6 +132,9 @@ void ServerManager::_handleEpollEvents(int ready_events, std::vector<epoll_event
 					std::stringstream ss;
 					ss << "Client disconnected (state: " << newState << "): " << fd;
 					Logger::log(Logger::INFO, ss.str());
+
+					// Record disconnection for performance monitoring
+					PERF_RECORD_DISCONNECTION();
 				}
 			}
 			catch (const std::exception &e)
@@ -137,6 +144,10 @@ void ServerManager::_handleEpollEvents(int ready_events, std::vector<epoll_event
 				std::stringstream ss;
 				ss << "Client " << fd << " disconnected: " << e.what();
 				Logger::log(Logger::INFO, ss.str());
+
+				// Record disconnection and error for performance monitoring
+				PERF_RECORD_DISCONNECTION();
+				PERF_RECORD_ERROR();
 			}
 		}
 	}
@@ -163,6 +174,10 @@ void ServerManager::_checkClientTimeouts()
 		Logger::log(Logger::INFO, "Client " + StringUtils::toString(it->getFd()) + " timed out, disconnecting");
 		_clients.erase(*it);
 		_epollManager.removeFd(it->getFd());
+
+		// Record timeout and disconnection for performance monitoring
+		PERF_RECORD_TIMEOUT();
+		PERF_RECORD_DISCONNECTION();
 	}
 }
 
@@ -179,8 +194,10 @@ void ServerManager::run(std::vector<ServerConfig> &serverConfigs)
 		Logger::log(Logger::ERROR, "No valid server configurations found");
 		return;
 	}
+	_serverMap.printServerMap();
 
 	// Spawn epoll instance
+	Logger::debug("ServerManager: Creating EpollManager");
 	_epollManager = EpollManager();
 
 	// Add server fds to epoll
@@ -201,7 +218,7 @@ void ServerManager::run(std::vector<ServerConfig> &serverConfigs)
 		int ready_events = _epollManager.wait(events, 1000); // 1 second timeout
 		if (ready_events == -1)
 		{
-			Logger::logErrno(Logger::ERROR, "Epoll wait failed");
+			Logger::logErrno(Logger::ERROR, "Epoll wait failed", __FILE__, __LINE__);
 			break;
 		}
 		else if (ready_events == 0)
@@ -212,6 +229,8 @@ void ServerManager::run(std::vector<ServerConfig> &serverConfigs)
 		}
 		else
 		{
+			// Record epoll events for performance monitoring
+			PERF_RECORD_EPOLL_EVENT();
 			_handleEpollEvents(ready_events, events);
 		}
 	}

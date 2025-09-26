@@ -1,5 +1,6 @@
 #include "../../includes/Client.hpp"
 #include "../../includes/Logger.hpp"
+#include "../../includes/PerformanceMonitor.hpp"
 #include <sstream>
 #include <sys/epoll.h>
 #include <sys/resource.h>
@@ -104,6 +105,8 @@ Client &Client::operator=(Client const &rhs)
 void Client::handleEvent(epoll_event event)
 {
 	updateActivity();
+	Logger::debug("Client: Handling event for client " + StringUtils::toString(_clientFd.getFd()) + " in state " +
+				  StringUtils::toString(_currentState));
 
 	if (event.events & (EPOLLHUP | EPOLLRDHUP | EPOLLERR))
 	{
@@ -118,6 +121,7 @@ void Client::handleEvent(epoll_event event)
 	case CLIENT_WAITING_FOR_REQUEST:
 		if (event.events & EPOLLIN)
 		{
+			Logger::debug("Client: Starting to read request from client " + StringUtils::toString(_clientFd.getFd()));
 			_currentState = CLIENT_READING_REQUEST;
 			readRequest();
 		}
@@ -135,7 +139,11 @@ void Client::handleEvent(epoll_event event)
 		break;
 	case CLIENT_PROCESSING_REQUEST:
 		// Request processing state
-		_processHTTPRequest();
+		Logger::debug("Client: Processing HTTP request for client " + StringUtils::toString(_clientFd.getFd()));
+		{
+			PERF_SCOPED_TIMER(request_processing);
+			_processHTTPRequest();
+		}
 		break;
 	case CLIENT_SENDING_RESPONSE:
 		if (event.events & EPOLLOUT)
@@ -483,12 +491,12 @@ bool Client::isTimedOut() const
 	return (time(NULL) - _lastActivity) > TIMEOUT_SECONDS;
 }
 
-const std::vector<Server> *Client::getPotentialServers() const
+const std::vector<Server> &Client::getPotentialServers() const
 {
-	return _potentialServers;
+	return *_potentialServers;
 }
 
-void Client::setPotentialServers(std::vector<Server> *potentialServers)
+void Client::setPotentialServers(const std::vector<Server> &potentialServers)
 {
-	_potentialServers = potentialServers;
+	_potentialServers = const_cast<std::vector<Server> *>(&potentialServers);
 }

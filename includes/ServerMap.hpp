@@ -49,16 +49,17 @@ public:
 	const std::map<ListeningSocket, std::vector<Server> > &getServerMap() const;
 
 	// Server vectors
-	std::vector<Server> &getServers(int fd);
+	std::vector<Server> &getServers(const ListeningSocket &key);
 
 	// Individual servers
-	const Server &getServer(ListeningSocket &key, std::string &serverName);
+	const Server &getServer(const ListeningSocket &key, const std::string &serverName);
 
 	// Listening sockets
-	const ListeningSocket &getListeningSocket(int &fd);
+	const ListeningSocket &getListeningSocket(int &fd) const;
 
 	// Utility Methods
 	bool hasFd(int &fd) const;
+	void printServerMap() const;
 };
 
 #endif /* *************************************************** SERVERMANAGER_H                                          \

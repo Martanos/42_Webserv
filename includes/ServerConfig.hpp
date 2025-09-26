@@ -2,6 +2,7 @@
 #define SERVER_CONFIG_HPP
 
 #include "LocationConfig.hpp"
+#include "Logger.hpp"
 #include <cstring>
 #include <map>
 #include <netdb.h>

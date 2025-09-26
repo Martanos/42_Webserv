@@ -39,7 +39,7 @@ ListeningSocket::ListeningSocket(const std::string &host, const unsigned short p
 		_socket.setReuseAddr();
 		_socket.setNonBlocking();
 
-		if (bind(_socket, _address.getSockAddr(), _address.getSize()) == -1)
+		if (bind(_socket, reinterpret_cast<struct sockaddr *>(_address.getSockAddr()), _address.getSize()) == -1)
 		{
 			std::stringstream ss;
 			ss << "Failed to bind socket: " << strerror(errno) << " on " << _address;
@@ -94,27 +94,19 @@ std::ostream &operator<<(std::ostream &o, ListeningSocket const &i)
 ** --------------------------------- METHODS ----------------------------------
 */
 
-FileDescriptor ListeningSocket::accept(SocketAddress &remoteAddr) const
+void ListeningSocket::accept(SocketAddress &remoteAddr, FileDescriptor &clientFd) const
 {
-	struct sockaddr_storage addr;
-	socklen_t addrLen = sizeof(addr);
-	int clientFd = ::accept(_socket.getFd(), reinterpret_cast<struct sockaddr *>(&addr), &addrLen);
-	if (clientFd == -1)
+	clientFd.setFd(::accept(_socket.getFd(), reinterpret_cast<struct sockaddr *>(remoteAddr.getSockAddr()),
+							&remoteAddr.getSize()));
+	if (clientFd.getFd() == -1)
 	{
-		if (errno == EWOULDBLOCK || errno == EAGAIN)
-		{
-			Logger::log(Logger::INFO, "No connections available");
-			return FileDescriptor(-1);
-		}
-
 		std::stringstream ss;
-		ss << "accept failed: " << strerror(errno);
+		ss << "[" << __FILE__ << ":" << __LINE__ << "] accept failed: on socket " << _address.getHostString() << ":"
+		   << _address.getPort() << " " << strerror(errno);
 		Logger::log(Logger::ERROR, ss.str());
-		throw std::runtime_error(ss.str());
 	}
-	remoteAddr = SocketAddress::createFromStorage(addr, addrLen);
-
-	return FileDescriptor(clientFd);
+	// Update the remoteAddr with the actual address length returned by accept
+	remoteAddr.setAddrLen(remoteAddr.getSize());
 }
 
 /*

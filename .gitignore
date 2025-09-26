@@ -6,6 +6,7 @@
 *.lo
 *.o
 *.obj
+obj/
 
 # Precompiled Headers
 *.gch
@@ -31,3 +32,6 @@
 *.out
 *.app
 .vscode/settings.json
+
+# Folder structure
+logs/

@@ -145,7 +145,7 @@ void ServerConfig::addServerName(std::string line, double lineNumber)
 	if (!(serverNameStream >> token) || token != "server_name")
 	{
 		errorMessage << "Invalid server_name directive at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
+		Logger::error(errorMessage.str(), __FILE__, __LINE__);
 		throw std::runtime_error(errorMessage.str());
 	}
 	// Server name validation and vector population
@@ -157,7 +157,7 @@ void ServerConfig::addServerName(std::string line, double lineNumber)
 			if (std::find(this->_serverNames.begin(), this->_serverNames.end(), token) != this->_serverNames.end())
 			{
 				errorMessage << "Duplicate catch-all server_name detected: " << token << " at line " << lineNumber;
-				Logger::log(Logger::ERROR, errorMessage.str());
+				Logger::error(errorMessage.str(), __FILE__, __LINE__);
 				throw std::runtime_error(errorMessage.str());
 			}
 			else
@@ -169,7 +169,7 @@ void ServerConfig::addServerName(std::string line, double lineNumber)
 		{
 			errorMessage << "Invalid server_name at line " << lineNumber << ": " << token
 						 << " (Hostname exceeds 255 characters)";
-			Logger::log(Logger::ERROR, errorMessage.str());
+			Logger::error(errorMessage.str(), __FILE__, __LINE__);
 			throw std::runtime_error(errorMessage.str());
 		}
 		else if (token.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJK"
@@ -177,20 +177,20 @@ void ServerConfig::addServerName(std::string line, double lineNumber)
 		{
 			errorMessage << "Invalid server_name at line " << lineNumber << ": " << token
 						 << " (Contains invalid characters)";
-			Logger::log(Logger::ERROR, errorMessage.str());
+			Logger::error(errorMessage.str(), __FILE__, __LINE__);
 			throw std::runtime_error(errorMessage.str());
 		}
 		else if (!isalpha(token[0]) || !isalnum(token[token.length() - 1]))
 		{
 			errorMessage << "Invalid server_name at line " << lineNumber << ": " << token
 						 << " (Hostname must begin and end with alphanumeric character)";
-			Logger::log(Logger::ERROR, errorMessage.str());
+			Logger::error(errorMessage.str(), __FILE__, __LINE__);
 			throw std::runtime_error(errorMessage.str());
 		}
 		else if (std::find(this->_serverNames.begin(), this->_serverNames.end(), token) != this->_serverNames.end())
 		{
 			errorMessage << "Duplicate server_name detected: " << token << " at line " << lineNumber;
-			Logger::log(Logger::ERROR, errorMessage.str());
+			Logger::error(errorMessage.str(), __FILE__, __LINE__);
 			throw std::runtime_error(errorMessage.str());
 		}
 		else
@@ -199,7 +199,7 @@ void ServerConfig::addServerName(std::string line, double lineNumber)
 		if (_serverNames.size() >= 255)
 		{
 			errorMessage << "Too many server_names at line " << lineNumber << " (Maximum of 255 server_names allowed)";
-			Logger::log(Logger::ERROR, errorMessage.str());
+			Logger::error(errorMessage.str(), __FILE__, __LINE__);
 			throw std::runtime_error(errorMessage.str());
 		}
 	}
@@ -208,6 +208,7 @@ void ServerConfig::addServerName(std::string line, double lineNumber)
 //
 void ServerConfig::addHosts_ports(std::string line, double lineNumber)
 {
+	Logger::debug("ServerConfig: Processing listen directive: " + line);
 	lineValidation(line, lineNumber);
 
 	std::stringstream hosts_portsStream(line);
@@ -217,7 +218,7 @@ void ServerConfig::addHosts_ports(std::string line, double lineNumber)
 	if (!(hosts_portsStream >> token) || token != "listen")
 	{
 		errorMessage << "Invalid listen directive at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
+		Logger::error(errorMessage.str(), __FILE__, __LINE__);
 		throw std::runtime_error(errorMessage.str());
 	}
 
@@ -232,7 +233,7 @@ void ServerConfig::addHosts_ports(std::string line, double lineNumber)
 			if (host_port.first.empty() && host_port.second == 0)
 			{
 				errorMessage << "Invalid host:port format: " << token << " at line " << lineNumber;
-				Logger::log(Logger::ERROR, errorMessage.str());
+				Logger::error(errorMessage.str(), __FILE__, __LINE__);
 				throw std::runtime_error(errorMessage.str());
 			}
 			tokenProcessed = true;
@@ -248,7 +249,7 @@ void ServerConfig::addHosts_ports(std::string line, double lineNumber)
 		if (!tokenProcessed)
 		{
 			errorMessage << "Invalid listen directive: " << token << " at line " << lineNumber;
-			Logger::log(Logger::ERROR, errorMessage.str());
+			Logger::error(errorMessage.str(), __FILE__, __LINE__);
 			throw std::runtime_error(errorMessage.str());
 		}
 
@@ -256,7 +257,7 @@ void ServerConfig::addHosts_ports(std::string line, double lineNumber)
 		if (std::find(this->_hosts_ports.begin(), this->_hosts_ports.end(), host_port) != this->_hosts_ports.end())
 		{
 			errorMessage << "Duplicate listen directive detected: " << token << " at line " << lineNumber;
-			Logger::log(Logger::ERROR, errorMessage.str());
+			Logger::error(errorMessage.str(), __FILE__, __LINE__);
 			throw std::runtime_error(errorMessage.str());
 		}
 		else
@@ -273,7 +274,7 @@ void ServerConfig::addLocation(const LocationConfig &location, double lineNumber
 	if (std::find(this->_locations.begin(), this->_locations.end(), location) != this->_locations.end())
 	{
 		errorMessage << "Duplicate location detected: " << location.getPath() << " at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
+		Logger::error(errorMessage.str(), __FILE__, __LINE__);
 		throw std::runtime_error(errorMessage.str());
 	}
 	else
@@ -291,7 +292,7 @@ void ServerConfig::addIndexes(std::string line, double lineNumber)
 	if (!(indexesStream >> token) || token != "index")
 	{
 		errorMessage << "Invalid index directive at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
+		Logger::error(errorMessage.str(), __FILE__, __LINE__);
 		throw std::runtime_error(errorMessage.str());
 	}
 
@@ -300,7 +301,7 @@ void ServerConfig::addIndexes(std::string line, double lineNumber)
 		if (token.empty())
 		{
 			errorMessage << "CHECK PLS Empty index name at line " << lineNumber;
-			Logger::log(Logger::ERROR, errorMessage.str());
+			Logger::error(errorMessage.str(), __FILE__, __LINE__);
 			throw std::runtime_error(errorMessage.str());
 		}
 		_indexes.push_back(token);
@@ -318,7 +319,7 @@ void ServerConfig::addStatusPages(std::string line, double lineNumber)
 	if (!(errorPagesStream >> token) || token != "error_page")
 	{
 		errorMessage << "Invalid error_page directive at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
+		Logger::error(errorMessage.str(), __FILE__, __LINE__);
 		throw std::runtime_error(errorMessage.str());
 	}
 
@@ -344,7 +345,7 @@ void ServerConfig::addStatusPages(std::string line, double lineNumber)
 			{
 				errorMessage << "Invalid error_page directive at line " << lineNumber
 							 << ": Multiple file paths specified";
-				Logger::log(Logger::ERROR, errorMessage.str());
+				Logger::error(errorMessage.str(), __FILE__, __LINE__);
 				throw std::runtime_error(errorMessage.str());
 			}
 			filePath = token;
@@ -355,14 +356,14 @@ void ServerConfig::addStatusPages(std::string line, double lineNumber)
 	if (errorCodes.empty())
 	{
 		errorMessage << "Invalid error_page directive at line " << lineNumber << ": No error codes specified";
-		Logger::log(Logger::ERROR, errorMessage.str());
+		Logger::error(errorMessage.str(), __FILE__, __LINE__);
 		throw std::runtime_error(errorMessage.str());
 	}
 
 	if (filePath.empty())
 	{
 		errorMessage << "Invalid error_page directive at line " << lineNumber << ": No file path specified";
-		Logger::log(Logger::ERROR, errorMessage.str());
+		Logger::error(errorMessage.str(), __FILE__, __LINE__);
 		throw std::runtime_error(errorMessage.str());
 	}
 	// Store the error pages
@@ -383,14 +384,14 @@ void ServerConfig::addRoot(std::string line, double lineNumber)
 	if (!(rootStream >> token) || token != "root")
 	{
 		errorMessage << "Invalid root directive at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
+		Logger::error(errorMessage.str(), __FILE__, __LINE__);
 		throw std::runtime_error(errorMessage.str());
 	}
 
 	if (!(rootStream >> token) || token.empty())
 	{
 		errorMessage << "Empty root path at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
+		Logger::error(errorMessage.str(), __FILE__, __LINE__);
 		throw std::runtime_error(errorMessage.str());
 	}
 
@@ -408,13 +409,13 @@ void ServerConfig::addClientMaxBodySize(std::string line, double lineNumber)
 	if (!(sizeStream >> token) || token != "client_max_body_size")
 	{
 		errorMessage << "Invalid client_max_body_size directive at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
+		Logger::error(errorMessage.str(), __FILE__, __LINE__);
 		throw std::runtime_error(errorMessage.str());
 	}
 	if (token.empty())
 	{
 		errorMessage << "CHECK PLS Empty client_max_body_size at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
+		Logger::error(errorMessage.str(), __FILE__, __LINE__);
 		throw std::runtime_error(errorMessage.str());
 	}
 	sizeStream >> token; // Read the size value
@@ -449,14 +450,14 @@ void ServerConfig::addAutoindex(std::string line, double lineNumber)
 	if (!(autoindexStream >> token) || token != "autoindex")
 	{
 		errorMessage << "Invalid autoindex directive at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
+		Logger::error(errorMessage.str(), __FILE__, __LINE__);
 		throw std::runtime_error(errorMessage.str());
 	}
 
 	if (!(autoindexStream >> token) || (token != "on" && token != "off"))
 	{
 		errorMessage << "Invalid autoindex value at line " << lineNumber << ": " << token;
-		Logger::log(Logger::ERROR, errorMessage.str());
+		Logger::error(errorMessage.str(), __FILE__, __LINE__);
 		throw std::runtime_error(errorMessage.str());
 	}
 	_autoindex = (token == "on");
@@ -472,7 +473,7 @@ void ServerConfig::addAccessLog(std::string line, double lineNumber)
 	if (!(accessLogStream >> token) || token != "access_log")
 	{
 		errorMessage << "Invalid access_log directive at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
+		Logger::error(errorMessage.str(), __FILE__, __LINE__);
 		throw std::runtime_error(errorMessage.str());
 	}
 
@@ -493,7 +494,7 @@ void ServerConfig::addErrorLog(std::string line, double lineNumber)
 	if (!(errorLogStream >> token) || token != "error_log")
 	{
 		errorMessage << "Invalid error_log directive at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
+		Logger::error(errorMessage.str(), __FILE__, __LINE__);
 		throw std::runtime_error(errorMessage.str());
 	}
 
@@ -514,13 +515,13 @@ void ServerConfig::addKeepAlive(std::string line, double lineNumber)
 	if (!(keepAliveStream >> token) || token != "keep_alive")
 	{
 		errorMessage << "Invalid keep_alive directive at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
+		Logger::error(errorMessage.str(), __FILE__, __LINE__);
 		throw std::runtime_error(errorMessage.str());
 	}
 	if (!(keepAliveStream >> token) || (token != "on" && token != "off"))
 	{
 		errorMessage << "Invalid keep_alive value at line " << lineNumber << ": " << token;
-		Logger::log(Logger::ERROR, errorMessage.str());
+		Logger::error(errorMessage.str(), __FILE__, __LINE__);
 		throw std::runtime_error(errorMessage.str());
 	}
 	_keepAlive = (token == "on");
@@ -596,13 +597,13 @@ void ServerConfig::lineValidation(std::string &line, int lineNumber)
 	if (line.empty())
 	{
 		errorMessage << "Empty directive at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
+		Logger::error(errorMessage.str(), __FILE__, __LINE__);
 		throw std::runtime_error(errorMessage.str());
 	}
 	else if (line.find_last_of(';') != line.length() - 1)
 	{
 		errorMessage << "Expected semicolon at the end of line " << lineNumber << " : " << line;
-		Logger::log(Logger::ERROR, errorMessage.str());
+		Logger::error(errorMessage.str(), __FILE__, __LINE__);
 		throw std::runtime_error(errorMessage.str());
 	}
 	line.erase(line.find_last_of(';'));

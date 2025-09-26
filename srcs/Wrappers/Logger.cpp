@@ -1,4 +1,5 @@
 #include "../../includes/Logger.hpp"
+#include "../../includes/StringUtils.hpp"
 #include <iomanip>
 #include <iostream>
 
@@ -108,6 +109,31 @@ void Logger::log(LogLevel level, const std::stringstream &ss)
 	log(level, ss.str());
 }
 
+void Logger::log(LogLevel level, const std::string &message, const std::string &file, int line)
+{
+	// Extract just the filename from the full path
+	std::string filename = file;
+	size_t lastSlash = filename.find_last_of("/\\");
+	if (lastSlash != std::string::npos)
+	{
+		filename = filename.substr(lastSlash + 1);
+	}
+
+	std::string timestamp = _getCurrentTime();
+	std::string levelStr = _getLevelString(level);
+	std::string logEntry = "[" + timestamp + "] " + levelStr + " [" + filename + ":" + StringUtils::toString(line) + "] " + message;
+
+	// Log to session file
+	if (_sessionInitialized && _logFile.is_open())
+	{
+		_logFile << logEntry << std::endl;
+		_logFile.flush(); // Ensure immediate write
+	}
+
+	// Log to console with color coding
+	_logToConsole(level, logEntry);
+}
+
 void Logger::debug(const std::string &message)
 {
 	log(DEBUG, message);
@@ -133,6 +159,31 @@ void Logger::critical(const std::string &message)
 	log(CRITICAL, message);
 }
 
+void Logger::debug(const std::string &message, const std::string &file, int line)
+{
+	log(DEBUG, message, file, line);
+}
+
+void Logger::info(const std::string &message, const std::string &file, int line)
+{
+	log(INFO, message, file, line);
+}
+
+void Logger::warning(const std::string &message, const std::string &file, int line)
+{
+	log(WARNING, message, file, line);
+}
+
+void Logger::error(const std::string &message, const std::string &file, int line)
+{
+	log(ERROR, message, file, line);
+}
+
+void Logger::critical(const std::string &message, const std::string &file, int line)
+{
+	log(CRITICAL, message, file, line);
+}
+
 void Logger::logRequest(const std::string &method, const std::string &uri, const std::string &clientIP, int statusCode)
 {
 	std::stringstream ss;
@@ -145,6 +196,13 @@ void Logger::logErrno(LogLevel level, const std::string &message)
 	std::stringstream ss;
 	ss << message << ": " << std::strerror(errno);
 	log(level, ss.str());
+}
+
+void Logger::logErrno(LogLevel level, const std::string &message, const std::string &file, int line)
+{
+	std::stringstream ss;
+	ss << message << ": " << std::strerror(errno);
+	log(level, ss.str(), file, line);
 }
 
 void Logger::logServerStart(const std::string &host, int port)

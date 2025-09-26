@@ -5,6 +5,7 @@
 #include "DeleteMethodHandler.hpp"
 #include "GetMethodHandler.hpp"
 #include "IMethodHandler.hpp"
+#include "Logger.hpp"
 #include "PostMethodHandler.hpp"
 #include <map>
 #include <string>

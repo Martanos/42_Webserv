@@ -1,4 +1,5 @@
 #include "../../includes/GetMethodHandler.hpp"
+#include "../../includes/PerformanceMonitor.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -39,10 +40,14 @@ GetMethodHandler &GetMethodHandler::operator=(GetMethodHandler const &rhs)
 void GetMethodHandler::handle(const HttpRequest &request, HttpResponse &response, const Server *server,
 							  const Location *location)
 {
+	PERF_SCOPED_TIMER(get_method_handler);
+	
+	Logger::info("GetMethodHandler: Handling GET request for URI: " + request.getUri());
 	try
 	{
 		// Resolve the file path based on URI and configuration
 		std::string filePath = resolveFilePath(request.getUri(), server, location);
+		Logger::debug("GetMethodHandler: Resolved file path: " + filePath);
 
 		// Check if there's a redirect configured
 		if (location && !location->getRedirect().empty())

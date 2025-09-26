@@ -65,6 +65,7 @@ void HttpResponse::setHeader(const std::string &name, const std::string &value)
 void HttpResponse::setBody(const std::string &body)
 {
 	_body = body;
+	Logger::debug("HttpResponse: Set body with " + StringUtils::toString(body.length()) + " bytes");
 }
 
 // Formats the response into a HTTP 1.1 compliant format

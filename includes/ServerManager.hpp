@@ -3,6 +3,7 @@
 
 #include "Client.hpp"
 #include "EpollManager.hpp"
+#include "Logger.hpp"
 #include "ServerMap.hpp"
 #include <map>
 #include <sys/epoll.h>

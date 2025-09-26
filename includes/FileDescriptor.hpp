@@ -1,6 +1,7 @@
 #ifndef FILEDESCRIPTOR_HPP
 #define FILEDESCRIPTOR_HPP
 
+#include "Logger.hpp"
 #include <cstring>
 #include <fcntl.h>
 #include <iostream>

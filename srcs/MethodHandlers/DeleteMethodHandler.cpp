@@ -1,4 +1,5 @@
 #include "../../includes/DeleteMethodHandler.hpp"
+#include "../../includes/PerformanceMonitor.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -38,6 +39,9 @@ DeleteMethodHandler &DeleteMethodHandler::operator=(DeleteMethodHandler const &r
 void DeleteMethodHandler::handle(const HttpRequest &request, HttpResponse &response, const Server *server,
 								 const Location *location)
 {
+	PERF_SCOPED_TIMER(delete_method_handler);
+	
+	Logger::info("DeleteMethodHandler: Handling DELETE request for URI: " + request.getUri());
 	// Check if DELETE is allowed at this location
 	if (location)
 	{

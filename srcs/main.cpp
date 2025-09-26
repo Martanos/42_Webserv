@@ -12,6 +12,7 @@
 
 #include "../includes/ConfigParser.hpp"
 #include "../includes/Logger.hpp"
+#include "../includes/PerformanceMonitor.hpp"
 #include "../includes/ServerConfig.hpp"
 #include "../includes/ServerManager.hpp"
 #include "../includes/StringUtils.hpp"
@@ -20,6 +21,11 @@ int main(int argc, char **argv)
 {
 	// Initialize logger session
 	Logger::initializeSession("logs");
+	
+	// Initialize performance monitoring
+	PerformanceMonitor &perfMonitor = PerformanceMonitor::getInstance();
+	perfMonitor.setPerformanceThresholds(1000.0, 5000.0, 100 * 1024 * 1024); // 1s, 5s, 100MB
+	Logger::info("PerformanceMonitor: Performance monitoring initialized", __FILE__, __LINE__);
 
 	if (argc != 2)
 	{
@@ -61,14 +67,23 @@ int main(int argc, char **argv)
 		serverManager.run(serverConfigs);
 
 		Logger::log(Logger::INFO, "WebServ shutdown completed successfully");
+		
+		// Log final performance report
+		perfMonitor.logPerformanceReport();
 	}
 	catch (const std::exception &e)
 	{
-		Logger::log(Logger::ERROR, "WebServ failed: " + std::string(e.what()));
+		Logger::error("WebServ failed: " + std::string(e.what()), __FILE__, __LINE__);
+		
+		// Log performance report even on failure
+		perfMonitor.logPerformanceSummary();
+		
 		Logger::closeSession();
 		return 1;
 	}
 
+	// Cleanup performance monitoring
+	PerformanceMonitor::destroyInstance();
 	Logger::closeSession();
 	return 0;
 }

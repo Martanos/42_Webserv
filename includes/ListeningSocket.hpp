@@ -27,7 +27,7 @@ public:
 	~ListeningSocket();
 
 	// Accept connection
-	FileDescriptor accept(SocketAddress &address) const;
+	void accept(SocketAddress &address, FileDescriptor &clientFd) const;
 
 	// Comparator overloads
 	bool operator<(const ListeningSocket &rhs) const;

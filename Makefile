@@ -47,6 +47,7 @@ SRC_FILES = main.cpp \
 			Wrappers/RingBuffer.cpp \
 			Wrappers/FileManager.cpp \
 			Wrappers/Logger.cpp \
+			Wrappers/PerformanceMonitor.cpp \
 			cgiexec/CgiEnv.cpp \
 			cgiexec/CgiExecutor.cpp \
 			cgiexec/CgiHandler.cpp \

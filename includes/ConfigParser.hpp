@@ -1,6 +1,7 @@
 #ifndef CONFIG_PARSER_HPP
 #define CONFIG_PARSER_HPP
 
+#include "Logger.hpp"
 #include "ServerConfig.hpp"
 #include <cctype>
 #include <cstdlib>

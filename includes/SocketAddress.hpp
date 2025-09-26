@@ -48,9 +48,10 @@ public:
 	bool operator<=(const SocketAddress &rhs) const;
 	bool operator>=(const SocketAddress &rhs) const;
 
-	// Getters - MAINTAIN ALL EXISTING METHOD SIGNATURES
-	const struct sockaddr *getSockAddr() const;
+	// Getters
+	struct sockaddr_storage *getSockAddr();
 	int getFamily() const;
+	socklen_t &getSize();
 	unsigned short getPort() const;
 	const struct sockaddr_in &getIPV4() const;	// Keep old name
 	const struct sockaddr_in6 &getIPV6() const; // Keep old name
@@ -59,7 +60,6 @@ public:
 	socklen_t getAddrLen() const;
 	std::string getHostString() const;
 	std::string getPortString() const;
-	socklen_t getSize() const; // Keep old method
 
 	// Setters - DEPRECATED but kept for compatibility
 	void setFamily(int family);

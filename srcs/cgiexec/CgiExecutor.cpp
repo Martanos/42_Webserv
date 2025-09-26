@@ -1,5 +1,6 @@
 #include "../../includes/CgiExecutor.hpp"
 #include "../../includes/StringUtils.hpp"
+#include "../../includes/PerformanceMonitor.hpp"
 #include <cstring>
 #include <fcntl.h>
 #include <fstream>
@@ -99,6 +100,8 @@ CgiExecutor::ExecutionResult CgiExecutor::execute(const std::string &scriptPath,
 												  char **envp, const std::string &inputData, std::string &outputData,
 												  std::string &errorData)
 {
+	PERF_SCOPED_TIMER(cgi_execution);
+	
 	// Clear output buffers
 	outputData.clear();
 	errorData.clear();
@@ -111,24 +114,30 @@ CgiExecutor::ExecutionResult CgiExecutor::execute(const std::string &scriptPath,
 	}
 
 	// Setup pipes for communication
+	Logger::debug("CgiExecutor: Setting up pipes for communication");
 	ExecutionResult result = setupPipes();
 	if (result != SUCCESS)
 	{
+		Logger::error("CgiExecutor: Failed to setup pipes");
 		return result;
 	}
 
 	// Fork and execute the CGI script
+	Logger::debug("CgiExecutor: Forking and executing CGI script");
 	result = forkAndExec(scriptPath, interpreter, envp);
 	if (result != SUCCESS)
 	{
+		Logger::error("CgiExecutor: Failed to fork and execute CGI script", __FILE__, __LINE__);
 		closePipes();
 		return result;
 	}
 
 	// Communicate with the child process
+	Logger::debug("CgiExecutor: Communicating with child process");
 	result = communicateWithChild(inputData, outputData, errorData);
 
 	// Wait for child to complete
+	Logger::debug("CgiExecutor: Waiting for child process to complete");
 	ExecutionResult waitResult = waitForChild();
 	if (result == SUCCESS && waitResult != SUCCESS)
 	{
@@ -136,6 +145,7 @@ CgiExecutor::ExecutionResult CgiExecutor::execute(const std::string &scriptPath,
 	}
 
 	closePipes();
+	Logger::info("CgiExecutor: CGI execution completed with result: " + StringUtils::toString(result));
 	return result;
 }
 

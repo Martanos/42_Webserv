@@ -273,9 +273,9 @@ bool SocketAddress::isEmpty() const
 ** --------------------------------- ACCESSOR ---------------------------------
 */
 
-const struct sockaddr *SocketAddress::getSockAddr() const
+struct sockaddr_storage *SocketAddress::getSockAddr()
 {
-	return _getSockAddr();
+	return &_storage;
 }
 
 std::string SocketAddress::getHostString() const
@@ -353,7 +353,7 @@ socklen_t SocketAddress::getAddrLen() const
 }
 
 // COMPATIBILITY: Keep original getSize() method
-socklen_t SocketAddress::getSize() const
+socklen_t &SocketAddress::getSize()
 {
 	return _addrLen;
 }

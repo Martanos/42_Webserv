@@ -1,4 +1,5 @@
 #include "../../includes/EpollManager.hpp"
+#include "../../includes/StringUtils.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -25,9 +26,10 @@ EpollManager::EpollManager() : _epollFd(epoll_create1(EPOLL_CLOEXEC))
 	{
 		std::stringstream ss;
 		ss << "Failed to create epoll instance";
-		Logger::log(Logger::ERROR, ss.str());
+		Logger::error(ss.str(), __FILE__, __LINE__);
 		throw std::runtime_error(ss.str());
 	}
+	Logger::info("EpollManager: Epoll instance created successfully with fd " + StringUtils::toString(_epollFd.getFd()));
 }
 
 /*
@@ -62,7 +64,7 @@ void EpollManager::addFd(int fd, uint32_t events)
 	{
 		std::stringstream ss;
 		ss << "epoll_ctl ADD failed for fd: " << fd;
-		Logger::log(Logger::ERROR, ss.str());
+		Logger::error(ss.str(), __FILE__, __LINE__);
 		throw std::runtime_error(ss.str());
 	}
 }
@@ -77,7 +79,7 @@ void EpollManager::modifyFd(int fd, uint32_t events)
 	{
 		std::stringstream ss;
 		ss << "epoll_ctl MOD failed for fd: " << fd;
-		Logger::log(Logger::ERROR, ss.str());
+		Logger::error(ss.str(), __FILE__, __LINE__);
 		throw std::runtime_error(ss.str());
 	}
 }
@@ -88,7 +90,7 @@ void EpollManager::removeFd(int fd)
 	{
 		std::stringstream ss;
 		ss << "epoll_ctl DEL failed for fd: " << fd;
-		Logger::log(Logger::ERROR, ss.str());
+		Logger::error(ss.str(), __FILE__, __LINE__);
 	}
 }
 
@@ -108,7 +110,7 @@ int EpollManager::wait(std::vector<epoll_event> &events, int timeout)
 		}
 		std::stringstream ss;
 		ss << "epoll_wait failed: " << strerror(errno);
-		Logger::log(Logger::ERROR, ss.str());
+		Logger::error(ss.str(), __FILE__, __LINE__);
 		throw std::runtime_error(ss.str());
 	}
 	return readyCount;

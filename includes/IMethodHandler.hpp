@@ -5,6 +5,7 @@
 #include "HttpRequest.hpp"
 #include "HttpResponse.hpp"
 #include "Location.hpp"
+#include "Logger.hpp"
 #include "MimeTypes.hpp"
 #include "Server.hpp"
 #include <string>

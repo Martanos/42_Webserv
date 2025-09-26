@@ -2,6 +2,7 @@
 #define DELETEMETHODHANDLER_HPP
 
 #include "IMethodHandler.hpp"
+#include "Logger.hpp"
 #include <limits.h>
 #include <string>
 #include <sys/stat.h>

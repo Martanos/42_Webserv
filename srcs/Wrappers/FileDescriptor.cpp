@@ -1,5 +1,6 @@
 #include "../../includes/FileDescriptor.hpp"
 #include "../../includes/Logger.hpp"
+#include "../../includes/StringUtils.hpp"
 #include <cerrno>
 #include <cstring>
 #include <fcntl.h>
@@ -31,7 +32,7 @@ FileDescriptor::FileDescriptor(const FileDescriptor &src) : _fd(src._fd)
 		{
 			std::stringstream ss;
 			ss << "FileDescriptor: Failed to duplicate file descriptor: " << strerror(errno);
-			Logger::log(Logger::ERROR, ss.str());
+			Logger::error(ss.str(), __FILE__, __LINE__);
 			throw std::runtime_error(ss.str());
 		}
 	}
@@ -65,7 +66,7 @@ FileDescriptor &FileDescriptor::operator=(const FileDescriptor &other)
 			{
 				std::stringstream ss;
 				ss << "FileDescriptor: Failed to duplicate file descriptor: " << strerror(errno);
-				Logger::log(Logger::ERROR, ss.str());
+				Logger::error(ss.str(), __FILE__, __LINE__);
 				throw std::runtime_error(ss.str());
 			}
 		}
@@ -87,11 +88,12 @@ void FileDescriptor::closeDescriptor()
 {
 	if (_fd != -1)
 	{
+		// Logger::debug("FileDescriptor: Closing file descriptor " + StringUtils::toString(_fd));
 		if (close(_fd) == -1 && errno != EBADF)
 		{
 			std::stringstream ss;
 			ss << "FileDescriptor: Failed to close file descriptor: " << strerror(errno);
-			Logger::log(Logger::ERROR, ss.str());
+			Logger::error(ss.str(), __FILE__, __LINE__);
 			throw std::runtime_error(ss.str());
 		}
 		_fd = -1;
@@ -491,7 +493,7 @@ ssize_t FileDescriptor::writePipe(const std::string &buffer)
 			}
 			std::stringstream ss;
 			ss << "FileDescriptor: Failed to write pipe: " << strerror(errno);
-			Logger::log(Logger::ERROR, ss.str());
+			Logger::error(ss.str(), __FILE__, __LINE__);
 			throw std::runtime_error(ss.str());
 		}
 		totalWritten += bytesWritten;

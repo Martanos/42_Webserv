@@ -1,5 +1,6 @@
 #include "../../includes/ConfigParser.hpp"
 #include "../../includes/LocationConfig.hpp"
+#include "../../includes/StringUtils.hpp"
 
 ConfigParser::ConfigParser()
 {
@@ -30,12 +31,13 @@ ConfigParser::ConfigParser(const ConfigParser &other)
 
 bool ConfigParser::parseConfig(const std::string &filename)
 {
+	Logger::info("ConfigParser: Starting to parse configuration file: " + filename);
 	std::ifstream file(filename.c_str());
 	std::stringstream errorMessage;
 	if (!file.is_open())
 	{
 		errorMessage << "Error opening file: " << filename;
-		Logger::log(Logger::ERROR, errorMessage.str());
+		Logger::error(errorMessage.str(), __FILE__, __LINE__);
 		throw std::runtime_error(errorMessage.str());
 	}
 
@@ -43,6 +45,7 @@ bool ConfigParser::parseConfig(const std::string &filename)
 	buffer << file.rdbuf(); // Load entire file into stringstream for efficient
 							// parsing
 	file.close();
+	Logger::debug("ConfigParser: Configuration file loaded successfully");
 
 	std::string line;
 	bool foundHttp = false;
@@ -77,6 +80,7 @@ bool ConfigParser::parseConfig(const std::string &filename)
 		Logger::log(Logger::ERROR, errorMessage.str());
 		throw std::runtime_error(errorMessage.str());
 	}
+	Logger::info("ConfigParser: Successfully parsed " + StringUtils::toString(_serverConfigs.size()) + " server configurations");
 	return true;
 }
 
@@ -90,9 +94,10 @@ bool ConfigParser::serverblockcheck(const std::string &line, bool &insideHttp, b
 		{
 			errorMessage << "Error: 'server' directive is not allowed here. "
 							"Server blocks must be inside an http block.";
-			Logger::log(Logger::ERROR, errorMessage.str());
+			Logger::error(errorMessage.str(), __FILE__, __LINE__);
 			throw std::runtime_error(errorMessage.str());
 		}
+		Logger::debug("ConfigParser: Found server block");
 		insideServer = true;
 		return true; // Start of server block
 	}
@@ -115,9 +120,10 @@ bool ConfigParser::httpblockcheck(const std::string &line, bool &foundHttp, bool
 		{
 			errorMessage << "Error: Multiple http blocks found. Only one http "
 							"block is allowed.";
-			Logger::log(Logger::ERROR, errorMessage.str());
+			Logger::error(errorMessage.str(), __FILE__, __LINE__);
 			throw std::runtime_error(errorMessage.str());
 		}
+		Logger::debug("ConfigParser: Found http block");
 		foundHttp = true;
 		insideHttp = true;
 		return true; // Start of http block
@@ -130,6 +136,7 @@ bool ConfigParser::httpblockcheck(const std::string &line, bool &foundHttp, bool
 
 void ConfigParser::_parseServerBlock(std::stringstream &buffer, double &lineNumber)
 {
+	Logger::debug("ConfigParser: Starting to parse server block at line " + StringUtils::toString(lineNumber));
 	ServerConfig currentServer;
 	std::string line;
 
@@ -201,6 +208,7 @@ void ConfigParser::_parseServerBlock(std::stringstream &buffer, double &lineNumb
 
 	// Add the parsed server to our collection
 	_serverConfigs.push_back(currentServer);
+	Logger::debug("ConfigParser: Successfully parsed server block with " + StringUtils::toString(currentServer.getHosts_ports().size()) + " listen directives");
 }
 
 std::string ConfigParser::_trim(const std::string &str) const

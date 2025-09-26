@@ -63,6 +63,9 @@ public:
 	// Primary logging method
 	static void log(LogLevel level, const std::string &message);
 
+	// Enhanced logging method with file and line information
+	static void log(LogLevel level, const std::string &message, const std::string &file, int line);
+
 	// Convenience method for stringstream
 	static void log(LogLevel level, const std::stringstream &ss);
 
@@ -73,10 +76,18 @@ public:
 	static void error(const std::string &message);
 	static void critical(const std::string &message);
 
+	// Enhanced convenience methods with file and line information
+	static void debug(const std::string &message, const std::string &file, int line);
+	static void info(const std::string &message, const std::string &file, int line);
+	static void warning(const std::string &message, const std::string &file, int line);
+	static void error(const std::string &message, const std::string &file, int line);
+	static void critical(const std::string &message, const std::string &file, int line);
+
 	// Specialized logging methods
 	static void logRequest(const std::string &method, const std::string &uri, const std::string &clientIP,
 						   int statusCode);
 	static void logErrno(LogLevel level, const std::string &message);
+	static void logErrno(LogLevel level, const std::string &message, const std::string &file, int line);
 	static void logServerStart(const std::string &host, int port);
 	static void logClientConnect(const std::string &clientIP, int port);
 	static void logClientDisconnect(const std::string &clientIP, int port);

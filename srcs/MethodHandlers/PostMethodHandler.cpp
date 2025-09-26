@@ -1,4 +1,5 @@
 #include "../../includes/PostMethodHandler.hpp"
+#include "../../includes/PerformanceMonitor.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -38,6 +39,9 @@ PostMethodHandler &PostMethodHandler::operator=(PostMethodHandler const &rhs)
 void PostMethodHandler::handle(const HttpRequest &request, HttpResponse &response, const Server *server,
 							   const Location *location)
 {
+	PERF_SCOPED_TIMER(post_method_handler);
+	
+	Logger::info("PostMethodHandler: Handling POST request for URI: " + request.getUri());
 	// Check if location allows POST
 	if (location)
 	{

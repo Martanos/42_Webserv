@@ -1,6 +1,7 @@
 #ifndef CONSTANTS_HPP
 #define CONSTANTS_HPP
 
+#include "Logger.hpp"
 #include <cstddef>
 #include <string>
 #include <sys/types.h>

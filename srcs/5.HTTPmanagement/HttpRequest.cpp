@@ -1,4 +1,5 @@
 #include "../../includes/HttpRequest.hpp"
+#include "../../includes/PerformanceMonitor.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -51,6 +52,8 @@ HttpRequest &HttpRequest::operator=(const HttpRequest &rhs)
 
 HttpRequest::ParseState HttpRequest::parseBuffer(RingBuffer &buffer, HttpResponse &response)
 {
+	PERF_SCOPED_TIMER(http_request_parsing);
+	
 	// Max body size in done in client
 	// Flush client buffer into request buffer
 	_bytesReceived += buffer.readable();
@@ -63,9 +66,11 @@ HttpRequest::ParseState HttpRequest::parseBuffer(RingBuffer &buffer, HttpRespons
 		switch (result)
 		{
 		case HttpURI::URI_PARSING_COMPLETE:
+			Logger::debug("HttpRequest: Request line parsing complete");
 			_parseState = PARSING_HEADERS;
 			break;
 		case HttpURI::URI_PARSING_ERROR:
+			Logger::error("HttpRequest: Request line parsing error");
 			_parseState = PARSING_ERROR;
 			break;
 		}
@@ -76,10 +81,12 @@ HttpRequest::ParseState HttpRequest::parseBuffer(RingBuffer &buffer, HttpRespons
 		int result = _headers.parseBuffer(_rawBuffer, response, _body);
 		if (result == HttpHeaders::HEADERS_PARSING_COMPLETE)
 		{
+			Logger::debug("HttpRequest: Headers parsing complete");
 			_parseState = PARSING_BODY;
 		}
 		else if (result == HttpHeaders::HEADERS_PARSING_ERROR)
 		{
+			Logger::error("HttpRequest: Headers parsing error");
 			_parseState = PARSING_ERROR;
 		}
 		break;
@@ -89,10 +96,12 @@ HttpRequest::ParseState HttpRequest::parseBuffer(RingBuffer &buffer, HttpRespons
 		int result = _body.parseBuffer(_rawBuffer, response);
 		if (result == HttpBody::BODY_PARSING_COMPLETE)
 		{
+			Logger::debug("HttpRequest: Body parsing complete");
 			_parseState = PARSING_COMPLETE;
 		}
 		else if (result == PARSING_ERROR)
 		{
+			Logger::error("HttpRequest: Body parsing error", __FILE__, __LINE__);
 			_parseState = PARSING_ERROR;
 		}
 		break;
