@@ -52,8 +52,8 @@ HttpURI &HttpURI::operator=(const HttpURI &other)
 void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 {
 	// Scan buffer for CLRF
-	const char *pattern = "\r\n\r\n";
-	std::vector<char>::iterator it = std::search(buffer.begin(), buffer.end(), pattern, pattern + 4);
+	const char *pattern = "\r\n";
+	std::vector<char>::iterator it = std::search(buffer.begin(), buffer.end(), pattern, pattern + 2);
 	if (it == buffer.end())
 	{
 		// If it can't be found check that the buffer has not currently exceeded the size limit of a header
@@ -69,11 +69,10 @@ void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 	}
 
 	// Extract request line up to the CLRF
-	std::string requestLine;
-	requestLine.assign(buffer.begin(), it);
+	std::string requestLine(buffer.begin(), it);
 
 	// Clear buffer up to the CLRF
-	buffer.erase(buffer.begin(), it + 3);
+	buffer.erase(buffer.begin(), it + 2);
 
 	// Parse request line
 	std::istringstream stream(requestLine);

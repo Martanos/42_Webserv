@@ -95,13 +95,6 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &buffer, Http
 			{
 				Logger::debug("HttpRequest: URI parsing complete");
 				Logger::debug("URI: " + _uri.getMethod() + " " + _uri.getURI() + " " + _uri.getVersion());
-				printf("HttpRequest::parseBuffer after URI parsing\n");
-				printf("rawBuffer size: %zu\n", _rawBuffer.size());
-				for (std::vector<char>::iterator it = _rawBuffer.begin(); it != _rawBuffer.end(); it++)
-				{
-					printf("%c", *it);
-				}
-				printf("\n");
 				_parseState = PARSING_HEADERS;
 				break;
 			}
