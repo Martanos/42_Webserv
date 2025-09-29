@@ -4,7 +4,6 @@
 #include "FileDescriptor.hpp"
 #include "FileManager.hpp"
 #include "HttpResponse.hpp"
-#include "RingBuffer.hpp"
 #include <cerrno>
 #include <climits>
 #include <cstdlib>
@@ -42,26 +41,25 @@ public:
 		CHUNK_SIZE = 0,
 		CHUNK_DATA = 1,
 		CHUNK_TRAILERS = 2,
-		CHUNK_COMPLETE = 3
+		CHUNK_COMPLETE = 3,
+		CHUNK_ERROR = 4
 	};
 
 private:
 	BodyState _bodyState;
 	BodyType _bodyType;
 	ChunkState _chunkState;
-	size_t _expectedBodySize;
-	RingBuffer _chunkedBuffer;
-	RingBuffer _rawBody;
-	FileManager _tempChunkedFile;
+	ssize_t _expectedBodySize;
+	std::vector<char> _rawBody;
 	FileManager _tempFile;
 	bool _isUsingTempFile;
 
 	// Parsing paths
-	BodyState _parseChunkedBody(RingBuffer &buffer, HttpResponse &response);
-	BodyState _parseContentLengthBody(RingBuffer &buffer, HttpResponse &response);
+	BodyState _parseChunkedBody(std::vector<char> &buffer, HttpResponse &response);
+	BodyState _parseContentLengthBody(std::vector<char> &buffer);
 
 	// Decoding methods
-	size_t _parseHexSize(const std::string &hexStr) const;
+	ssize_t _parseHexSize(const std::string &hexStr) const;
 
 public:
 	HttpBody();
@@ -70,23 +68,21 @@ public:
 
 	HttpBody &operator=(HttpBody const &rhs);
 
-	int parseBuffer(RingBuffer &buffer, HttpResponse &response);
+	void parseBuffer(std::vector<char> &buffer, HttpResponse &response);
 
 	// Accessors
 	BodyState getBodyState() const;
 	std::string getRawBody() const;
-	size_t getBodySize() const;
-	size_t getBodyBytesRead() const;
-	bool getIsChunked() const;
-	bool getIsUsingTempFile() const;
-	std::string getTempFilePath() const;
+	size_t getBodySize();
+	bool getIsChunked();
+	bool getIsUsingTempFile();
+	std::string getTempFilePath();
 	FileDescriptor &getTempFd();
 
 	// Mutators
 	void setBodyState(BodyState bodyState);
 	void setBodyType(BodyType bodyType);
 	void setExpectedBodySize(size_t expectedBodySize);
-	void setBodySize(size_t bodySize);
 	void setIsUsingTempFile(bool isUsingTempFile);
 	void setTempFilePath(const std::string &tempFilePath);
 	void setTempFd(const FileDescriptor &tempFd);

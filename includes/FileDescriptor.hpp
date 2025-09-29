@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <vector>
 
 // Class wrapper for file descriptors
 class FileDescriptor
@@ -71,8 +72,10 @@ public:
 
 	// File operations
 	ssize_t readFile(std::string &buffer);
+	std::string readFile() const;
 	ssize_t writeFile(const std::string &buffer);
-
+	ssize_t writeFile(const std::vector<char> &buffer, std::vector<char>::iterator start,
+					  std::vector<char>::iterator end);
 	// Socket operations
 	ssize_t receiveData(void *buffer, size_t size);
 	ssize_t sendData(const std::string &buffer);

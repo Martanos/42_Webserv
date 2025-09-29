@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <vector>
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -413,11 +414,51 @@ ssize_t FileDescriptor::readFile(std::string &buffer)
 	return bytesRead;
 }
 
+std::string FileDescriptor::readFile() const
+{
+	std::string buffer;
+	buffer.resize(sysconf(_SC_PAGESIZE));
+	if (!isRegularFile())
+	{
+		std::stringstream ss;
+		ss << "FileDescriptor: Failed to read file: Not a regular file";
+		Logger::log(Logger::ERROR, ss.str());
+		throw std::runtime_error(ss.str());
+	}
+	ssize_t bytesRead = read(_ctrl->fd, &buffer[0], buffer.size());
+	if (bytesRead == -1)
+	{
+		std::stringstream ss;
+		ss << "FileDescriptor: Failed to read file: " << strerror(errno);
+		Logger::log(Logger::ERROR, ss.str());
+		throw std::runtime_error(ss.str());
+	}
+	buffer.resize(bytesRead);
+	return buffer;
+}
+
 ssize_t FileDescriptor::writeFile(const std::string &buffer)
 {
 	if (buffer.empty())
 		return 0;
 	ssize_t bytesWritten = write(_ctrl->fd, buffer.data(), buffer.size());
+	if (bytesWritten == -1)
+	{
+		std::stringstream ss;
+		ss << "FileDescriptor: Failed to write file: " << strerror(errno);
+		Logger::log(Logger::ERROR, ss.str());
+		throw std::runtime_error(ss.str());
+	}
+	return bytesWritten;
+}
+
+ssize_t FileDescriptor::writeFile(const std::vector<char> &buffer, std::vector<char>::iterator start,
+								  std::vector<char>::iterator end)
+{
+	(void)buffer; // Suppress unused parameter warning
+	if (start == end)
+		return 0;
+	ssize_t bytesWritten = write(_ctrl->fd, &(*start), end - start);
 	if (bytesWritten == -1)
 	{
 		std::stringstream ss;

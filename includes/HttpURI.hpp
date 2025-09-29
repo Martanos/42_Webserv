@@ -37,6 +37,9 @@ public:
 	std::string &getMethod();
 	std::string &getURI();
 	std::string &getVersion();
+	const std::string &getMethod() const;
+	const std::string &getURI() const;
+	const std::string &getVersion() const;
 	URIState getURIState() const;
 
 	// Methods

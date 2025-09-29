@@ -2,22 +2,26 @@
 #include "../../includes/HttpBody.hpp"
 #include "../../includes/HttpResponse.hpp"
 #include "../../includes/Logger.hpp"
-#include "../../includes/StringUtils.hpp"
 #include <algorithm>
 #include <cctype>
+#include <iostream>
+#include <limits>
 #include <sstream>
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-HttpHeaders::HttpHeaders() : _headersState(HEADERS_PARSING), _expectedBodySize(0), _rawHeaders(), _headers()
+HttpHeaders::HttpHeaders()
 {
+	_headersState = HEADERS_PARSING;
+	_headers = std::map<std::string, std::vector<std::string> >();
+	_expectedBodySize = 0;
 }
 
-HttpHeaders::HttpHeaders(HttpHeaders const &src) : _headersState(src._headersState), 
-	_expectedBodySize(src._expectedBodySize), _rawHeaders(src._rawHeaders), _headers(src._headers)
+HttpHeaders::HttpHeaders(HttpHeaders const &src)
 {
+	*this = src;
 }
 
 /*
@@ -37,9 +41,8 @@ HttpHeaders &HttpHeaders::operator=(HttpHeaders const &rhs)
 	if (this != &rhs)
 	{
 		_headersState = rhs._headersState;
-		_expectedBodySize = rhs._expectedBodySize;
-		_rawHeaders = rhs._rawHeaders;
 		_headers = rhs._headers;
+		_expectedBodySize = rhs._expectedBodySize;
 	}
 	return *this;
 }
@@ -48,48 +51,57 @@ HttpHeaders &HttpHeaders::operator=(HttpHeaders const &rhs)
 ** --------------------------------- METHODS ----------------------------------
 */
 
-int HttpHeaders::parseBuffer(RingBuffer &buffer, HttpResponse &response, HttpBody &body)
+void HttpHeaders::parseBuffer(std::vector<char> &buffer, HttpResponse &response, HttpBody &body)
 {
-	if (_headersState == HEADERS_PARSING_COMPLETE)
-		return HEADERS_PARSING_COMPLETE;
-
-	if (_headersState == HEADERS_PARSING_ERROR)
-		return HEADERS_PARSING_ERROR;
-
-	// Transfer data from buffer to raw headers
-	size_t transferred = _rawHeaders.transferFrom(buffer, buffer.readable());
-	if (transferred == 0)
-		return HEADERS_PARSING;
-
-	// Look for end of headers (CRLF CRLF or LF LF)
-	std::string rawData;
-	_rawHeaders.peekBuffer(rawData, _rawHeaders.readable());
-
-	size_t headerEnd = rawData.find("\r\n\r\n");
-	if (headerEnd == std::string::npos)
+	// Scan buffer for CLRF
+	const char *pattern = "\r\n\r\n";
+	std::vector<char>::iterator it = std::search(buffer.begin(), buffer.end(), pattern, pattern + 4);
+	if (it == buffer.end())
 	{
-		headerEnd = rawData.find("\n\n");
-		if (headerEnd == std::string::npos)
+		// If it can't be found check that the buffer has not currently exceeded the size limit of a header
+		if (buffer.size() > static_cast<size_t>(sysconf(_SC_PAGESIZE) * 4))
 		{
-			// Still need more data
-			return HEADERS_PARSING;
+			response.setStatus(413, "Request Header Fields Too Large");
+			Logger::log(Logger::ERROR, "Header size limit exceeded");
+			_headersState = HEADERS_PARSING_ERROR;
 		}
-		headerEnd += 2; // Include the \n\n
-	}
-	else
-	{
-		headerEnd += 4; // Include the \r\n\r\n
+		else
+			_headersState = HEADERS_PARSING;
+		return;
 	}
 
-	// Extract headers
+	// Extract header data from buffer
 	std::string headersData;
-	_rawHeaders.readBuffer(headersData, headerEnd);
+	headersData.assign(buffer.begin(), it);
+
+	// Clear buffer up to the CLRF
+	buffer.erase(buffer.begin(), it + 4);
 
 	// Parse headers
-	parseHeaders(response, body);
+	parseHeaders(headersData, response, body);
+}
 
-	_headersState = HEADERS_PARSING_COMPLETE;
-	return HEADERS_PARSING_COMPLETE;
+// Using a string stream to parse the headers into a map of headers
+void HttpHeaders::parseHeaders(const std::string &headersData, HttpResponse &response, HttpBody &body)
+{
+	if (headersData.empty())
+		return;
+
+	std::istringstream stream(headersData);
+	std::string line;
+
+	while (std::getline(stream, line))
+	{
+		// Remove trailing CRLF or LF
+		if (!line.empty() && line[line.length() - 1] == '\r')
+		{
+			line = line.substr(0, line.length() - 1);
+		}
+
+		parseHeaderLine(line, response, body);
+		if (_headersState == HEADERS_PARSING_ERROR)
+			return;
+	}
 }
 
 void HttpHeaders::parseHeaderLine(const std::string &line, HttpResponse &response, HttpBody &body)
@@ -112,10 +124,12 @@ void HttpHeaders::parseHeaderLine(const std::string &line, HttpResponse &respons
 	std::string headerValue = line.substr(colonPos + 1);
 
 	// Trim whitespace
-	headerName = headerName.substr(headerName.find_first_not_of(" \t\r\n"), 
-		headerName.find_last_not_of(" \t\r\n") - headerName.find_first_not_of(" \t\r\n") + 1);
-	headerValue = headerValue.substr(headerValue.find_first_not_of(" \t\r\n"), 
-		headerValue.find_last_not_of(" \t\r\n") - headerValue.find_first_not_of(" \t\r\n") + 1);
+	headerName =
+		headerName.substr(headerName.find_first_not_of(" \t\r\n"),
+						  headerName.find_last_not_of(" \t\r\n") - headerName.find_first_not_of(" \t\r\n") + 1);
+	headerValue =
+		headerValue.substr(headerValue.find_first_not_of(" \t\r\n"),
+						   headerValue.find_last_not_of(" \t\r\n") - headerValue.find_first_not_of(" \t\r\n") + 1);
 
 	// Convert header name to lowercase
 	std::transform(headerName.begin(), headerName.end(), headerName.begin(), ::tolower);
@@ -136,7 +150,7 @@ void HttpHeaders::parseHeaderLine(const std::string &line, HttpResponse &respons
 	if (headerName == "content-length")
 	{
 		char *endPtr;
-		long contentLength = std::strtol(headerValue.c_str(), &endPtr, 10);
+		ssize_t contentLength = std::strtol(headerValue.c_str(), &endPtr, 10);
 		if (*endPtr != '\0' || contentLength < 0)
 		{
 			Logger::log(Logger::WARNING, "Invalid Content-Length header: " + headerValue);
@@ -144,8 +158,8 @@ void HttpHeaders::parseHeaderLine(const std::string &line, HttpResponse &respons
 			response.setStatus(400, "Bad Request");
 			return;
 		}
-		_expectedBodySize = static_cast<size_t>(contentLength);
-		body.setExpectedBodySize(_expectedBodySize);
+		_expectedBodySize = contentLength;
+		body.setExpectedBodySize(contentLength);
 		body.setBodyType(HttpBody::BODY_TYPE_CONTENT_LENGTH);
 	}
 	else if (headerName == "transfer-encoding")
@@ -181,28 +195,6 @@ void HttpHeaders::parseHeaderLine(const std::string &line, HttpResponse &respons
 	}
 }
 
-void HttpHeaders::parseHeaders(HttpResponse &response, HttpBody &body)
-{
-	std::string headersData;
-	_rawHeaders.readBuffer(headersData, _rawHeaders.readable());
-
-	std::istringstream stream(headersData);
-	std::string line;
-
-	while (std::getline(stream, line))
-	{
-		// Remove trailing CRLF or LF
-		if (!line.empty() && line[line.length() - 1] == '\r')
-		{
-			line = line.substr(0, line.length() - 1);
-		}
-
-		parseHeaderLine(line, response, body);
-		if (_headersState == HEADERS_PARSING_ERROR)
-			return;
-	}
-}
-
 /*
 ** --------------------------------- ACCESSORS --------------------------------
 */
@@ -212,59 +204,14 @@ int HttpHeaders::getHeadersState() const
 	return _headersState;
 }
 
-RingBuffer HttpHeaders::getRawHeaders() const
-{
-	return _rawHeaders;
-}
-
 std::map<std::string, std::vector<std::string> > HttpHeaders::getHeaders() const
 {
 	return _headers;
 }
 
-size_t HttpHeaders::getHeadersSize() const
-{
-	size_t size = 0;
-	for (std::map<std::string, std::vector<std::string> >::const_iterator it = _headers.begin(); 
-		 it != _headers.end(); ++it)
-	{
-		size += it->first.length();
-		for (std::vector<std::string>::const_iterator vit = it->second.begin(); 
-			 vit != it->second.end(); ++vit)
-		{
-			size += vit->length();
-		}
-	}
-	return size;
-}
-
 size_t HttpHeaders::getExpectedBodySize() const
 {
 	return _expectedBodySize;
-}
-
-/*
-** --------------------------------- MUTATORS --------------------------------
-*/
-
-void HttpHeaders::setHeadersState(HeadersState headersState)
-{
-	_headersState = headersState;
-}
-
-void HttpHeaders::setRawHeaders(const RingBuffer &rawHeaders)
-{
-	_rawHeaders = rawHeaders;
-}
-
-void HttpHeaders::setHeaders(const std::map<std::string, std::vector<std::string> > &headers)
-{
-	_headers = headers;
-}
-
-void HttpHeaders::setExpectedBodySize(size_t expectedBodySize)
-{
-	_expectedBodySize = expectedBodySize;
 }
 
 /*
@@ -274,7 +221,6 @@ void HttpHeaders::setExpectedBodySize(size_t expectedBodySize)
 void HttpHeaders::reset()
 {
 	_headersState = HEADERS_PARSING;
-	_expectedBodySize = 0;
-	_rawHeaders.clear();
 	_headers.clear();
+	_expectedBodySize = 0;
 }

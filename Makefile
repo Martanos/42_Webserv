@@ -44,7 +44,6 @@ SRC_FILES = main.cpp \
 			Wrappers/FileDescriptor.cpp \
 			Wrappers/SocketAddress.cpp \
 			Wrappers/AddrInfo.cpp \
-			Wrappers/RingBuffer.cpp \
 			Wrappers/FileManager.cpp \
 			Wrappers/Logger.cpp \
 			Wrappers/PerformanceMonitor.cpp \

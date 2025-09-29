@@ -57,7 +57,7 @@ void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 	if (it == buffer.end())
 	{
 		// If it can't be found check that the buffer has not currently exceeded the size limit of a header
-		if (buffer.size() > sysconf(_SC_PAGESIZE) * 4)
+		if (buffer.size() > static_cast<size_t>(sysconf(_SC_PAGESIZE) * 4))
 		{
 			response.setStatus(413, "Request Header Fields Too Large");
 			Logger::log(Logger::ERROR, "Header size limit exceeded");
@@ -73,10 +73,7 @@ void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 	requestLine.assign(buffer.begin(), it);
 
 	// Clear buffer up to the CLRF
-	buffer.erase(buffer.begin(), it + 4);
-
-	// Resize buffer
-	buffer.resize(it - buffer.begin());
+	buffer.erase(buffer.begin(), it + 3);
 
 	// Parse request line
 	std::istringstream stream(requestLine);
@@ -142,6 +139,21 @@ std::string &HttpURI::getURI()
 }
 
 std::string &HttpURI::getVersion()
+{
+	return _version;
+}
+
+const std::string &HttpURI::getMethod() const
+{
+	return _method;
+}
+
+const std::string &HttpURI::getURI() const
+{
+	return _uri;
+}
+
+const std::string &HttpURI::getVersion() const
 {
 	return _version;
 }

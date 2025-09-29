@@ -5,14 +5,11 @@
 #include "HttpBody.hpp"
 #include "HttpResponse.hpp"
 #include "Logger.hpp"
-#include "RingBuffer.hpp"
 #include "StringUtils.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <cstdlib>
 #include <ctime>
-#include <iostream>
-#include <limits>
 #include <map>
 #include <sstream>
 #include <string>
@@ -33,9 +30,8 @@ public:
 
 private:
 	HeadersState _headersState;
-	size_t _expectedBodySize;
-	RingBuffer _rawHeaders;
 	std::map<std::string, std::vector<std::string> > _headers;
+	size_t _expectedBodySize;
 
 public:
 	// OOP
@@ -45,22 +41,15 @@ public:
 	HttpHeaders &operator=(HttpHeaders const &rhs);
 
 	// Main parsing method
-	int parseBuffer(RingBuffer &buffer, HttpResponse &response, HttpBody &body);
+	void parseBuffer(std::vector<char> &buffer, HttpResponse &response, HttpBody &body);
 	void parseHeaderLine(const std::string &line, HttpResponse &response, HttpBody &body);
-	void parseHeaders(HttpResponse &response, HttpBody &body);
+	void parseHeaders(const std::string &headersData, HttpResponse &response, HttpBody &body);
 
 	// Accessors
 	int getHeadersState() const;
-	RingBuffer getRawHeaders() const;
 	std::map<std::string, std::vector<std::string> > getHeaders() const;
 	size_t getHeadersSize() const;
 	size_t getExpectedBodySize() const;
-
-	// Mutators
-	void setHeadersState(HeadersState headersState);
-	void setRawHeaders(const RingBuffer &rawHeaders);
-	void setHeaders(const std::map<std::string, std::vector<std::string> > &headers);
-	void setExpectedBodySize(size_t expectedBodySize);
 
 	// Methods
 	void reset();

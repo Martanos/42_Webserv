@@ -9,7 +9,6 @@
 #include "Logger.hpp"
 #include "MimeTypes.hpp"
 #include "RequestRouter.hpp"
-#include "RingBuffer.hpp"
 #include "Server.hpp"
 #include "ServerMap.hpp"
 #include "SocketAddress.hpp"
@@ -46,15 +45,15 @@ private:
 	HttpRequest _request;	// The request itself
 	HttpResponse _response; // The formatted response
 
-	char _applicationBuffer; // Temporary buffer for reading from the kernel
+	std::vector<char> _applicationBuffer;		  // Temporary buffer for reading from the kernel
 	const std::vector<Server> *_potentialServers; // Potential servers to use for the request
 	Server *_server;							  // Pointer to the server to use for the request
 
 	// State
 	State _state;		  // Current state of the client
 	time_t _lastActivity; // Time of last activity will be used by server manager to check for timed out clients
+	bool _keepAlive;	  // Whether the connection should be kept alive
 
-	void _processHTTPRequest();
 	void _generateErrorResponse(int statusCode, const std::string &message = "");
 	void _identifyServer();
 
@@ -69,6 +68,7 @@ public:
 	void handleEvent(epoll_event event);
 	void readRequest();
 	void sendResponse();
+	void _processHTTPRequest();
 
 	// State management
 	State getCurrentState() const;

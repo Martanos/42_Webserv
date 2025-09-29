@@ -110,7 +110,6 @@ void ServerManager::_handleEpollEvents(int ready_events, std::vector<epoll_event
 				_clients[foundFd].handleEvent(events[i]);
 				Client::State newState = _clients[foundFd].getCurrentState();
 
-				
 				// Update epoll events based on state change
 				if (oldState != newState)
 				{
@@ -118,7 +117,6 @@ void ServerManager::_handleEpollEvents(int ready_events, std::vector<epoll_event
 					switch (newState)
 					{
 					case Client::CLIENT_READING_REQUEST:
-					case Client::CLIENT_READING_FILE:
 						epollEvents = EPOLLIN | EPOLLET;
 						break;
 					case Client::CLIENT_SENDING_RESPONSE:
@@ -143,7 +141,7 @@ void ServerManager::_handleEpollEvents(int ready_events, std::vector<epoll_event
 					ss << "Client disconnected: " << fd;
 					Logger::log(Logger::INFO, ss.str());
 				}
-				else if (newState == Client::CLIENT_CLOSING || newState == Client::CLIENT_DISCONNECTED)
+				else if (newState == Client::CLIENT_DISCONNECTED)
 				{
 					// Client is closing or already disconnected, clean up
 					_clients.erase(foundFd);
@@ -232,7 +230,7 @@ void ServerManager::run(std::vector<ServerConfig> &serverConfigs)
 	// main polling loop
 	while (isServerRunning())
 	{
-		int ready_events = _epollManager.wait(events, 1000); // 1 second timeout
+		int ready_events = _epollManager.wait(events, 30);
 		if (ready_events == -1)
 		{
 			Logger::logErrno(Logger::ERROR, "Epoll wait failed", __FILE__, __LINE__);

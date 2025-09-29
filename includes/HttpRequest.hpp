@@ -4,7 +4,6 @@
 #include "HttpBody.hpp"
 #include "HttpHeaders.hpp"
 #include "HttpURI.hpp"
-#include "RingBuffer.hpp"
 #include "Server.hpp"
 #include <cstdlib>
 #include <ctime>
@@ -48,9 +47,7 @@ public:
 	~HttpRequest();
 
 	// Parsing methods
-	ParseState parseBuffer(char &buffer, HttpResponse &response, Server *server);
-	bool isComplete() const;
-	bool hasError() const;
+	ParseState parseBuffer(std::vector<char> &buffer, HttpResponse &response, Server *server, size_t bytesRead);
 	void reset();
 
 	// Getters
@@ -61,9 +58,9 @@ public:
 	const std::vector<std::string> &getHeader(const std::string &name) const;
 	std::string getBody() const;
 	size_t getContentLength() const;
-	bool isChunked() const;
-	bool isUsingTempFile() const;
-	std::string getTempFile() const;
+	bool isChunked();
+	bool isUsingTempFile();
+	std::string getTempFile();
 };
 
 #endif /* HTTPREQUEST_HPP */

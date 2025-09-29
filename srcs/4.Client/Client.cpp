@@ -23,7 +23,14 @@ Client::Client()
 	_remoteAddr = SocketAddress();
 	_request = HttpRequest();
 	_response = HttpResponse();
-	_applicationBuffer = char(sysconf(_SC_PAGESIZE)); // Is about 4KB depending on the system
+	long pageSize = sysconf(_SC_PAGESIZE);
+	if (pageSize == -1)
+	{
+		// handle error: fallback, throw, or use a default
+		perror("sysconf");
+		pageSize = 4096; // safe default on most systems
+	}
+	_applicationBuffer = std::vector<char>(static_cast<size_t>(pageSize)); // Is about 4KB depending on the system
 	_potentialServers = NULL;
 	_server = NULL;
 	_state = CLIENT_WAITING_FOR_REQUEST;
@@ -36,10 +43,24 @@ Client::Client(const Client &src)
 }
 
 Client::Client(FileDescriptor socketFd, SocketAddress clientAddr, SocketAddress remoteAddr)
-	: _clientFd(socketFd), _localAddr(clientAddr), _remoteAddr(remoteAddr), _request(), _response(),
-	  _applicationBuffer(char(sysconf(_SC_PAGESIZE))), _potentialServers(NULL), _server(NULL),
-	  _state(CLIENT_WAITING_FOR_REQUEST), _lastActivity(time(NULL))
 {
+	_clientFd = socketFd;
+	_localAddr = clientAddr;
+	_remoteAddr = remoteAddr;
+	_request = HttpRequest();
+	_response = HttpResponse();
+	long pageSize = sysconf(_SC_PAGESIZE);
+	if (pageSize == -1)
+	{
+		// handle error: fallback, throw, or use a default
+		perror("sysconf");
+		pageSize = 4096; // safe default on most systems
+	}
+	_applicationBuffer = std::vector<char>(static_cast<size_t>(pageSize)); // Is about 4KB depending on the system
+	_potentialServers = NULL;
+	_server = NULL;
+	_state = CLIENT_WAITING_FOR_REQUEST;
+	_lastActivity = time(NULL);
 }
 
 /*
@@ -83,7 +104,6 @@ void Client::handleEvent(epoll_event event)
 {
 	// Update the last activity time
 	updateActivity();
-
 	if (event.events & (EPOLLHUP | EPOLLRDHUP | EPOLLERR))
 	{
 		std::stringstream ss;
@@ -120,7 +140,7 @@ void Client::handleEvent(epoll_event event)
 void Client::readRequest()
 {
 	// Extract data from the kernel buffer
-	ssize_t bytesRead = _clientFd.receiveData(&_applicationBuffer, sizeof(_applicationBuffer));
+	ssize_t bytesRead = recv(_clientFd.getFd(), _applicationBuffer.data(), _applicationBuffer.size(), 0);
 	if (bytesRead <= 0)
 	{
 		// Client disconnected or error occurred
@@ -130,10 +150,10 @@ void Client::readRequest()
 		_state = CLIENT_DISCONNECTED;
 		return;
 	}
-	HttpRequest::ParseState parseResult = _request.parseBuffer(_applicationBuffer, _response, _server);
+	HttpRequest::ParseState parseResult = _request.parseBuffer(_applicationBuffer, _response, _server, bytesRead);
 
 	// Reset the application buffer
-	std::memset(&_applicationBuffer, 0, sizeof(_applicationBuffer));
+	_applicationBuffer.clear();
 
 	// Parse the request
 
@@ -220,8 +240,8 @@ void Client::sendResponse()
 			// Reset for next request on same connection
 			_request.reset();
 			_response = HttpResponse(); // Create fresh response
-			_readBuffer.clear();
-			_currentState = CLIENT_WAITING_FOR_REQUEST;
+			_applicationBuffer.clear();
+			_state = CLIENT_WAITING_FOR_REQUEST;
 			updateActivity(); // Reset timeout
 
 			// Important: Set response header to inform client
@@ -231,7 +251,7 @@ void Client::sendResponse()
 		}
 		else
 		{
-			_currentState = CLIENT_CLOSING;
+			_state = CLIENT_DISCONNECTED;
 			_response.setHeader("Connection", "close");
 		}
 	}
@@ -368,7 +388,7 @@ void Client::_processHTTPRequest()
 	Logger::log(Logger::INFO, logMsg.str());
 
 	// Transition to sending state
-	_currentState = CLIENT_SENDING_RESPONSE;
+	_state = CLIENT_SENDING_RESPONSE;
 }
 
 // TODO: move this to the http response class
@@ -392,12 +412,12 @@ void Client::_generateErrorResponse(int statusCode, const std::string &message)
 
 Client::State Client::getCurrentState() const
 {
-	return _currentState;
+	return _state;
 }
 
 void Client::setState(State newState)
 {
-	_currentState = newState;
+	_state = newState;
 }
 
 void Client::updateActivity()
