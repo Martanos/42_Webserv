@@ -33,32 +33,26 @@ public:
 	{
 		CLIENT_WAITING_FOR_REQUEST = 0,
 		CLIENT_READING_REQUEST = 1,
-		CLIENT_READING_FILE = 2,
-		CLIENT_PROCESSING_REQUEST = 3,
-		CLIENT_SENDING_RESPONSE = 4,
-		CLIENT_CLOSING = 5,
-		CLIENT_DISCONNECTED = 6
+		CLIENT_SENDING_RESPONSE = 2,
+		CLIENT_DISCONNECTED = 3
 	};
 
 private:
 	// Objects
-	FileDescriptor _clientFd;
-	int _socketFd;
-	SocketAddress _localAddr;
-	SocketAddress _remoteAddr;
+	FileDescriptor _clientFd;  // File descriptor for the client
+	SocketAddress _localAddr;  // Local address of the client (Who am I locally)
+	SocketAddress _remoteAddr; // Remote address of the client (Who sent me)
 
-	size_t _totalBytesRead;
-	HttpRequest _request;
-	HttpResponse _response;
-	RingBuffer _readBuffer;
-	const std::vector<Server> *_potentialServers;
-	bool _serverFound;
-	Server *_server;
+	HttpRequest _request;	// The request itself
+	HttpResponse _response; // The formatted response
+
+	char _applicationBuffer; // Temporary buffer for reading from the kernel
+	const std::vector<Server> *_potentialServers; // Potential servers to use for the request
+	Server *_server;							  // Pointer to the server to use for the request
 
 	// State
-	State _currentState;
-	time_t _lastActivity;
-	bool _keepAlive;
+	State _state;		  // Current state of the client
+	time_t _lastActivity; // Time of last activity will be used by server manager to check for timed out clients
 
 	void _processHTTPRequest();
 	void _generateErrorResponse(int statusCode, const std::string &message = "");

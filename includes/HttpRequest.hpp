@@ -1,19 +1,14 @@
 #ifndef HTTPREQUEST_HPP
 #define HTTPREQUEST_HPP
 
-#include "Constants.hpp"
-#include "FileDescriptor.hpp"
 #include "HttpBody.hpp"
 #include "HttpHeaders.hpp"
 #include "HttpURI.hpp"
-#include "Logger.hpp"
 #include "RingBuffer.hpp"
-#include "StringUtils.hpp"
-#include <algorithm>
+#include "Server.hpp"
 #include <cstdlib>
 #include <ctime>
 #include <map>
-#include <sstream>
 #include <string>
 #include <vector>
 
@@ -28,7 +23,7 @@ class HttpRequest
 public:
 	enum ParseState
 	{
-		PARSING_REQUEST_LINE = 0,
+		PARSING_URI = 0,
 		PARSING_HEADERS = 1,
 		PARSING_BODY = 2,
 		PARSING_COMPLETE = 3,
@@ -43,8 +38,8 @@ private:
 
 	// Parsing state
 	ParseState _parseState;
-	RingBuffer _rawBuffer;
-	size_t _bytesReceived;
+	std::vector<char> _rawBuffer; // Buffer for raw data
+	size_t _totalBytesReceived;
 
 public:
 	HttpRequest();
@@ -53,7 +48,7 @@ public:
 	~HttpRequest();
 
 	// Parsing methods
-	ParseState parseBuffer(RingBuffer &buffer, HttpResponse &response);
+	ParseState parseBuffer(char &buffer, HttpResponse &response, Server *server);
 	bool isComplete() const;
 	bool hasError() const;
 	void reset();

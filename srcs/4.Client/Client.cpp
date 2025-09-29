@@ -17,25 +17,28 @@
 */
 
 Client::Client()
-	: _clientFd(), _socketFd(-1), _localAddr(), _remoteAddr(), _totalBytesRead(0), _request(), _response(),
-	  _readBuffer(), _potentialServers(NULL), _serverFound(false), _server(NULL),
-	  _currentState(CLIENT_WAITING_FOR_REQUEST), _lastActivity(time(NULL)), _keepAlive(true)
 {
+	_clientFd = FileDescriptor();
+	_localAddr = SocketAddress();
+	_remoteAddr = SocketAddress();
+	_request = HttpRequest();
+	_response = HttpResponse();
+	_applicationBuffer = char(sysconf(_SC_PAGESIZE)); // Is about 4KB depending on the system
+	_potentialServers = NULL;
+	_server = NULL;
+	_state = CLIENT_WAITING_FOR_REQUEST;
+	_lastActivity = time(NULL);
 }
 
 Client::Client(const Client &src)
-	: _clientFd(src._clientFd), _socketFd(src._socketFd), _localAddr(src._localAddr), _remoteAddr(src._remoteAddr),
-	  _totalBytesRead(src._totalBytesRead), _request(src._request), _response(src._response),
-	  _readBuffer(src._readBuffer), _potentialServers(src._potentialServers), _serverFound(src._serverFound),
-	  _server(src._server), _currentState(src._currentState), _lastActivity(src._lastActivity),
-	  _keepAlive(src._keepAlive)
 {
+	*this = src;
 }
 
 Client::Client(FileDescriptor socketFd, SocketAddress clientAddr, SocketAddress remoteAddr)
-	: _clientFd(socketFd), _socketFd(socketFd.getFd()), _localAddr(clientAddr), _remoteAddr(remoteAddr),
-	  _totalBytesRead(0), _request(), _response(), _readBuffer(), _potentialServers(NULL), _serverFound(false),
-	  _server(NULL), _currentState(CLIENT_WAITING_FOR_REQUEST), _lastActivity(time(NULL)), _keepAlive(true)
+	: _clientFd(socketFd), _localAddr(clientAddr), _remoteAddr(remoteAddr), _request(), _response(),
+	  _applicationBuffer(char(sysconf(_SC_PAGESIZE))), _potentialServers(NULL), _server(NULL),
+	  _state(CLIENT_WAITING_FOR_REQUEST), _lastActivity(time(NULL))
 {
 }
 
@@ -45,33 +48,7 @@ Client::Client(FileDescriptor socketFd, SocketAddress clientAddr, SocketAddress 
 
 Client::~Client()
 {
-	// Log client disconnection based on current state
-	if (_currentState != CLIENT_DISCONNECTED)
-	{
-		std::stringstream ss;
-		ss << "Client " << _clientFd.getFd() << " disconnected";
-
-		switch (_currentState)
-		{
-		case CLIENT_READING_REQUEST:
-			ss << " while reading request";
-			break;
-		case CLIENT_PROCESSING_REQUEST:
-			ss << " while processing request";
-			break;
-		case CLIENT_SENDING_RESPONSE:
-			ss << " while sending response";
-			break;
-		case CLIENT_READING_FILE:
-			ss << " while reading file";
-			break;
-		default:
-			ss << " in state " << _currentState;
-			break;
-		}
-
-		Logger::log(Logger::INFO, ss.str());
-	}
+	// TODO: Log / send an error response depending on state of client
 }
 
 /*
@@ -85,14 +62,12 @@ Client &Client::operator=(Client const &rhs)
 		_clientFd = rhs._clientFd;
 		_localAddr = rhs._localAddr;
 		_remoteAddr = rhs._remoteAddr;
-		_currentState = rhs._currentState;
+		_state = rhs._state;
 		_request = rhs._request;
 		_response = rhs._response;
-		_readBuffer = rhs._readBuffer;
+		_applicationBuffer = rhs._applicationBuffer;
 		_lastActivity = rhs._lastActivity;
-		_keepAlive = rhs._keepAlive;
 		_server = rhs._server;
-		_readBuffer = rhs._readBuffer;
 	}
 	return *this;
 }
@@ -102,137 +77,99 @@ Client &Client::operator=(Client const &rhs)
 *----------------------------------
 */
 
-// TODO: Encapsulate in a try catch block
+// This method is called by epoll manager when an EPOLLIN event is triggered
+// Should empty the kernel buffer then proceed to handle the event
 void Client::handleEvent(epoll_event event)
 {
+	// Update the last activity time
 	updateActivity();
-	Logger::debug("Client: Handling event for client " + StringUtils::toString(_clientFd.getFd()) + " in state " +
-				  StringUtils::toString(_currentState));
 
 	if (event.events & (EPOLLHUP | EPOLLRDHUP | EPOLLERR))
 	{
 		std::stringstream ss;
 		ss << "Client disconnected: " << _clientFd.getFd();
 		Logger::log(Logger::INFO, ss.str());
-		throw std::runtime_error(ss.str());
+		_state = CLIENT_DISCONNECTED;
+		return;
 	}
 
-	switch (_currentState)
+	switch (_state)
 	{
 	case CLIENT_WAITING_FOR_REQUEST:
-		if (event.events & EPOLLIN)
-		{
-			Logger::debug("Client: Starting to read request from client " + StringUtils::toString(_clientFd.getFd()));
-			_currentState = CLIENT_READING_REQUEST;
-			readRequest();
-		}
-		break;
 	case CLIENT_READING_REQUEST:
+	{
 		if (event.events & EPOLLIN)
 			readRequest();
 		break;
-	case CLIENT_READING_FILE:
-		// File reading is handled by HttpRequest class
-		if (event.events & EPOLLIN)
-		{
-			_processHTTPRequest();
-		}
-		break;
-	case CLIENT_PROCESSING_REQUEST:
-		// Request processing state
-		Logger::debug("Client: Processing HTTP request for client " + StringUtils::toString(_clientFd.getFd()));
-		{
-			PERF_SCOPED_TIMER(request_processing);
-			_processHTTPRequest();
-		}
-		break;
+	}
 	case CLIENT_SENDING_RESPONSE:
+	{
 		if (event.events & EPOLLOUT)
 		{
 			sendResponse();
 		}
 		break;
-	case CLIENT_CLOSING:
-		// Connection is being closed
-		_currentState = CLIENT_DISCONNECTED;
-		break;
+	}
 	case CLIENT_DISCONNECTED:
-		// Connection is already disconnected
 		break;
 	}
 }
 
+// Initial reading of request from the kernel buffer
+// No point using a ring buffer here as http request will just ingest the buffer directly
 void Client::readRequest()
 {
-	if (!_readBuffer.empty())
-	{
-		std::stringstream ss;
-		ss << "Read buffer is not empty: " << _readBuffer.readable();
-		Logger::log(Logger::WARNING, ss.str());
-		_readBuffer.clear();
-	}
-	Logger::debug("Client: Reading request from client " + StringUtils::toString(_clientFd.getFd()));
-	// Buffer should be empty each loop
-	// Read data into a temporary buffer first
-	char tempBuffer[4096];
-	ssize_t bytesRead = _clientFd.receiveData(tempBuffer, sizeof(tempBuffer));
-	Logger::debug("Client: Received " + StringUtils::toString(bytesRead) + " bytes from client " +
-				  StringUtils::toString(_clientFd.getFd()));
-	std::string tempBufferString(tempBuffer, bytesRead);
-	Logger::debug("Client: Temp buffer: " + tempBufferString);
-	if (bytesRead > 0)
-	{
-		_readBuffer.writeBuffer(tempBuffer, bytesRead);
-	}
+	// Extract data from the kernel buffer
+	ssize_t bytesRead = _clientFd.receiveData(&_applicationBuffer, sizeof(_applicationBuffer));
 	if (bytesRead <= 0)
 	{
 		// Client disconnected or error occurred
 		std::stringstream ss;
 		ss << "Client disconnected during read: " << _clientFd.getFd();
 		Logger::log(Logger::INFO, ss.str());
-		throw std::runtime_error(ss.str());
-	}
-	_totalBytesRead += bytesRead;
-	if (_serverFound && _totalBytesRead > _server->getClientMaxBodySize())
-	{
-		_response.reset();
-		_response.setStatus(413, "Payload Too Large");
-		_response.setBody(DefaultStatusMap::getStatusBody(413));
-		_response.setHeader("Content-Type", "text/html");
-		_response.setHeader("Content-Length", StringUtils::toString(_response.getBody().length()));
-		_response.setHeader("Connection", _keepAlive ? "keep-alive" : "close");
-		_response.setHeader("Server", SERVER::SERVER_VERSION);
-		_currentState = CLIENT_SENDING_RESPONSE;
+		_state = CLIENT_DISCONNECTED;
 		return;
 	}
+	HttpRequest::ParseState parseResult = _request.parseBuffer(_applicationBuffer, _response, _server);
+
+	// Reset the application buffer
+	std::memset(&_applicationBuffer, 0, sizeof(_applicationBuffer));
 
 	// Parse the request
-	HttpRequest::ParseState parseResult = _request.parseBuffer(_readBuffer, _response);
 
+	// Based on resulting http request state
+	// 1. Further process the request
+	// 2. Reset the buffers for next request
 	switch (parseResult)
 	{
-	case HttpRequest::PARSING_COMPLETE:
-		_currentState = CLIENT_PROCESSING_REQUEST;
-		_processHTTPRequest();
-		_currentState = CLIENT_SENDING_RESPONSE;
-		break;
 	case HttpRequest::PARSING_ERROR:
-		_generateErrorResponse(400, "Bad Request");
-		_currentState = CLIENT_SENDING_RESPONSE;
+		_state = CLIENT_SENDING_RESPONSE;
 		break;
-
-	case HttpRequest::PARSING_REQUEST_LINE:
+	case HttpRequest::PARSING_COMPLETE:
+		_processHTTPRequest();
+		_state = CLIENT_SENDING_RESPONSE;
+		break;
+	case HttpRequest::PARSING_URI:
+	{
+		_state = CLIENT_READING_REQUEST;
+		break;
+	}
 	case HttpRequest::PARSING_HEADERS:
 	case HttpRequest::PARSING_BODY:
 	{
-		_identifyServer();
-		_currentState = CLIENT_READING_REQUEST;
+		// Identify server if not already done
+		if (_server == NULL)
+		{
+			_identifyServer();
+		}
+		_state = CLIENT_READING_REQUEST;
 		// Continue reading - need more data
 		break;
 	}
 	}
 }
 
+// TODO: Refactor this
 void Client::sendResponse()
 {
 	if (_response.getRawResponse().empty())
@@ -434,6 +371,7 @@ void Client::_processHTTPRequest()
 	_currentState = CLIENT_SENDING_RESPONSE;
 }
 
+// TODO: move this to the http response class
 void Client::_generateErrorResponse(int statusCode, const std::string &message)
 {
 	// This can be simplified to just set basic error response

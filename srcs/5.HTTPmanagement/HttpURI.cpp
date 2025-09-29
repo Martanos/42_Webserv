@@ -9,165 +9,146 @@
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
+HttpURI::HttpURI()
+{
+	_uriState = URI_PARSING;
+	_method = "";
+	_uri = "";
+	_version = "";
+}
+
+HttpURI::HttpURI(const HttpURI &other)
+{
+	*this = other;
+}
+
 /*
 ** -------------------------------- DESTRUCTOR --------------------------------
 */
+
+HttpURI::~HttpURI()
+{
+}
 
 /*
 ** --------------------------------- OVERLOAD ---------------------------------
 */
 
+HttpURI &HttpURI::operator=(const HttpURI &other)
+{
+	if (this != &other)
+	{
+		_uriState = other._uriState;
+		_method = other._method;
+		_uri = other._uri;
+		_version = other._version;
+	}
+	return *this;
+}
 /*
 ** --------------------------------- METHODS ----------------------------------
 */
 
-int HttpURI::parseBuffer(RingBuffer &buffer, HttpResponse &response)
+void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 {
-	if (_uriState == URI_PARSING_COMPLETE)
-		return URI_PARSING_COMPLETE;
-
-	if (_uriState == URI_PARSING_ERROR)
-		return URI_PARSING_ERROR;
-
-	// Transfer data from buffer to raw URI
-	size_t transferred = _rawURI.transferFrom(buffer, buffer.readable());
-	if (transferred == 0)
-		return URI_PARSING;
-
-	// Look for end of request line (CRLF or LF)
-	std::string rawData;
-	_rawURI.peekBuffer(rawData, _rawURI.readable());
-
-	size_t lineEnd = rawData.find("\r\n");
-	if (lineEnd == std::string::npos)
+	// Scan buffer for CLRF
+	const char *pattern = "\r\n\r\n";
+	std::vector<char>::iterator it = std::search(buffer.begin(), buffer.end(), pattern, pattern + 4);
+	if (it == buffer.end())
 	{
-		lineEnd = rawData.find('\n');
-		if (lineEnd == std::string::npos)
+		// If it can't be found check that the buffer has not currently exceeded the size limit of a header
+		if (buffer.size() > sysconf(_SC_PAGESIZE) * 4)
 		{
-			// Still need more data
-			return URI_PARSING;
+			response.setStatus(413, "Request Header Fields Too Large");
+			Logger::log(Logger::ERROR, "Header size limit exceeded");
+			_uriState = URI_PARSING_ERROR;
 		}
-		lineEnd += 1; // Include the \n
-	}
-	else
-	{
-		lineEnd += 2; // Include the \r\n
+		else
+			_uriState = URI_PARSING;
+		return;
 	}
 
-	// Extract request line
+	// Extract request line up to the CLRF
 	std::string requestLine;
-	_rawURI.readBuffer(requestLine, lineEnd);
+	requestLine.assign(buffer.begin(), it);
+
+	// Clear buffer up to the CLRF
+	buffer.erase(buffer.begin(), it + 4);
+
+	// Resize buffer
+	buffer.resize(it - buffer.begin());
 
 	// Parse request line
 	std::istringstream stream(requestLine);
-	std::string method, uri, version;
 
-	if (!(stream >> method >> uri >> version))
+	if (!(stream >> _method >> _uri >> _version))
 	{
 		Logger::log(Logger::ERROR, "Invalid request line: " + requestLine);
 		_uriState = URI_PARSING_ERROR;
 		response.setStatus(400, "Bad Request");
-		return URI_PARSING_ERROR;
+		return;
 	}
 
+	// TODO: Move this to a constant
 	// Validate method
 	std::vector<std::string> validMethods;
 	validMethods.push_back("GET");
 	validMethods.push_back("POST");
 	validMethods.push_back("DELETE");
 
-	if (std::find(validMethods.begin(), validMethods.end(), method) == validMethods.end())
+	if (std::find(validMethods.begin(), validMethods.end(), _method) == validMethods.end())
 	{
-		Logger::log(Logger::ERROR, "Unsupported HTTP method: " + method);
+		Logger::log(Logger::ERROR, "Unsupported HTTP method: " + _method);
 		_uriState = URI_PARSING_ERROR;
 		response.setStatus(501, "Not Implemented");
-		return URI_PARSING_ERROR;
+		return;
 	}
 
 	// Validate URI
-	if (uri.empty() || uri[0] != '/')
+	if (_uri.empty() || _uri[0] != '/')
 	{
-		Logger::log(Logger::ERROR, "Invalid URI: " + uri);
+		Logger::log(Logger::ERROR, "Invalid URI: " + _uri);
 		_uriState = URI_PARSING_ERROR;
 		response.setStatus(400, "Bad Request");
-		return URI_PARSING_ERROR;
+		return;
 	}
 
 	// Validate version
-	if (version != "HTTP/1.1" && version != "HTTP/1.0")
+	if (_version != "HTTP/1.1" && _version != "HTTP/1.0")
 	{
-		Logger::log(Logger::ERROR, "Unsupported HTTP version: " + version);
+		Logger::log(Logger::ERROR, "Unsupported HTTP version: " + _version);
 		_uriState = URI_PARSING_ERROR;
 		response.setStatus(505, "HTTP Version Not Supported");
-		return URI_PARSING_ERROR;
+		return;
 	}
 
-	// Store parsed values
-	_method = method;
-	_uri = uri;
-	_version = version;
-
-	Logger::debug("HttpURI: Parsed request line: " + method + " " + uri + " " + version);
+	Logger::debug("HttpURI: Parsed request line: " + _method + " " + _uri + " " + _version);
 	_uriState = URI_PARSING_COMPLETE;
-	return URI_PARSING_COMPLETE;
+	return;
 }
 
 /*
 ** --------------------------------- ACCESSORS --------------------------------
 */
 
-HttpURI::URIState HttpURI::getURIState() const
-{
-	return _uriState;
-}
-
-RingBuffer &HttpURI::getRawURI()
-{
-	return _rawURI;
-}
-
-std::string HttpURI::getMethod() const
+std::string &HttpURI::getMethod()
 {
 	return _method;
 }
 
-std::string HttpURI::getURI() const
+std::string &HttpURI::getURI()
 {
 	return _uri;
 }
 
-std::string HttpURI::getVersion() const
+std::string &HttpURI::getVersion()
 {
 	return _version;
 }
 
-/*
-** --------------------------------- MUTATORS --------------------------------
-*/
-
-void HttpURI::setURIState(URIState uriState)
+HttpURI::URIState HttpURI::getURIState() const
 {
-	_uriState = uriState;
-}
-
-void HttpURI::setRawURI(RingBuffer &rawURI)
-{
-	_rawURI = rawURI;
-}
-
-void HttpURI::setMethod(const std::string &method)
-{
-	_method = method;
-}
-
-void HttpURI::setURI(const std::string &uri)
-{
-	_uri = uri;
-}
-
-void HttpURI::setVersion(const std::string &version)
-{
-	_version = version;
+	return _uriState;
 }
 
 /*
@@ -177,7 +158,6 @@ void HttpURI::setVersion(const std::string &version)
 void HttpURI::reset()
 {
 	_uriState = URI_PARSING;
-	_rawURI.clear();
 	_method = "";
 	_uri = "";
 	_version = "";

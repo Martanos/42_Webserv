@@ -1,6 +1,19 @@
 #include "../../includes/HttpRequest.hpp"
 #include "../../includes/PerformanceMonitor.hpp"
 
+#include "Constants.hpp"
+#include "FileDescriptor.hpp"
+#include "HttpBody.hpp"
+#include "HttpHeaders.hpp"
+#include "HttpURI.hpp"
+#include "Logger.hpp"
+#include "Server.hpp"
+#include "StringUtils.hpp"
+#include <algorithm>
+#include <cctype>
+#include <cstdlib>
+#include <sstream>
+
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
@@ -10,8 +23,6 @@ HttpRequest::HttpRequest()
 	_uri = HttpURI();
 	_headers = HttpHeaders();
 	_body = HttpBody();
-	_rawBuffer = RingBuffer(sysconf(_SC_PAGESIZE) * 4); // Should equal 32KB/64KB depending on the system
-	_bytesReceived = 0;
 }
 
 HttpRequest::HttpRequest(const HttpRequest &src)
@@ -39,8 +50,6 @@ HttpRequest &HttpRequest::operator=(const HttpRequest &rhs)
 		_headers = rhs._headers;
 		_body = rhs._body;
 		_parseState = rhs._parseState;
-		_rawBuffer = rhs._rawBuffer;
-		_bytesReceived = rhs._bytesReceived;
 	}
 	return *this;
 }
@@ -50,28 +59,29 @@ HttpRequest &HttpRequest::operator=(const HttpRequest &rhs)
 *----------------------------------
 */
 
-HttpRequest::ParseState HttpRequest::parseBuffer(RingBuffer &buffer, HttpResponse &response)
+HttpRequest::ParseState HttpRequest::parseBuffer(char &buffer, HttpResponse &response, Server *server)
 {
 	PERF_SCOPED_TIMER(http_request_parsing);
-	
-	// Max body size in done in client
-	// Flush client buffer into request buffer
-	_bytesReceived += buffer.readable();
-	_rawBuffer.transferFrom(buffer, buffer.readable());
+
+	// Ingest buffer into a vector first helps to prevent data corruption
+	_rawBuffer.insert(_rawBuffer.end(), buffer, buffer + 1);
+
+	// Delegate to the appropriate parser
 	switch (_parseState)
 	{
-	case PARSING_REQUEST_LINE:
+	case PARSING_URI:
 	{
-		int result = _uri.parseBuffer(_rawBuffer, response);
-		switch (result)
+		_uri.parseBuffer(buffer, response);
+		switch (_uri.getURIState())
 		{
 		case HttpURI::URI_PARSING_COMPLETE:
-			Logger::debug("HttpRequest: Request line parsing complete");
 			_parseState = PARSING_HEADERS;
 			break;
 		case HttpURI::URI_PARSING_ERROR:
 			Logger::error("HttpRequest: Request line parsing error");
 			_parseState = PARSING_ERROR;
+			break;
+		default:
 			break;
 		}
 		break;
@@ -109,6 +119,7 @@ HttpRequest::ParseState HttpRequest::parseBuffer(RingBuffer &buffer, HttpRespons
 	default:
 		break;
 	}
+	// TODO: Log state here
 	return _parseState;
 }
 

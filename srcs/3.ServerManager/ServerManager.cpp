@@ -110,6 +110,7 @@ void ServerManager::_handleEpollEvents(int ready_events, std::vector<epoll_event
 				_clients[foundFd].handleEvent(events[i]);
 				Client::State newState = _clients[foundFd].getCurrentState();
 
+				
 				// Update epoll events based on state change
 				if (oldState != newState)
 				{
