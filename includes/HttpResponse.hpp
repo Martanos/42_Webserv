@@ -12,6 +12,21 @@
 class HttpResponse
 {
 private:
+	enum HttpResponseState
+	{
+		RESPONSE_INITIAL = 0,
+		RESPONSE_SENDING = 1,
+		RESPONSE_ERROR = 2
+	};
+
+	enum HttpResponseType
+	{
+		NORMAL_RESPONSE = 0,
+		ERROR_RESPONSE = 1, PROTOCOL_LEVEL_ERROR =
+			0, // If this occurs send a basic error response then close the connection
+		APPLICATION_LEVEL_ERROR = 1 // If this occurs send a basic error response keep the connection open depending on
+	};
+
 	int _statusCode;
 	std::string _statusMessage;
 	std::string _version;

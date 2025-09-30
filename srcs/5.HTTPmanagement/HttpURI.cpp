@@ -53,9 +53,7 @@ HttpURI &HttpURI::operator=(const HttpURI &other)
 
 void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 {
-	// Scan buffer for CLRF
-	const char *pattern = "\r\n";
-	std::vector<char>::iterator it = std::search(buffer.begin(), buffer.end(), pattern, pattern + 2);
+	std::vector<char>::iterator it = std::search(buffer.begin(), buffer.end(), HTTP::CRLF, HTTP::CRLF + 2);
 	if (it == buffer.end())
 	{
 		// If it can't be found check that the buffer has not currently exceeded the size limit of a header

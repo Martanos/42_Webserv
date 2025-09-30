@@ -93,52 +93,44 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 	case PARSING_HEADERS:
 	{
 		_headers.parseBuffer(holdingBuffer, response, _body);
-		if (_headers.getHeadersState() == HttpHeaders::HEADERS_PARSING_COMPLETE)
+		switch (_headers.getHeadersState())
 		{
-			for (std::map<std::string, std::vector<std::string> >::const_iterator it = _headers.getHeaders().begin();
-				 it != _headers.getHeaders().end(); ++it)
-			{
-				printf("%s: ", it->first.c_str());
-				if (!it->second.empty())
-				{
-					for (std::vector<std::string>::const_iterator it2 = it->second.begin(); it2 != it->second.end();
-						 ++it2)
-					{
-						if (it2 != it->second.begin())
-						{
-							printf(", ");
-						}
-						printf("%s", it2->c_str());
-					}
-					printf("\n");
-				}
-				else
-				{
-					printf("No values\n");
-				}
-			}
+		case HttpHeaders::HEADERS_PARSING_COMPLETE:
 			Logger::debug("HttpRequest: Headers parsing complete");
 			_parseState = PARSING_BODY;
-		}
-		else if (_headers.getHeadersState() == HttpHeaders::HEADERS_PARSING_ERROR)
-		{
+			break;
+		case HttpHeaders::HEADERS_PARSING_ERROR:
 			Logger::error("HttpRequest: Headers parsing error", __FILE__, __LINE__);
 			_parseState = PARSING_ERROR;
+			break;
 		}
 		break;
 	}
 	case PARSING_BODY:
 	{
+		if (_server == NULL)
+		{
+			Logger::error("HttpRequest: No server found", __FILE__, __LINE__);
+			response.setStatus(400, "Bad Request");
+			_parseState = PARSING_ERROR;
+			break;
+		}
 		_body.parseBuffer(holdingBuffer, response);
-		if (_body.getBodyState() == HttpBody::BODY_PARSING_COMPLETE)
+		switch (_body.getBodyState())
+		{
+		case HttpBody::BODY_PARSING_COMPLETE:
 		{
 			Logger::debug("HttpRequest: Body parsing complete");
 			_parseState = PARSING_COMPLETE;
+			break;
 		}
-		else if (_body.getBodyState() == HttpBody::BODY_PARSING_ERROR)
-		{
+		case HttpBody::BODY_PARSING:
+			_parseState = PARSING_BODY;
+			break;
+		case HttpBody::BODY_PARSING_ERROR:
 			Logger::error("HttpRequest: Body parsing error", __FILE__, __LINE__);
 			_parseState = PARSING_ERROR;
+			break;
 		}
 		break;
 	}
@@ -191,29 +183,34 @@ void HttpRequest::setServer(Server *server)
 HttpRequest::ParseState HttpRequest::getParseState() const
 {
 	return _parseState;
-}
+};
 
 // URI accessors
 std::string HttpRequest::getMethod() const
 {
 	return _uri.getMethod();
 };
+
 std::string HttpRequest::getUri() const
 {
 	return _uri.getURI();
-}
+};
+
 std::string HttpRequest::getVersion() const
 {
 	return _uri.getVersion();
 };
+
 std::map<std::string, std::vector<std::string> > HttpRequest::getHeaders() const
 {
 	return _headers.getHeaders();
 };
+
 std::string HttpRequest::getBodyData() const
 {
 	return _body.getRawBody();
 };
+
 HttpBody::BodyType HttpRequest::getBodyType() const
 {
 	return _body.getBodyType();
@@ -228,7 +225,13 @@ bool HttpRequest::isUsingTempFile()
 {
 	return _body.getIsUsingTempFile();
 };
+
 std::string HttpRequest::getTempFile()
 {
 	return _body.getTempFilePath();
+};
+
+Server *HttpRequest::getServer() const
+{
+	return _server;
 };

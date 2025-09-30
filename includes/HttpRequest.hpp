@@ -75,6 +75,9 @@ public:
 	bool isChunked();
 	bool isUsingTempFile();
 	std::string getTempFile();
+
+	// Server accessors
+	Server *getServer() const;
 };
 
 // TODO : Add request stream overload

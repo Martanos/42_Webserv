@@ -116,14 +116,8 @@ void ServerManager::_handleEpollEvents(int ready_events, std::vector<epoll_event
 					uint32_t epollEvents = 0;
 					switch (newState)
 					{
-					case Client::CLIENT_READING_REQUEST:
-						epollEvents = EPOLLIN | EPOLLET;
-						break;
 					case Client::CLIENT_SENDING_RESPONSE:
 						epollEvents = EPOLLOUT | EPOLLET;
-						break;
-					case Client::CLIENT_WAITING_FOR_REQUEST:
-						epollEvents = EPOLLIN | EPOLLET;
 						break;
 					default:
 						epollEvents = EPOLLIN | EPOLLET;
@@ -131,7 +125,6 @@ void ServerManager::_handleEpollEvents(int ready_events, std::vector<epoll_event
 					}
 					_epollManager.modifyFd(foundFd, epollEvents);
 				}
-
 				// Check for connection cleanup
 				if (newState == Client::CLIENT_WAITING_FOR_REQUEST && !_clients[foundFd].getServer()->getKeepAlive())
 				{

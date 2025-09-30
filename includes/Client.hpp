@@ -13,6 +13,7 @@
 #include "ServerMap.hpp"
 #include "SocketAddress.hpp"
 #include "StringUtils.hpp"
+#include <deque>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <string>
@@ -42,23 +43,29 @@ private:
 	SocketAddress _localAddr;  // Local address of the client (Who am I locally)
 	SocketAddress _remoteAddr; // Remote address of the client (Who sent me)
 
-	HttpRequest _request;	// The request itself
-	HttpResponse _response; // The formatted response
+	// Request parsing objects
+	HttpRequest _request;					  // The request itself
+	HttpResponse _response;					  // The response itself
+	std::deque<HttpResponse> _responseBuffer; // Buffer to hold responses
 
-	std::vector<char> _receiveBuffer;  // Static buffer to draw from the kernel buffer
-	std::vector<char> _holdingBuffer;  // Dynamic buffer to hold incoming data
-	std::vector<char> _transferBuffer; // Transfer buffer to be given to the http request parser
+	std::vector<char> _receiveBuffer; // Static buffer to draw from the kernel buffer
+	std::vector<char> _holdingBuffer; // Dynamic buffer to hold incoming data
 
 	const std::vector<Server> *_potentialServers; // Potential servers to use for the request
-	Server *_server;							  // Pointer to the server to use for the request
 
 	// State
 	State _state;		  // Current state of the client
 	time_t _lastActivity; // Time of last activity will be used by server manager to check for timed out clients
 	bool _keepAlive;	  // Whether the connection should be kept alive
 
-	void _generateErrorResponse(int statusCode, const std::string &message = "");
 	void _identifyServer();
+	void _identifyCGI();
+
+	// Core operations
+	void _readRequest();
+	void _sendResponse();
+	void _flushResponseQueue();
+	void _processHTTPRequest();
 
 public:
 	Client();
@@ -69,9 +76,6 @@ public:
 
 	// Core operations
 	void handleEvent(epoll_event event);
-	void readRequest();
-	void sendResponse();
-	void _processHTTPRequest();
 
 	// State management
 	State getCurrentState() const;
@@ -83,7 +87,6 @@ public:
 	int getSocketFd() const;
 	const SocketAddress &getLocalAddr() const;
 	const SocketAddress &getRemoteAddr() const;
-	const Server *getServer() const;
 	const std::vector<Server> &getPotentialServers() const;
 	void setPotentialServers(const std::vector<Server> &potentialServers);
 	void setServer(const Server *server);
