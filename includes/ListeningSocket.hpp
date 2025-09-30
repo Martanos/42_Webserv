@@ -13,10 +13,6 @@
 class ListeningSocket
 {
 private:
-	ListeningSocket();
-
-	ListeningSocket &operator=(const ListeningSocket &rhs);
-
 	FileDescriptor _socket;
 	SocketAddress _address;
 
@@ -25,7 +21,9 @@ public:
 	ListeningSocket(const ListeningSocket &src);
 	ListeningSocket(const std::string &host, const unsigned short port);
 	~ListeningSocket();
+	ListeningSocket();
 
+	ListeningSocket &operator=(const ListeningSocket &rhs);
 	// Accept connection
 	void accept(SocketAddress &address, FileDescriptor &clientFd) const;
 
