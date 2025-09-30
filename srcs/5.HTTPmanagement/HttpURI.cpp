@@ -12,6 +12,7 @@
 HttpURI::HttpURI()
 {
 	_uriState = URI_PARSING;
+	_rawURISize = 0;
 	_method = "";
 	_uri = "";
 	_version = "";
@@ -39,6 +40,7 @@ HttpURI &HttpURI::operator=(const HttpURI &other)
 	if (this != &other)
 	{
 		_uriState = other._uriState;
+		_rawURISize = other._rawURISize;
 		_method = other._method;
 		_uri = other._uri;
 		_version = other._version;
@@ -57,10 +59,10 @@ void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 	if (it == buffer.end())
 	{
 		// If it can't be found check that the buffer has not currently exceeded the size limit of a header
-		if (buffer.size() > static_cast<size_t>(sysconf(_SC_PAGESIZE) * 4))
+		if (buffer.size() > HTTP::MAX_URI_LINE_SIZE)
 		{
-			response.setStatus(413, "Request Header Fields Too Large");
-			Logger::log(Logger::ERROR, "Header size limit exceeded");
+			response.setStatus(413, "Request URI Too Large");
+			Logger::log(Logger::ERROR, "URI size limit exceeded");
 			_uriState = URI_PARSING_ERROR;
 		}
 		else
@@ -70,7 +72,14 @@ void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 
 	// Extract request line up to the CLRF
 	std::string requestLine(buffer.begin(), it);
-
+	if (requestLine.size() + 2 > HTTP::MAX_URI_LINE_SIZE)
+	{
+		response.setStatus(413, "Request URI Too Large");
+		Logger::log(Logger::ERROR, "URI size limit exceeded");
+		_uriState = URI_PARSING_ERROR;
+		return;
+	}
+	_rawURISize = requestLine.size() + 2;
 	// Clear buffer up to the CLRF
 	buffer.erase(buffer.begin(), it + 2);
 
@@ -160,6 +169,11 @@ const std::string &HttpURI::getVersion() const
 HttpURI::URIState HttpURI::getURIState() const
 {
 	return _uriState;
+}
+
+size_t HttpURI::getRawURISize() const
+{
+	return _rawURISize;
 }
 
 /*

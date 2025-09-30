@@ -51,12 +51,13 @@ private:
 	ChunkState _chunkState;
 	ssize_t _expectedBodySize;
 	std::vector<char> _rawBody;
+	ssize_t _rawBodySize;
 	FileManager _tempFile;
 	bool _isUsingTempFile;
 
 	// Parsing paths
 	BodyState _parseChunkedBody(std::vector<char> &buffer, HttpResponse &response);
-	BodyState _parseContentLengthBody(std::vector<char> &buffer);
+	BodyState _parseContentLengthBody(std::vector<char> &buffer, HttpResponse &response);
 
 	// Decoding methods
 	ssize_t _parseHexSize(const std::string &hexStr) const;
@@ -72,9 +73,10 @@ public:
 
 	// Accessors
 	BodyState getBodyState() const;
+	BodyType getBodyType() const;
 	std::string getRawBody() const;
-	size_t getBodySize();
-	bool getIsChunked();
+	size_t getBodySize() const;
+	size_t getRawBodySize() const;
 	bool getIsUsingTempFile();
 	std::string getTempFilePath();
 	FileDescriptor &getTempFd();

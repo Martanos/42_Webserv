@@ -147,7 +147,7 @@ void PostMethodHandler::handleFileUpload(const HttpRequest &request, HttpRespons
 	}
 
 	// Save the file
-	if (saveUploadedFile(uploadPath, filename, request.getBody()))
+	if (saveUploadedFile(uploadPath, filename, request.getBodyData()))
 	{
 		// Success response
 		std::stringstream html;
@@ -155,7 +155,7 @@ void PostMethodHandler::handleFileUpload(const HttpRequest &request, HttpRespons
 		html << "<title>Upload Successful</title>\n</head>\n<body>\n";
 		html << "<h1>File Uploaded Successfully</h1>\n";
 		html << "<p>Filename: " << filename << "</p>\n";
-		html << "<p>Size: " << request.getBody().length() << " bytes</p>\n";
+		html << "<p>Size: " << request.getBodyData().length() << " bytes</p>\n";
 		html << "<p><a href=\"" << request.getUri() << "\">Back</a></p>\n";
 		html << "</body>\n</html>\n";
 

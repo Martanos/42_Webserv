@@ -1,7 +1,6 @@
 #ifndef CONSTANTS_HPP
 #define CONSTANTS_HPP
 
-#include "Logger.hpp"
 #include <cstddef>
 #include <string>
 #include <sys/types.h>
@@ -11,14 +10,20 @@
 // HTTP Constants
 namespace HTTP
 {
-const std::string SINGLETON_HEADERS[] = {"content-type",  "location",		  "user-agent", "referer",
-										 "authorization", "content-location", "date",		"etag",
-										 "expires",		  "last-modified",	  "server"};
+const char *const SINGLETON_HEADERS[] = {
+	"host",			 "content-length",		"content-type", "content-location", "date",		   "etag",
+	"expires",		 "last-modified",		"location",		"server",			"user-agent",  "referer",
+	"authorization", "proxy-authorization", "expect",		"upgrade",			"retry-after", "content-range"};
 static const std::string SUPPORTED_METHODS[] = {"GET", "POST", "DELETE"};
 static const std::string HTTP_VERSION = "HTTP/1.1";
 static const std::string TEMP_FILE_TEMPLATE = "/tmp/webserv-";
-static const size_t MAX_BODY_SIZE = 1048576; // 1MB
-const int DEFAULT_TIMEOUT_SECONDS = 30;		 // 30 second timeout
+static const ssize_t MAX_URI_LINE_SIZE = 16384;		 // 16KB
+static const ssize_t MAX_HEADERS_LINE_SIZE = 16384;	 // 16KB
+static const ssize_t MAX_HEADERS_SIZE = 32768;		 // 32KB
+static const ssize_t MAX_BODY_BUFFER_SIZE = 1048576; // 1MB
+static const ssize_t MAX_BODY_SIZE = 10485760;		 // 10MB
+static const char *const CRLF = "\r\n";				 // CRLF
+const int DEFAULT_TIMEOUT_SECONDS = 30;				 // 30 second timeout
 
 // HTTP Status Codes
 const int STATUS_CONTINUE = 100;

@@ -16,11 +16,9 @@ ListeningSocket::ListeningSocket() : _socket(), _address()
 	// Should be used with assignment operator or proper initialization
 }
 
-ListeningSocket::ListeningSocket(const ListeningSocket &src) : _socket(src._socket), _address(src._address)
+ListeningSocket::ListeningSocket(const ListeningSocket &src)
 {
-	// Copy constructor - creates a copy of the socket
-	// Note: This creates a shallow copy of the file descriptor
-	// TODO: Implement proper socket duplication
+	*this = src;
 }
 
 ListeningSocket::ListeningSocket(const std::string &host, const unsigned short port) : _socket(), _address(host, port)

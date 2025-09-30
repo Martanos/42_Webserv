@@ -177,7 +177,7 @@ void CGIenv::setupFromRequest(const HttpRequest &request, const Server *server, 
 			setEnv("CONTENT_TYPE", contentType[0]);
 		}
 
-		setEnv("CONTENT_LENGTH", StringUtils::toString(request.getBody().length()));
+		setEnv("CONTENT_LENGTH", StringUtils::toString(request.getBodyData().length()));
 	}
 	else
 	{

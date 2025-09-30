@@ -41,12 +41,14 @@ public:
 	const std::string &getURI() const;
 	const std::string &getVersion() const;
 	URIState getURIState() const;
+	size_t getRawURISize() const;
 
 	// Methods
 	void reset();
 
 private:
 	URIState _uriState;
+	size_t _rawURISize;
 
 	// Request line
 	std::string _method;

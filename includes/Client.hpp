@@ -45,7 +45,10 @@ private:
 	HttpRequest _request;	// The request itself
 	HttpResponse _response; // The formatted response
 
-	std::vector<char> _applicationBuffer;		  // Temporary buffer for reading from the kernel
+	std::vector<char> _receiveBuffer;  // Static buffer to draw from the kernel buffer
+	std::vector<char> _holdingBuffer;  // Dynamic buffer to hold incoming data
+	std::vector<char> _transferBuffer; // Transfer buffer to be given to the http request parser
+
 	const std::vector<Server> *_potentialServers; // Potential servers to use for the request
 	Server *_server;							  // Pointer to the server to use for the request
 

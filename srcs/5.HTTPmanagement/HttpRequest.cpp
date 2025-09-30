@@ -21,11 +21,10 @@
 HttpRequest::HttpRequest()
 {
 	_parseState = PARSING_URI;
-	_rawBuffer = std::vector<char>();
-	_totalBytesReceived = 0;
 	_uri = HttpURI();
 	_headers = HttpHeaders();
 	_body = HttpBody();
+	_server = NULL;
 }
 
 HttpRequest::HttpRequest(const HttpRequest &src)
@@ -53,6 +52,7 @@ HttpRequest &HttpRequest::operator=(const HttpRequest &rhs)
 		_headers = rhs._headers;
 		_body = rhs._body;
 		_parseState = rhs._parseState;
+		_server = rhs._server;
 	}
 	return *this;
 }
@@ -62,86 +62,90 @@ HttpRequest &HttpRequest::operator=(const HttpRequest &rhs)
 *----------------------------------
 */
 
-HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &buffer, HttpResponse &response, Server *server,
-												 size_t bytesRead)
+HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffer, HttpResponse &response)
 {
 	PERF_SCOPED_TIMER(http_request_parsing);
 
-	// Ingest buffer into a vector first helps to prevent data corruption
-	_rawBuffer.insert(_rawBuffer.end(), buffer.begin(), buffer.end());
-	_totalBytesReceived += bytesRead;
-
-	if (server != NULL)
+	// Delegate to the appropriate parser
+	switch (_parseState)
 	{
-		if (server->getClientMaxBodySize() < _totalBytesReceived)
+	case PARSING_URI:
+	{
+		_uri.parseBuffer(holdingBuffer, response);
+		switch (_uri.getURIState())
 		{
-			Logger::error("HttpRequest: Request body too large");
+		case HttpURI::URI_PARSING_COMPLETE:
+		{
+			Logger::debug("HttpRequest: URI parsing complete");
+			Logger::debug("URI: " + _uri.getMethod() + " " + _uri.getURI() + " " + _uri.getVersion());
+			_parseState = PARSING_HEADERS;
+			break;
+		}
+		case HttpURI::URI_PARSING_ERROR:
+			Logger::error("HttpRequest: Request line parsing error");
 			_parseState = PARSING_ERROR;
-			return _parseState;
-		}
-	}
-
-	while (_rawBuffer.size() > 0)
-	{
-		// Delegate to the appropriate parser
-		switch (_parseState)
-		{
-		case PARSING_URI:
-		{
-			_uri.parseBuffer(_rawBuffer, response);
-			switch (_uri.getURIState())
-			{
-			case HttpURI::URI_PARSING_COMPLETE:
-			{
-				Logger::debug("HttpRequest: URI parsing complete");
-				Logger::debug("URI: " + _uri.getMethod() + " " + _uri.getURI() + " " + _uri.getVersion());
-				_parseState = PARSING_HEADERS;
-				break;
-			}
-			case HttpURI::URI_PARSING_ERROR:
-				Logger::error("HttpRequest: Request line parsing error");
-				_parseState = PARSING_ERROR;
-				break;
-			default:
-				break;
-			}
 			break;
-		}
-		case PARSING_HEADERS:
-		{
-			_headers.parseBuffer(_rawBuffer, response, _body);
-			if (_headers.getHeadersState() == HttpHeaders::HEADERS_PARSING_COMPLETE)
-			{
-				Logger::debug("HttpRequest: Headers parsing complete");
-				_parseState = PARSING_BODY;
-			}
-			else if (_headers.getHeadersState() == HttpHeaders::HEADERS_PARSING_ERROR)
-			{
-				Logger::error("HttpRequest: Headers parsing error");
-				_parseState = PARSING_ERROR;
-			}
-			break;
-		}
-		case PARSING_BODY:
-		{
-			_body.parseBuffer(_rawBuffer, response);
-			if (_body.getBodyState() == HttpBody::BODY_PARSING_COMPLETE)
-			{
-				Logger::debug("HttpRequest: Body parsing complete");
-				_parseState = PARSING_COMPLETE;
-			}
-			else if (_body.getBodyState() == HttpBody::BODY_PARSING_ERROR)
-			{
-				Logger::error("HttpRequest: Body parsing error", __FILE__, __LINE__);
-				_parseState = PARSING_ERROR;
-			}
-			break;
-		}
 		default:
 			break;
 		}
-		// TODO: Log state here
+		break;
 	}
+	case PARSING_HEADERS:
+	{
+		_headers.parseBuffer(holdingBuffer, response, _body);
+		if (_headers.getHeadersState() == HttpHeaders::HEADERS_PARSING_COMPLETE)
+		{
+			for (std::map<std::string, std::vector<std::string> >::const_iterator it = _headers.getHeaders().begin();
+				 it != _headers.getHeaders().end(); ++it)
+			{
+				printf("%s: ", it->first.c_str());
+				if (!it->second.empty())
+				{
+					for (std::vector<std::string>::const_iterator it2 = it->second.begin(); it2 != it->second.end();
+						 ++it2)
+					{
+						if (it2 != it->second.begin())
+						{
+							printf(", ");
+						}
+						printf("%s", it2->c_str());
+					}
+					printf("\n");
+				}
+				else
+				{
+					printf("No values\n");
+				}
+			}
+			Logger::debug("HttpRequest: Headers parsing complete");
+			_parseState = PARSING_BODY;
+		}
+		else if (_headers.getHeadersState() == HttpHeaders::HEADERS_PARSING_ERROR)
+		{
+			Logger::error("HttpRequest: Headers parsing error", __FILE__, __LINE__);
+			_parseState = PARSING_ERROR;
+		}
+		break;
+	}
+	case PARSING_BODY:
+	{
+		_body.parseBuffer(holdingBuffer, response);
+		if (_body.getBodyState() == HttpBody::BODY_PARSING_COMPLETE)
+		{
+			Logger::debug("HttpRequest: Body parsing complete");
+			_parseState = PARSING_COMPLETE;
+		}
+		else if (_body.getBodyState() == HttpBody::BODY_PARSING_ERROR)
+		{
+			Logger::error("HttpRequest: Body parsing error", __FILE__, __LINE__);
+			_parseState = PARSING_ERROR;
+		}
+		break;
+	}
+	default:
+		break;
+	}
+	// TODO: Log state here
 	return _parseState;
 }
 
@@ -150,12 +154,9 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &buffer, Http
 *----------------------------------
 */
 
-const std::vector<std::string> &HttpRequest::getHeader(const std::string &name) const
+const std::vector<std::string> HttpRequest::getHeader(const std::string &name) const
 {
-	static const std::vector<std::string> empty = std::vector<std::string>();
-	std::map<std::string, std::vector<std::string> >::const_iterator it =
-		_headers.getHeaders().find(StringUtils::toLowerCase(name));
-	return it != _headers.getHeaders().end() ? it->second : empty;
+	return _headers.getHeader(name);
 }
 
 // Enhanced reset method
@@ -166,10 +167,33 @@ void HttpRequest::reset()
 	_body.setExpectedBodySize(0);
 	_body.setBodyType(HttpBody::BODY_TYPE_NO_BODY);
 	_parseState = PARSING_URI;
-	_rawBuffer.clear();
-	_totalBytesReceived = 0;
 }
 
+/*
+** --------------------------------- MUTATOR METHODS
+*----------------------------------
+*/
+
+void HttpRequest::setParseState(ParseState parseState)
+{
+	_parseState = parseState;
+}
+void HttpRequest::setServer(Server *server)
+{
+	_server = server;
+}
+
+/*
+** --------------------------------- ACCESSOR METHODS
+*----------------------------------
+*/
+
+HttpRequest::ParseState HttpRequest::getParseState() const
+{
+	return _parseState;
+}
+
+// URI accessors
 std::string HttpRequest::getMethod() const
 {
 	return _uri.getMethod();
@@ -186,18 +210,20 @@ std::map<std::string, std::vector<std::string> > HttpRequest::getHeaders() const
 {
 	return _headers.getHeaders();
 };
-std::string HttpRequest::getBody() const
+std::string HttpRequest::getBodyData() const
 {
 	return _body.getRawBody();
 };
-size_t HttpRequest::getContentLength() const
+HttpBody::BodyType HttpRequest::getBodyType() const
 {
-	return _headers.getExpectedBodySize();
+	return _body.getBodyType();
 };
-bool HttpRequest::isChunked()
+
+size_t HttpRequest::getMessageSize() const
 {
-	return _body.getIsChunked();
+	return _uri.getRawURISize() + _headers.getHeadersSize() + _body.getBodySize();
 };
+
 bool HttpRequest::isUsingTempFile()
 {
 	return _body.getIsUsingTempFile();

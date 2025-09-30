@@ -30,7 +30,7 @@ Client::Client()
 		perror("sysconf");
 		pageSize = 4096; // safe default on most systems
 	}
-	_applicationBuffer = std::vector<char>(static_cast<size_t>(pageSize)); // Is about 4KB depending on the system
+	_receiveBuffer = std::vector<char>(static_cast<size_t>(pageSize)); // Is about 4KB depending on the system
 	_potentialServers = NULL;
 	_server = NULL;
 	_state = CLIENT_WAITING_FOR_REQUEST;
@@ -56,7 +56,9 @@ Client::Client(FileDescriptor socketFd, SocketAddress clientAddr, SocketAddress 
 		perror("sysconf");
 		pageSize = 4096; // safe default on most systems
 	}
-	_applicationBuffer = std::vector<char>(static_cast<size_t>(pageSize)); // Is about 4KB depending on the system
+	_receiveBuffer = std::vector<char>(static_cast<size_t>(pageSize)); // Is about 4KB depending on the system
+	_holdingBuffer = std::vector<char>();
+	_transferBuffer = std::vector<char>();
 	_potentialServers = NULL;
 	_server = NULL;
 	_state = CLIENT_WAITING_FOR_REQUEST;
@@ -86,7 +88,10 @@ Client &Client::operator=(Client const &rhs)
 		_state = rhs._state;
 		_request = rhs._request;
 		_response = rhs._response;
-		_applicationBuffer = rhs._applicationBuffer;
+		_receiveBuffer = rhs._receiveBuffer;
+		_holdingBuffer = rhs._holdingBuffer;
+		_transferBuffer = rhs._transferBuffer;
+		_potentialServers = rhs._potentialServers;
 		_lastActivity = rhs._lastActivity;
 		_server = rhs._server;
 	}
@@ -139,8 +144,9 @@ void Client::handleEvent(epoll_event event)
 // No point using a ring buffer here as http request will just ingest the buffer directly
 void Client::readRequest()
 {
-	// Extract data from the kernel buffer
-	ssize_t bytesRead = recv(_clientFd.getFd(), _applicationBuffer.data(), _applicationBuffer.size(), 0);
+	// For each epoll event extract just 4096 due to level triggered nature of epoll we will basically be reading the
+	// same data over and over again
+	ssize_t bytesRead = recv(_clientFd.getFd(), _receiveBuffer.data(), _receiveBuffer.size(), 0);
 	if (bytesRead <= 0)
 	{
 		// Client disconnected or error occurred
@@ -150,42 +156,43 @@ void Client::readRequest()
 		_state = CLIENT_DISCONNECTED;
 		return;
 	}
-	HttpRequest::ParseState parseResult = _request.parseBuffer(_applicationBuffer, _response, _server, bytesRead);
 
-	// Reset the application buffer
-	_applicationBuffer.clear();
+	// After recieving the data append it to a holding buffer
+	// We hold the data here so that we only extract relevant data to http request in case of a need to resets
+	_holdingBuffer.insert(_holdingBuffer.end(), _receiveBuffer.begin(), _receiveBuffer.begin() + bytesRead);
 
-	// Parse the request
-
-	// Based on resulting http request state
-	// 1. Further process the request
-	// 2. Reset the buffers for next request
-	switch (parseResult)
+	while (_holdingBuffer.size() > 0)
 	{
-	case HttpRequest::PARSING_ERROR:
-		_state = CLIENT_SENDING_RESPONSE;
-		break;
-	case HttpRequest::PARSING_COMPLETE:
-		_processHTTPRequest();
-		_state = CLIENT_SENDING_RESPONSE;
-		break;
-	case HttpRequest::PARSING_URI:
-	{
-		_state = CLIENT_READING_REQUEST;
-		break;
-	}
-	case HttpRequest::PARSING_HEADERS:
-	case HttpRequest::PARSING_BODY:
-	{
-		// Identify server if not already done
-		if (_server == NULL)
+		_request.parseBuffer(_holdingBuffer, _response);
+		// After each loop we check the parse state and handle the appropriate action
+		switch (_request.getParseState())
 		{
-			_identifyServer();
+		case HttpRequest::PARSING_COMPLETE:
+		{
+			
+			_state = CLIENT_DISCONNECTED;
+			return;
 		}
-		_state = CLIENT_READING_REQUEST;
-		// Continue reading - need more data
+		case HttpRequest::PARSING_ERROR:
+		{
+			_state = CLIENT_DISCONNECTED;
+			return;
+		}
+		case HttpRequest::PARSING_URI:
+		{
+			_state = CLIENT_DISCONNECTED;
+			return;
+		}
+		case HttpRequest::PARSING_HEADERS:
+		{
+			_state = CLIENT_WAITING_FOR_REQUEST;
+			return;
+		}
 		break;
-	}
+		default:
+			_state = CLIENT_DISCONNECTED;
+			break;
+		}
 	}
 }
 
@@ -240,7 +247,6 @@ void Client::sendResponse()
 			// Reset for next request on same connection
 			_request.reset();
 			_response = HttpResponse(); // Create fresh response
-			_applicationBuffer.clear();
 			_state = CLIENT_WAITING_FOR_REQUEST;
 			updateActivity(); // Reset timeout
 

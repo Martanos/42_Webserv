@@ -37,8 +37,9 @@ private:
 
 	// Parsing state
 	ParseState _parseState;
-	std::vector<char> _rawBuffer; // Buffer for raw data
-	size_t _totalBytesReceived;
+
+	// External configuration
+	Server *_server;
 
 public:
 	HttpRequest();
@@ -47,20 +48,35 @@ public:
 	~HttpRequest();
 
 	// Parsing methods
-	ParseState parseBuffer(std::vector<char> &buffer, HttpResponse &response, Server *server, size_t bytesRead);
+	ParseState parseBuffer(std::vector<char> &holdingBuffer, HttpResponse &response);
 	void reset();
 
-	// Getters
+	// Mutators
+	void setParseState(ParseState parseState);
+	void setServer(Server *server);
+
+	// Request accessors
+	ParseState getParseState() const;
+	size_t getMessageSize() const;
+
+	// URI accessors
 	std::string getMethod() const;
 	std::string getUri() const;
 	std::string getVersion() const;
+
+	// Headers accessors
 	std::map<std::string, std::vector<std::string> > getHeaders() const;
-	const std::vector<std::string> &getHeader(const std::string &name) const;
-	std::string getBody() const;
+	const std::vector<std::string> getHeader(const std::string &name) const;
+
+	// Body accessors
+	std::string getBodyData() const;
+	HttpBody::BodyType getBodyType() const;
 	size_t getContentLength() const;
 	bool isChunked();
 	bool isUsingTempFile();
 	std::string getTempFile();
 };
+
+// TODO : Add request stream overload
 
 #endif /* HTTPREQUEST_HPP */

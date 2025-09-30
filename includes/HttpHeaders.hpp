@@ -31,7 +31,11 @@ public:
 private:
 	HeadersState _headersState;
 	std::map<std::string, std::vector<std::string> > _headers;
-	size_t _expectedBodySize;
+	size_t _rawHeadersSize;
+
+	// Helper methods
+	void parseHeaderLine(const std::string &line, HttpResponse &response);
+	void parseAllHeaders(HttpResponse &response, HttpBody &body);
 
 public:
 	// OOP
@@ -42,16 +46,15 @@ public:
 
 	// Main parsing method
 	void parseBuffer(std::vector<char> &buffer, HttpResponse &response, HttpBody &body);
-	void parseHeaderLine(const std::string &line, HttpResponse &response, HttpBody &body);
-	void parseHeaders(const std::string &headersData, HttpResponse &response, HttpBody &body);
 
 	// Accessors
 	int getHeadersState() const;
-	std::map<std::string, std::vector<std::string> > getHeaders() const;
+	const std::map<std::string, std::vector<std::string> > &getHeaders() const;
+	const std::vector<std::string> getHeader(const std::string &headerName) const;
 	size_t getHeadersSize() const;
-	size_t getExpectedBodySize() const;
 
 	// Methods
+	bool isSingletonHeader(const std::string &headerName);
 	void reset();
 };
 
