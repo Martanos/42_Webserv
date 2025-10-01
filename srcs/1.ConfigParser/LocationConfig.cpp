@@ -1,4 +1,37 @@
 #include "../../includes/LocationConfig.hpp"
+#include "../../includes/ConfigParser.hpp"
+
+// Private static utilities
+void LocationConfig::throwConfigError(const std::string& msg, const char* file, int line)
+{
+	Logger::log(Logger::ERROR, msg, file, line);
+	throw std::runtime_error(msg);
+}
+
+bool LocationConfig::validateDirective(std::stringstream& stream, const std::string& expectedDirective, double lineNumber, const char* file, int line)
+{
+	std::string token;
+	if (!(stream >> token) || token != expectedDirective)
+	{
+		std::stringstream ss;
+		ss << "Invalid " << expectedDirective << " directive at line " << lineNumber;
+		throwConfigError(ss.str(), file, line);
+	}
+	return true;
+}
+
+void LocationConfig::lineValidation(std::string &line, int lineNumber)
+{
+	if (line.empty())
+	{
+	throwConfigError("Empty directive at line " + ConfigParser::numberToString(lineNumber), __FILE__, __LINE__);
+	}
+	else if (line.find_last_of(';') != line.length() - 1)
+	{
+		throwConfigError("Expected semicolon at the end of line " + ConfigParser::numberToString(lineNumber) + " : " + line, __FILE__, __LINE__);
+	}
+	line.erase(line.find_last_of(';'));
+}
 
 // Constructors
 LocationConfig::LocationConfig() : _autoIndex(false)
@@ -100,21 +133,12 @@ void LocationConfig::addPath(std::string line, double lineNumber)
 	lineValidation(line, lineNumber);
 
 	std::stringstream pathStream(line);
+	validateDirective(pathStream, "location", lineNumber, __FILE__, __LINE__);
+
 	std::string token;
-	std::stringstream errorMessage;
-
-	if (!(pathStream >> token) || token != "location")
-	{
-		errorMessage << "Invalid location directive at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
-		throw std::runtime_error(errorMessage.str());
-	}
-
 	if (!(pathStream >> token) || token.empty())
 	{
-		errorMessage << "Empty location path at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
-		throw std::runtime_error(errorMessage.str());
+		throwConfigError("Empty location path at line " + ConfigParser::numberToString(lineNumber), __FILE__, __LINE__);
 	}
 
 	_path = token;
@@ -125,21 +149,12 @@ void LocationConfig::addRoot(std::string line, double lineNumber)
 	lineValidation(line, lineNumber);
 
 	std::stringstream rootStream(line);
+	validateDirective(rootStream, "root", lineNumber, __FILE__, __LINE__);
+
 	std::string token;
-	std::stringstream errorMessage;
-
-	if (!(rootStream >> token) || token != "root")
-	{
-		errorMessage << "Invalid root directive at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
-		throw std::runtime_error(errorMessage.str());
-	}
-
 	if (!(rootStream >> token) || token.empty())
 	{
-		errorMessage << "Empty root path at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
-		throw std::runtime_error(errorMessage.str());
+		throwConfigError("Empty root path at line " + ConfigParser::numberToString(lineNumber), __FILE__, __LINE__);
 	}
 
 	_root = token;
@@ -150,18 +165,11 @@ void LocationConfig::addAllowedMethods(std::string line, double lineNumber)
 	lineValidation(line, lineNumber);
 
 	std::stringstream methodsStream(line);
-	std::string token;
-	std::stringstream errorMessage;
-
-	if (!(methodsStream >> token) || token != "allowed_methods")
-	{
-		errorMessage << "Invalid allow_methods directive at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
-		throw std::runtime_error(errorMessage.str());
-	}
+	validateDirective(methodsStream, "allowed_methods", lineNumber, __FILE__, __LINE__);
 
 	// Clear existing methods and read new ones
 	_allowedMethods.clear();
+	std::string token;
 	while (methodsStream >> token)
 	{
 		if (token == "GET" || token == "POST" || token == "DELETE")
@@ -172,24 +180,18 @@ void LocationConfig::addAllowedMethods(std::string line, double lineNumber)
 			}
 			else
 			{
-				errorMessage << "Duplicate method '" << token << "' at line " << lineNumber;
-				Logger::log(Logger::ERROR, errorMessage.str());
-				throw std::runtime_error(errorMessage.str());
+				throwConfigError("Duplicate method '" + token + "' at line " + ConfigParser::numberToString(lineNumber), __FILE__, __LINE__);
 			}
 		}
 		else
 		{
-			errorMessage << "Invalid HTTP method '" << token << "' at line " << lineNumber;
-			Logger::log(Logger::ERROR, errorMessage.str());
-			throw std::runtime_error(errorMessage.str());
+			throwConfigError("Invalid HTTP method '" + token + "' at line " + ConfigParser::numberToString(lineNumber), __FILE__, __LINE__);
 		}
 	}
 
 	if (_allowedMethods.empty())
 	{
-		errorMessage << "No methods specified in allow_methods directive at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
-		throw std::runtime_error(errorMessage.str());
+		throwConfigError("No methods specified in allow_methods directive at line " + ConfigParser::numberToString(lineNumber), __FILE__, __LINE__);
 	}
 }
 
@@ -198,21 +200,12 @@ void LocationConfig::addRedirect(std::string line, double lineNumber)
 	lineValidation(line, lineNumber);
 
 	std::stringstream redirectStream(line);
+	validateDirective(redirectStream, "return", lineNumber, __FILE__, __LINE__);
+
 	std::string token;
-	std::stringstream errorMessage;
-
-	if (!(redirectStream >> token) || token != "return")
-	{
-		errorMessage << "Invalid return directive at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
-		throw std::runtime_error(errorMessage.str());
-	}
-
 	if (!(redirectStream >> token) || token.empty())
 	{
-		errorMessage << "Empty redirect URL at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
-		throw std::runtime_error(errorMessage.str());
+		throwConfigError("Empty redirect URL at line " + ConfigParser::numberToString(lineNumber), __FILE__, __LINE__);
 	}
 
 	_redirect = token;
@@ -223,21 +216,12 @@ void LocationConfig::addAutoIndex(std::string line, double lineNumber)
 	lineValidation(line, lineNumber);
 
 	std::stringstream autoIndexStream(line);
+	validateDirective(autoIndexStream, "autoindex", lineNumber, __FILE__, __LINE__);
+
 	std::string token;
-	std::stringstream errorMessage;
-
-	if (!(autoIndexStream >> token) || token != "autoindex")
-	{
-		errorMessage << "Invalid autoindex directive at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
-		throw std::runtime_error(errorMessage.str());
-	}
-
 	if (!(autoIndexStream >> token) || (token != "on" && token != "off"))
 	{
-		errorMessage << "Invalid autoindex value at line " << lineNumber << ": " << token;
-		Logger::log(Logger::ERROR, errorMessage.str());
-		throw std::runtime_error(errorMessage.str());
+		throwConfigError("Invalid autoindex value at line " + ConfigParser::numberToString(lineNumber) + ": " + token, __FILE__, __LINE__);
 	}
 
 	_autoIndex = (token == "on");
@@ -248,21 +232,12 @@ void LocationConfig::addIndex(std::string line, double lineNumber)
 	lineValidation(line, lineNumber);
 
 	std::stringstream indexStream(line);
+	validateDirective(indexStream, "index", lineNumber, __FILE__, __LINE__);
+
 	std::string token;
-	std::stringstream errorMessage;
-
-	if (!(indexStream >> token) || token != "index")
-	{
-		errorMessage << "Invalid index directive at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
-		throw std::runtime_error(errorMessage.str());
-	}
-
 	if (!(indexStream >> token) || token.empty())
 	{
-		errorMessage << "Empty index file at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
-		throw std::runtime_error(errorMessage.str());
+		throwConfigError("Empty index file at line " + ConfigParser::numberToString(lineNumber), __FILE__, __LINE__);
 	}
 
 	_index = token;
@@ -273,21 +248,12 @@ void LocationConfig::addCgiPath(std::string line, double lineNumber)
 	lineValidation(line, lineNumber);
 
 	std::stringstream cgiPathStream(line);
+	validateDirective(cgiPathStream, "cgi_path", lineNumber, __FILE__, __LINE__);
+
 	std::string token;
-	std::stringstream errorMessage;
-
-	if (!(cgiPathStream >> token) || token != "cgi_path")
-	{
-		errorMessage << "Invalid cgi_path directive at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
-		throw std::runtime_error(errorMessage.str());
-	}
-
 	if (!(cgiPathStream >> token) || token.empty())
 	{
-		errorMessage << "Empty CGI path at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
-		throw std::runtime_error(errorMessage.str());
+		throwConfigError("Empty CGI path at line " + ConfigParser::numberToString(lineNumber), __FILE__, __LINE__);
 	}
 
 	_cgiPath = token;
@@ -298,21 +264,12 @@ void LocationConfig::addCgiIndex(std::string line, double lineNumber)
 	lineValidation(line, lineNumber);
 
 	std::stringstream cgiIndexStream(line);
+	validateDirective(cgiIndexStream, "cgi_index", lineNumber, __FILE__, __LINE__);
+
 	std::string token;
-	std::stringstream errorMessage;
-
-	if (!(cgiIndexStream >> token) || token != "cgi_index")
-	{
-		errorMessage << "Invalid cgi_index directive at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
-		throw std::runtime_error(errorMessage.str());
-	}
-
 	if (!(cgiIndexStream >> token) || token.empty())
 	{
-		errorMessage << "Empty CGI index at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
-		throw std::runtime_error(errorMessage.str());
+		throwConfigError("Empty CGI index at line " + ConfigParser::numberToString(lineNumber), __FILE__, __LINE__);
 	}
 
 	_cgiIndex = token;
@@ -323,29 +280,17 @@ void LocationConfig::addCgiParam(std::string line, double lineNumber)
 	lineValidation(line, lineNumber);
 
 	std::stringstream cgiParamStream(line);
-	std::string token;
-	std::stringstream errorMessage;
-
-	if (!(cgiParamStream >> token) || token != "cgi_param")
-	{
-		errorMessage << "Invalid cgi_param directive at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
-		throw std::runtime_error(errorMessage.str());
-	}
+	validateDirective(cgiParamStream, "cgi_param", lineNumber, __FILE__, __LINE__);
 
 	std::string param, value;
 	if (!(cgiParamStream >> param) || param.empty())
 	{
-		errorMessage << "Empty CGI parameter name at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
-		throw std::runtime_error(errorMessage.str());
+		throwConfigError("Empty CGI parameter name at line " + ConfigParser::numberToString(lineNumber), __FILE__, __LINE__);
 	}
 
 	if (!(cgiParamStream >> value) || value.empty())
 	{
-		errorMessage << "Empty CGI parameter value at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
-		throw std::runtime_error(errorMessage.str());
+		throwConfigError("Empty CGI parameter value at line " + ConfigParser::numberToString(lineNumber), __FILE__, __LINE__);
 	}
 
 	_cgiParams[param] = value;
@@ -356,21 +301,12 @@ void LocationConfig::addUploadPath(std::string line, double lineNumber)
 	lineValidation(line, lineNumber);
 
 	std::stringstream uploadPathStream(line);
+	validateDirective(uploadPathStream, "upload_path", lineNumber, __FILE__, __LINE__);
+
 	std::string token;
-	std::stringstream errorMessage;
-
-	if (!(uploadPathStream >> token) || token != "upload_path")
-	{
-		errorMessage << "Invalid upload_path directive at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
-		throw std::runtime_error(errorMessage.str());
-	}
-
 	if (!(uploadPathStream >> token) || token.empty())
 	{
-		errorMessage << "Empty upload path at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
-		throw std::runtime_error(errorMessage.str());
+		throwConfigError("Empty upload path at line " + ConfigParser::numberToString(lineNumber), __FILE__, __LINE__);
 	}
 
 	_uploadPath = token;
@@ -420,23 +356,4 @@ void LocationConfig::printConfig() const
 	}
 
 	std::cout << "      Upload Path: " << _uploadPath << std::endl;
-}
-
-// Utils
-void LocationConfig::lineValidation(std::string &line, int lineNumber)
-{
-	std::stringstream errorMessage;
-	if (line.empty())
-	{
-		errorMessage << "Empty directive at line " << lineNumber;
-		Logger::log(Logger::ERROR, errorMessage.str());
-		throw std::runtime_error(errorMessage.str());
-	}
-	else if (line.find_last_of(';') != line.length() - 1)
-	{
-		errorMessage << "Expected semicolon at the end of line " << lineNumber << " : " << line;
-		Logger::log(Logger::ERROR, errorMessage.str());
-		throw std::runtime_error(errorMessage.str());
-	}
-	line.erase(line.find_last_of(';'));
 }

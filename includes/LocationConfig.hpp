@@ -23,6 +23,11 @@ private:
 	std::map<std::string, std::string> _cgiParams;
 	std::string _uploadPath;
 
+	// Private static utilities
+	static void throwConfigError(const std::string& msg, const char* file, int line);
+	static bool validateDirective(std::stringstream& stream, const std::string& expectedDirective, double lineNumber, const char* file, int line);
+	static void lineValidation(std::string &line, int lineNumber);
+
 public:
 	LocationConfig();
 	~LocationConfig();
@@ -57,9 +62,6 @@ public:
 
 	// Debugging methods
 	void printConfig() const;
-
-	// Utils
-	void lineValidation(std::string &line, int lineNumber);
 };
 
 #endif

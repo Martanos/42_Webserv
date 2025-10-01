@@ -26,12 +26,25 @@ private:
 	std::string _root;
 	std::vector<std::string> _indexes;
 	bool _autoindex;
+	double _maxUriSize;
+	double _maxHeaderSize;
 	double _clientMaxBodySize;
 	std::map<int, std::string> _statusPages;
 	std::vector<LocationConfig> _locations;
 	std::string _accessLog;
 	std::string _errorLog;
 	bool _keepAlive;
+
+	// Private static utilities
+	static std::string _trim(const std::string &str);
+	static std::vector<std::string> _split(const std::string &str);
+	static void throwConfigError(const std::string& msg, const char* file, int line);
+	static bool validateDirective(std::stringstream& stream, const std::string& expectedDirective, double lineNumber, const char* file, int line);
+	static bool try_validate_port_only(std::string token);
+	static bool try_validate_host_only(std::string token);
+	static std::pair<std::string, unsigned short> split_host_port(std::string token);
+	static void lineValidation(std::string &line, int lineNumber);
+	static double parseSizeValue(std::stringstream& sizeStream, const std::string& directive, double lineNumber);
 
 public:
 	ServerConfig();
@@ -45,6 +58,8 @@ public:
 	const std::string &getRoot() const;
 	const std::vector<std::string> &getIndexes() const;
 	bool getAutoindex() const;
+	double getMaxUriSize() const;
+	double getMaxHeaderSize() const;
 	double getClientMaxBodySize() const;
 	const std::map<int, std::string> &getStatusPages() const;
 	const std::vector<LocationConfig> &getLocations() const;
@@ -69,6 +84,8 @@ public:
 	void addIndexes(std::string line, double lineNumber);
 	void addStatusPages(std::string line, double lineNumber);
 	void addRoot(std::string line, double lineNumber);
+	void addMaxUriSize(std::string line, double lineNumber);
+	void addMaxHeaderSize(std::string line, double lineNumber);
 	void addClientMaxBodySize(std::string line, double lineNumber);
 	void addAutoindex(std::string line, double lineNumber);
 	void addAccessLog(std::string line, double lineNumber);
@@ -77,10 +94,6 @@ public:
 	void addKeepAlive(std::string line, double lineNumber);
 
 	// Utils
-	void lineValidation(std::string &line, int lineNumber);
-	bool try_validate_port_only(std::string token);
-	bool try_validate_host_only(std::string token);
-	std::pair<std::string, unsigned short> split_host_port(std::string token);
 	bool hasLocation(const LocationConfig &location) const;
 
 	// Debugging methods

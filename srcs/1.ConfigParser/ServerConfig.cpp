@@ -1,9 +1,14 @@
 #include "../../includes/ServerConfig.hpp"
+#include "../../includes/ConfigParser.hpp"
 #include "../../includes/Constants.hpp"
+
+
 
 // Constructors
 ServerConfig::ServerConfig()
 {
+	_maxUriSize = HTTP::MAX_URI_SIZE;
+	_maxHeaderSize = HTTP::MAX_HEADER_SIZE;
 	_clientMaxBodySize = SERVER::DEFAULT_CLIENT_MAX_BODY_SIZE;
 	_autoindex = SERVER::DEFAULT_AUTOINDEX;
 	_keepAlive = SERVER::DEFAULT_KEEP_ALIVE;
@@ -30,6 +35,8 @@ ServerConfig &ServerConfig::operator=(const ServerConfig &other)
 		_root = other._root;
 		_indexes = other._indexes;
 		_autoindex = other._autoindex;
+		_maxUriSize = other._maxUriSize;
+		_maxHeaderSize = other._maxHeaderSize;
 		_clientMaxBodySize = other._clientMaxBodySize;
 		_statusPages = other._statusPages;
 		_locations = other._locations;
@@ -61,6 +68,14 @@ bool ServerConfig::getAutoindex() const
 {
 	return _autoindex;
 }
+double ServerConfig::getMaxUriSize() const
+{
+	return _maxUriSize;
+}
+double ServerConfig::getMaxHeaderSize() const
+{
+	return _maxHeaderSize;
+}
 double ServerConfig::getClientMaxBodySize() const
 {
 	return _clientMaxBodySize;
@@ -86,24 +101,9 @@ bool ServerConfig::getKeepAlive() const
 	return _keepAlive;
 }
 
-// Setters
-// void ServerConfig::setServerNames(const std::vector<std::string>
-// &serverNames) { _serverNames = serverNames; } void
-// ServerConfig::setHosts_ports(const std::vector<std::pair<std::string,
-// unsigned short> > &hosts_ports) { _hosts_ports = hosts_ports; } void
-// ServerConfig::setRoot(const std::string &root) { _root = root; } void
-// ServerConfig::setIndexes(const std::vector<std::string> &indexes) { _indexes
-// = indexes; } void ServerConfig::setAutoindex(bool autoindex) { _autoindex =
-// autoindex; } void ServerConfig::setClientMaxBodySize(double size) {
-// _clientMaxBodySize = size; } void ServerConfig::setResponsePages(const
-// std::map<int, std::string> &responsePages) { _responsePages = responsePages;
-// } void ServerConfig::setLocations(const std::vector<LocationConfig>
-// &locations) { _locations = locations; } void ServerConfig::setAccessLog(const
-// std::string &accessLog) { _accessLog = accessLog; } void
-// ServerConfig::setErrorLog(const std::string &errorLog) { _errorLog =
-// errorLog; }
 
-std::string _trim(const std::string &str)
+
+std::string ServerConfig::_trim(const std::string &str)
 {
 	// First, remove inline comments
 	std::string cleaned = str;
@@ -120,7 +120,7 @@ std::string _trim(const std::string &str)
 	return cleaned.substr(first, (last - first + 1));
 }
 
-std::vector<std::string> _split(const std::string &str)
+std::vector<std::string> ServerConfig::_split(const std::string &str)
 {
 	std::vector<std::string> tokens;
 	std::istringstream stream(str);
@@ -132,6 +132,24 @@ std::vector<std::string> _split(const std::string &str)
 	}
 
 	return tokens;
+}
+
+void ServerConfig::throwConfigError(const std::string& msg, const char* file, int line)
+{
+	Logger::error(msg, file, line);
+	throw std::runtime_error(msg);
+}
+
+bool ServerConfig::validateDirective(std::stringstream& stream, const std::string& expectedDirective, double lineNumber, const char* file, int line)
+{
+	std::string token;
+	if (!(stream >> token) || token != expectedDirective)
+	{
+		std::stringstream ss;
+		ss << "Invalid " << expectedDirective << " directive at line " << lineNumber;
+		throwConfigError(ss.str(), file, line);
+	}
+	return true;
 }
 // Parsing methods
 void ServerConfig::addServerName(std::string line, double lineNumber)
@@ -270,12 +288,9 @@ void ServerConfig::addHosts_ports(std::string line, double lineNumber)
 // Expects a location object from LocationConfig.cpp
 void ServerConfig::addLocation(const LocationConfig &location, double lineNumber)
 {
-	std::stringstream errorMessage;
 	if (std::find(this->_locations.begin(), this->_locations.end(), location) != this->_locations.end())
 	{
-		errorMessage << "Duplicate location detected: " << location.getPath() << " at line " << lineNumber;
-		Logger::error(errorMessage.str(), __FILE__, __LINE__);
-		throw std::runtime_error(errorMessage.str());
+		throwConfigError("Duplicate location detected: " + location.getPath() + " at line " + ConfigParser::numberToString(lineNumber), __FILE__, __LINE__);
 	}
 	else
 		_locations.push_back(location);
@@ -378,65 +393,39 @@ void ServerConfig::addRoot(std::string line, double lineNumber)
 	lineValidation(line, lineNumber);
 
 	std::stringstream rootStream(line);
+	validateDirective(rootStream, "root", lineNumber, __FILE__, __LINE__);
+
 	std::string token;
-	std::stringstream errorMessage;
-
-	if (!(rootStream >> token) || token != "root")
-	{
-		errorMessage << "Invalid root directive at line " << lineNumber;
-		Logger::error(errorMessage.str(), __FILE__, __LINE__);
-		throw std::runtime_error(errorMessage.str());
-	}
-
 	if (!(rootStream >> token) || token.empty())
 	{
-		errorMessage << "Empty root path at line " << lineNumber;
-		Logger::error(errorMessage.str(), __FILE__, __LINE__);
-		throw std::runtime_error(errorMessage.str());
+		throwConfigError("Empty root path at line " + ConfigParser::numberToString(lineNumber), __FILE__, __LINE__);
 	}
 
 	_root = token;
 }
 
+void ServerConfig::addMaxUriSize(std::string line, double lineNumber)
+{
+	lineValidation(line, lineNumber);
+	std::stringstream sizeStream(line);
+	validateDirective(sizeStream, "max_uri_size", lineNumber, __FILE__, __LINE__);
+	_maxUriSize = parseSizeValue(sizeStream, "max_uri_size", lineNumber);
+}
+
+void ServerConfig::addMaxHeaderSize(std::string line, double lineNumber)
+{
+	lineValidation(line, lineNumber);
+	std::stringstream sizeStream(line);
+	validateDirective(sizeStream, "max_header_size", lineNumber, __FILE__, __LINE__);
+	_maxHeaderSize = parseSizeValue(sizeStream, "max_header_size", lineNumber);
+}
+
 void ServerConfig::addClientMaxBodySize(std::string line, double lineNumber)
 {
 	lineValidation(line, lineNumber);
-
 	std::stringstream sizeStream(line);
-	std::string token;
-	std::stringstream errorMessage;
-
-	if (!(sizeStream >> token) || token != "client_max_body_size")
-	{
-		errorMessage << "Invalid client_max_body_size directive at line " << lineNumber;
-		Logger::error(errorMessage.str(), __FILE__, __LINE__);
-		throw std::runtime_error(errorMessage.str());
-	}
-	if (token.empty())
-	{
-		errorMessage << "CHECK PLS Empty client_max_body_size at line " << lineNumber;
-		Logger::error(errorMessage.str(), __FILE__, __LINE__);
-		throw std::runtime_error(errorMessage.str());
-	}
-	sizeStream >> token; // Read the size value
-	char lastChar = token[token.length() - 1];
-	token.erase(token.length() - 1);
-	std::stringstream ss(token);
-	unsigned long size = 0;
-	ss >> size;
-	if (lastChar == 'k' || lastChar == 'K')
-	{
-		size *= 1024;
-	}
-	else if (lastChar == 'm' || lastChar == 'M')
-	{
-		size *= 1024 * 1024;
-	}
-	else if (lastChar == 'g' || lastChar == 'G')
-	{
-		size *= 1024 * 1024 * 1024;
-	}
-	_clientMaxBodySize = size;
+	validateDirective(sizeStream, "client_max_body_size", lineNumber, __FILE__, __LINE__);
+	_clientMaxBodySize = parseSizeValue(sizeStream, "client_max_body_size", lineNumber);
 }
 
 void ServerConfig::addAutoindex(std::string line, double lineNumber)
@@ -444,21 +433,12 @@ void ServerConfig::addAutoindex(std::string line, double lineNumber)
 	lineValidation(line, lineNumber);
 
 	std::stringstream autoindexStream(line);
+	validateDirective(autoindexStream, "autoindex", lineNumber, __FILE__, __LINE__);
+
 	std::string token;
-	std::stringstream errorMessage;
-
-	if (!(autoindexStream >> token) || token != "autoindex")
-	{
-		errorMessage << "Invalid autoindex directive at line " << lineNumber;
-		Logger::error(errorMessage.str(), __FILE__, __LINE__);
-		throw std::runtime_error(errorMessage.str());
-	}
-
 	if (!(autoindexStream >> token) || (token != "on" && token != "off"))
 	{
-		errorMessage << "Invalid autoindex value at line " << lineNumber << ": " << token;
-		Logger::error(errorMessage.str(), __FILE__, __LINE__);
-		throw std::runtime_error(errorMessage.str());
+		throwConfigError("Invalid autoindex value at line " + ConfigParser::numberToString(lineNumber) + ": " + token, __FILE__, __LINE__);
 	}
 	_autoindex = (token == "on");
 }
@@ -467,62 +447,40 @@ void ServerConfig::addAccessLog(std::string line, double lineNumber)
 {
 	lineValidation(line, lineNumber);
 	std::stringstream accessLogStream(line);
-	std::string token;
-	std::stringstream errorMessage;
+	validateDirective(accessLogStream, "access_log", lineNumber, __FILE__, __LINE__);
 
-	if (!(accessLogStream >> token) || token != "access_log")
+	std::string logPath;
+	if (!(accessLogStream >> logPath))
 	{
-		errorMessage << "Invalid access_log directive at line " << lineNumber;
-		Logger::error(errorMessage.str(), __FILE__, __LINE__);
-		throw std::runtime_error(errorMessage.str());
+		throwConfigError("Missing log path for access_log at line " + ConfigParser::numberToString(lineNumber), __FILE__, __LINE__);
 	}
-
-	while (accessLogStream >> token)
-	{
-		if (token == "access_log")
-			continue;
-	}
+	_accessLog = logPath;
 }
 
 void ServerConfig::addErrorLog(std::string line, double lineNumber)
 {
 	lineValidation(line, lineNumber);
 	std::stringstream errorLogStream(line);
-	std::string token;
-	std::stringstream errorMessage;
+	validateDirective(errorLogStream, "error_log", lineNumber, __FILE__, __LINE__);
 
-	if (!(errorLogStream >> token) || token != "error_log")
+	std::string logPath;
+	if (!(errorLogStream >> logPath))
 	{
-		errorMessage << "Invalid error_log directive at line " << lineNumber;
-		Logger::error(errorMessage.str(), __FILE__, __LINE__);
-		throw std::runtime_error(errorMessage.str());
+		throwConfigError("Missing log path for error_log at line " + ConfigParser::numberToString(lineNumber), __FILE__, __LINE__);
 	}
-
-	while (errorLogStream >> token)
-	{
-		if (token == "error_log")
-			continue;
-	}
+	_errorLog = logPath;
 }
 
 void ServerConfig::addKeepAlive(std::string line, double lineNumber)
 {
 	lineValidation(line, lineNumber);
 	std::stringstream keepAliveStream(line);
-	std::string token;
-	std::stringstream errorMessage;
+	validateDirective(keepAliveStream, "keep_alive", lineNumber, __FILE__, __LINE__);
 
-	if (!(keepAliveStream >> token) || token != "keep_alive")
-	{
-		errorMessage << "Invalid keep_alive directive at line " << lineNumber;
-		Logger::error(errorMessage.str(), __FILE__, __LINE__);
-		throw std::runtime_error(errorMessage.str());
-	}
+	std::string token;
 	if (!(keepAliveStream >> token) || (token != "on" && token != "off"))
 	{
-		errorMessage << "Invalid keep_alive value at line " << lineNumber << ": " << token;
-		Logger::error(errorMessage.str(), __FILE__, __LINE__);
-		throw std::runtime_error(errorMessage.str());
+		throwConfigError("Invalid keep_alive value at line " + ConfigParser::numberToString(lineNumber) + ": " + token, __FILE__, __LINE__);
 	}
 	_keepAlive = (token == "on");
 }
@@ -548,6 +506,8 @@ void ServerConfig::printConfig() const
 		std::cout << _indexes[i] << " ";
 	}
 	std::cout << std::endl;
+	std::cout << "Max URI Size: " << _maxUriSize << " bytes" << std::endl;
+	std::cout << "Max Header Size: " << _maxHeaderSize << " bytes" << std::endl;
 	std::cout << "Client Max Body Size: " << _clientMaxBodySize << " bytes" << std::endl;
 	std::cout << "Autoindex: " << (_autoindex ? "on" : "off") << std::endl;
 
@@ -595,20 +555,45 @@ void ServerConfig::printConfig() const
 
 void ServerConfig::lineValidation(std::string &line, int lineNumber)
 {
-	std::stringstream errorMessage;
 	if (line.empty())
 	{
-		errorMessage << "Empty directive at line " << lineNumber;
-		Logger::error(errorMessage.str(), __FILE__, __LINE__);
-		throw std::runtime_error(errorMessage.str());
+		throwConfigError("Empty directive at line " + ConfigParser::numberToString(lineNumber), __FILE__, __LINE__);
 	}
 	else if (line.find_last_of(';') != line.length() - 1)
 	{
-		errorMessage << "Expected semicolon at the end of line " << lineNumber << " : " << line;
-		Logger::error(errorMessage.str(), __FILE__, __LINE__);
-		throw std::runtime_error(errorMessage.str());
+		throwConfigError("Expected semicolon at the end of line " + ConfigParser::numberToString(lineNumber) + " : " + line, __FILE__, __LINE__);
 	}
 	line.erase(line.find_last_of(';'));
+}
+
+double ServerConfig::parseSizeValue(std::stringstream& sizeStream, const std::string& directive, double lineNumber)
+{
+	std::string valueToken;
+	sizeStream >> valueToken; // Read the size value
+	if (valueToken.empty()) {
+		throwConfigError("Empty " + directive + " at line " + ConfigParser::numberToString(lineNumber), __FILE__, __LINE__);
+	}
+	char lastChar = valueToken[valueToken.length() - 1];
+	double multiplier = 1.0;
+	if (lastChar == 'k' || lastChar == 'K') {
+		multiplier = 1024.0;
+		valueToken.erase(valueToken.length() - 1);
+	} else if (lastChar == 'm' || lastChar == 'M') {
+		multiplier = 1024.0 * 1024.0;
+		valueToken.erase(valueToken.length() - 1);
+	} else if (lastChar == 'g' || lastChar == 'G') {
+		multiplier = 1024.0 * 1024.0 * 1024.0;
+		valueToken.erase(valueToken.length() - 1);
+	} else if (!std::isdigit(lastChar)) {
+		throwConfigError("Invalid suffix for " + directive + ": " + lastChar + " at line " + ConfigParser::numberToString(lineNumber), __FILE__, __LINE__);
+	}
+	// If lastChar is digit, no suffix, multiplier remains 1
+	std::stringstream ss(valueToken);
+	double size = 0.0;
+	if (!(ss >> size)) {
+		throwConfigError("Invalid " + directive + " value at line " + ConfigParser::numberToString(lineNumber), __FILE__, __LINE__);
+	}
+	return size * multiplier;
 }
 
 bool ServerConfig::try_validate_port_only(std::string token)

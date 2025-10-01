@@ -20,6 +20,8 @@ private:
 		SERVER_NAME,
 		SERVER_ERROR_PAGE,
 		SERVER_INDEX,
+		SERVER_MAX_URI_SIZE,
+		SERVER_MAX_HEADER_SIZE,
 		SERVER_CLIENT_MAX_BODY_SIZE,
 		SERVER_AUTOINDEX,
 		SERVER_ACCESS_LOG,
@@ -61,6 +63,9 @@ public:
 	ConfigParser();
 	ConfigParser(const std::string &filename);
 	~ConfigParser();
+
+	// Utility functions
+	static std::string numberToString(double number);
 
 	bool parseConfig(const std::string &filename);
 	void printAllConfigs() const;

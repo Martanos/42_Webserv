@@ -2,6 +2,14 @@
 #include "../../includes/LocationConfig.hpp"
 #include "../../includes/StringUtils.hpp"
 
+// Static utility functions
+std::string ConfigParser::numberToString(double number)
+{
+	std::stringstream ss;
+	ss << number;
+	return ss.str();
+}
+
 ConfigParser::ConfigParser()
 {
 }
@@ -179,6 +187,12 @@ void ConfigParser::_parseServerBlock(std::stringstream &buffer, double &lineNumb
 			break;
 		case SERVER_ERROR_PAGE:
 			currentServer.addStatusPages(line, lineNumber);
+			break;
+		case SERVER_MAX_URI_SIZE:
+			currentServer.addMaxUriSize(line, lineNumber);
+			break;
+		case SERVER_MAX_HEADER_SIZE:
+			currentServer.addMaxHeaderSize(line, lineNumber);
 			break;
 		case SERVER_CLIENT_MAX_BODY_SIZE:
 			currentServer.addClientMaxBodySize(line, lineNumber);
