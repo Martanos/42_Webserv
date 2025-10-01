@@ -92,21 +92,6 @@ void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 		return;
 	}
 
-	// TODO: Move this to a constant
-	// Validate method
-	std::vector<std::string> validMethods;
-	validMethods.push_back("GET");
-	validMethods.push_back("POST");
-	validMethods.push_back("DELETE");
-
-	if (std::find(validMethods.begin(), validMethods.end(), _method) == validMethods.end())
-	{
-		Logger::log(Logger::ERROR, "Unsupported HTTP method: " + _method);
-		_uriState = URI_PARSING_ERROR;
-		response.setStatus(501, "Not Implemented");
-		return;
-	}
-
 	// Validate URI
 	if (_uri.empty() || _uri[0] != '/')
 	{

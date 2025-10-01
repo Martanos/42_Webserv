@@ -8,7 +8,7 @@
 #include <sstream>
 #include <string>
 
-// This class is used to generate the response to the client
+// TODO: Add auto formatting and auto sending for this
 class HttpResponse
 {
 private:
@@ -22,8 +22,8 @@ private:
 	enum HttpResponseType
 	{
 		NORMAL_RESPONSE = 0,
-		ERROR_RESPONSE = 1, PROTOCOL_LEVEL_ERROR =
-			0, // If this occurs send a basic error response then close the connection
+		ERROR_RESPONSE = 1,
+		PROTOCOL_LEVEL_ERROR = 0,	// If this occurs send a basic error response then close the connection
 		APPLICATION_LEVEL_ERROR = 1 // If this occurs send a basic error response keep the connection open depending on
 	};
 

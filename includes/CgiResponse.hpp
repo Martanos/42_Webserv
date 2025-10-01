@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+// TODO: Merge this with HttpResponse
 class CgiResponse
 {
 public:

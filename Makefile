@@ -6,7 +6,7 @@
 #    By: malee <malee@student.42.fr>                +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/07/24 16:54:44 by malee             #+#    #+#              #
-#    Updated: 2025/09/25 13:12:18 by malee            ###   ########.fr        #
+#    Updated: 2025/10/01 14:17:15 by malee            ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -40,7 +40,6 @@ SRC_FILES = main.cpp \
 			MethodHandlers/PostMethodHandler.cpp \
 			MethodHandlers/DeleteMethodHandler.cpp \
 			MethodHandlers/MethodHandlerFactory.cpp \
-			MethodHandlers/RequestRouter.cpp \
 			Wrappers/FileDescriptor.cpp \
 			Wrappers/SocketAddress.cpp \
 			Wrappers/AddrInfo.cpp \

@@ -8,7 +8,6 @@
 #include "HttpResponse.hpp"
 #include "Logger.hpp"
 #include "MimeTypes.hpp"
-#include "RequestRouter.hpp"
 #include "Server.hpp"
 #include "ServerMap.hpp"
 #include "SocketAddress.hpp"
@@ -29,11 +28,11 @@
 class Client
 {
 public:
-	enum State
+	enum ClientState
 	{
 		CLIENT_WAITING_FOR_REQUEST = 0,
-		CLIENT_READING_REQUEST = 1,
-		CLIENT_SENDING_RESPONSE = 2,
+		CLIENT_PROCESSING_REQUESTS = 1,
+		CLIENT_PROCESSING_RESPONSES = 2,
 		CLIENT_DISCONNECTED = 3
 	};
 
@@ -43,31 +42,37 @@ private:
 	SocketAddress _localAddr;  // Local address of the client (Who am I locally)
 	SocketAddress _remoteAddr; // Remote address of the client (Who sent me)
 
-	// Request parsing objects
-	HttpRequest _request;					  // The request itself
-	HttpResponse _response;					  // The response itself
+	// Request and response caches and buffers
+	HttpRequest _request;					  // Cached request (May be partially processed)
+	HttpResponse _response;					  // Cached response (May be partially processed)
 	std::deque<HttpResponse> _responseBuffer; // Buffer to hold responses
 
+	// Raw data buffers
 	std::vector<char> _receiveBuffer; // Static buffer to draw from the kernel buffer
 	std::vector<char> _holdingBuffer; // Dynamic buffer to hold incoming data
 
 	const std::vector<Server> *_potentialServers; // Potential servers to use for the request
 
 	// State
-	State _state;		  // Current state of the client
+	ClientState _state;	  // Current state of the client
 	time_t _lastActivity; // Time of last activity will be used by server manager to check for timed out clients
 	bool _keepAlive;	  // Whether the connection should be kept alive
 
+	// Post header methods
 	void _identifyServer();
 	void _identifyCGI();
 
-	// Core operations
-	void _readRequest();
-	void _sendResponse();
-	void _flushResponseQueue();
-	void _processHTTPRequest();
+	// Request processing methods
+	void _handleBuffer();
+	void _handleRequest();
+
+	// Response processing methods
+	void _handleResponseBuffer();
+
+	// TODO: Utility methods
 
 public:
+	// Orchestrator methods
 	Client();
 	Client(FileDescriptor socketFd, SocketAddress clientAddr, SocketAddress remoteAddr);
 	Client(const Client &other);
@@ -78,9 +83,10 @@ public:
 	void handleEvent(epoll_event event);
 
 	// State management
-	State getCurrentState() const;
-	void setState(State newState);
-	bool isTimedOut() const;
+
+	// Mutators
+	ClientState getCurrentState() const;
+	void setState(ClientState newState);
 	void updateActivity();
 
 	// Accessors
@@ -88,9 +94,12 @@ public:
 	const SocketAddress &getLocalAddr() const;
 	const SocketAddress &getRemoteAddr() const;
 	const std::vector<Server> &getPotentialServers() const;
-	void setPotentialServers(const std::vector<Server> &potentialServers);
-	void setServer(const Server *server);
+	void setPotentialServers(
+		const std::vector<Server> &potentialServers); // For server manager to set potential servers
+	bool isTimedOut() const;
 };
+
+// TODO: Stream overload for diagnostic purposes
 
 #endif /* ********************************************************** CLIENT_H                                          \
 		*/
