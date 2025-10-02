@@ -69,6 +69,9 @@ private:
 	// Response processing methods
 	void _handleResponseBuffer();
 
+	// Method handlers
+	
+
 	// TODO: Utility methods
 
 public:

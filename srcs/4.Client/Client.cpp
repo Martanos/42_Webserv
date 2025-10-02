@@ -23,7 +23,6 @@ Client::Client()
 	_remoteAddr = SocketAddress();
 	_request = HttpRequest();
 	_response = HttpResponse();
-	_requestBuffer = std::deque<HttpRequest>();
 	_responseBuffer = std::deque<HttpResponse>();
 	long pageSize = sysconf(_SC_PAGESIZE);
 	if (pageSize == -1)
@@ -50,7 +49,6 @@ Client::Client(FileDescriptor socketFd, SocketAddress clientAddr, SocketAddress 
 	_remoteAddr = remoteAddr;
 	_request = HttpRequest();
 	_response = HttpResponse();
-	_requestBuffer = std::deque<HttpRequest>();
 	_responseBuffer = std::deque<HttpResponse>();
 	long pageSize = sysconf(_SC_PAGESIZE);
 	if (pageSize == -1)
@@ -86,7 +84,8 @@ Client &Client::operator=(Client const &rhs)
 		_localAddr = rhs._localAddr;
 		_remoteAddr = rhs._remoteAddr;
 		_state = rhs._state;
-		_requestBuffer = rhs._requestBuffer;
+		_request = rhs._request;
+		_response = rhs._response;
 		_responseBuffer = rhs._responseBuffer;
 		_receiveBuffer = rhs._receiveBuffer;
 		_holdingBuffer = rhs._holdingBuffer;
@@ -230,17 +229,23 @@ void Client::_handleBuffer()
 void Client::_handleRequest()
 {
 	// Identify if request is handled by the server then route
-	// 1. Verify location can be found on server
+	// 1. Verify location can be found on server (returns root if longest prefix match is not found)
+	// TODO: remove already inlined method handler factory
 	const Location *location = _request.getServer()->getLocation(_request.getUri());
-	if (!location)
+	// 2. Verify method is allowed
+	if (location->getAllowedMethods().find(_request.getMethod()) == location->getAllowedMethods().end())
 	{
-		_response.setStatus(404, "Not Found");
-		_response.setBody(_request.getServer()->getStatusPage(404));
+		_response.setStatus(405, "Method Not Allowed");
+		_response.setBody(_request.getServer()->getStatusPage(405));
 		_response.setHeader("Content-Type", "text/html");
 		_response.setHeader("Content-Length", StringUtils::toString(_response.getBody().length()));
+		_response.setHeader("Allow", "GET, HEAD");
 		return;
 	}
-	// 2. Verify method is allowed
+	// TODO: Implement new static method handler factory
+	MethodHandlerFactory::getInstance()
+		.getHandler(_request.getMethod())
+		->handle(_request, _response, _request.getServer(), location);
 }
 
 /*

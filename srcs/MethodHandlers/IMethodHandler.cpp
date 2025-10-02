@@ -17,6 +17,7 @@
 */
 
 // Resolve file path based on URI and server/location configuration
+// TODO: Move to server / location
 std::string IMethodHandler::resolveFilePath(const std::string &uri, const Server *server, const Location *location)
 {
 	// Remove query string if present
@@ -83,6 +84,7 @@ std::string IMethodHandler::resolveFilePath(const std::string &uri, const Server
 }
 
 // Get MIME type from file extension
+// TODO: Move to MimeTypes
 std::string IMethodHandler::getMimeType(const std::string &filePath)
 {
 	// Use the MimeTypes class if available
@@ -150,6 +152,7 @@ std::string IMethodHandler::getMimeType(const std::string &filePath)
 	return "application/octet-stream";
 }
 
+// TODO: Move to FileDescriptor / FileManager
 // Check if path is accessible
 bool IMethodHandler::isPathAccessible(const std::string &path)
 {
@@ -169,6 +172,7 @@ bool IMethodHandler::isPathAccessible(const std::string &path)
 }
 
 // Read file using FileDescriptor
+// TODO: Move to FileDescriptor / FileManager
 std::string IMethodHandler::readFileWithFd(const std::string &filePath)
 {
 	FileDescriptor fd = FileDescriptor::createFromOpen(filePath.c_str(), O_RDONLY);
@@ -214,6 +218,7 @@ std::string IMethodHandler::readFileWithFd(const std::string &filePath)
 }
 
 // Write file using FileDescriptor
+// TODO: Move to FileDescriptor / FileManager
 bool IMethodHandler::writeFileWithFd(const std::string &filePath, const std::string &content)
 {
 	FileDescriptor fd = FileDescriptor::createFromOpen(filePath.c_str(), O_WRONLY | O_CREAT | O_TRUNC,
@@ -245,6 +250,7 @@ bool IMethodHandler::writeFileWithFd(const std::string &filePath, const std::str
 }
 
 // Set common response headers
+// TODO: Move to HttpResponse
 void IMethodHandler::setCommonHeaders(HttpResponse &response, const std::string &contentType, size_t contentLength)
 {
 	response.setHeader("Content-Type", contentType);

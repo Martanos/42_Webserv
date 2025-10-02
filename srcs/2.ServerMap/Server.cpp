@@ -160,7 +160,8 @@ const std::string Server::getStatusPage(const int &status) const
 	return _statusPages.at(status);
 }
 
-// TODO: Refactor to use Trie tree for faster lookup + longest prefix match scenarios
+// TODO: Refactor to use Trie tree for faster lookup + longest prefix match scenaro
+// Trie tree should return root location if no location is found
 const Location *Server::getLocation(const std::string &path) const
 {
 	if (_locations.find(path) == _locations.end())

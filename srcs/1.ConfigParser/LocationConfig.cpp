@@ -44,7 +44,7 @@ LocationConfig &LocationConfig::operator=(const LocationConfig &other)
 	return *this;
 }
 
-// Equality operator
+// Equality operator // TODO: Fix this
 bool LocationConfig::operator==(const LocationConfig &other) const
 {
 	return _path == other._path && _root == other._root && _allowedMethods == other._allowedMethods &&

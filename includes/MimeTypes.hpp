@@ -9,6 +9,7 @@
 #include <string>
 #include <sys/stat.h>
 
+// Static class to store mime types from 
 class MimeTypes
 {
 private:
@@ -26,6 +27,11 @@ private:
 		}
 		return *this;
 	}
+
+	// Static members
+	static std::map<std::string, std::string> _mimeTypesMap;
+	
+
 
 	static std::map<std::string, std::string> &getMimeTypesMap()
 	{
