@@ -9,6 +9,7 @@
 #include "Server.hpp"
 #include "StringUtils.hpp"
 #include <cstddef>
+#include <dirent.h>
 #include <string>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -93,22 +94,28 @@ const char *const SERVER_VERSION = "42_Webserv/1.0";
 namespace FILE_UTILS
 {
 
-// TODO: Move to FileDescriptor / FileManager
-// Check if path is accessible
-static bool isPathAccessible(const std::string &path)
+static bool isDirectoryEmpty(const std::string &path)
 {
-	struct stat st;
-	if (stat(path.c_str(), &st) != 0)
+	DIR *dir = opendir(path.c_str());
+	if (!dir)
 	{
+		// Could not open directory — maybe doesn't exist or permission denied
 		return false;
 	}
 
-	// Check read permission
-	if (access(path.c_str(), R_OK) != 0)
+	struct dirent *entry;
+	while ((entry = readdir(dir)) != NULL)
 	{
-		return false;
+		// Skip "." and ".."
+		if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0)
+		{
+			closedir(dir);
+			return false; // Found something
+		}
 	}
-	return true;
+
+	closedir(dir);
+	return true; // Only "." and ".." found
 }
 
 // TODO: Move to FileDescriptor / FileManager
@@ -190,52 +197,89 @@ namespace METHOD_UTILS
 static void deleteMethodHandler(const HttpRequest &request, HttpResponse &response, const Server *server,
 								const Location *location)
 {
-	std::string filePath = absolutePath(request.getUri());
+	std::string filePath = request.getUri();
 
-	// Don't allow deletion of directories
+	// 1. Get file statistics
+	struct stat fileStat;
+	if (stat(filePath.c_str(), &fileStat) != 0)
+	{
+		response.setStatus(404, "Not Found");
+		response.setBody(server->getStatusPage(404));
+		response.setHeader("Content-Type", "text/html");
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
+		return;
+	}
+
+	// 2. Check with access if file is accessible
+	if (access(filePath.c_str(), W_OK) != 0)
+	{
+		response.setStatus(403, "Forbidden");
+		response.setBody(server->getStatusPage(403));
+		response.setHeader("Content-Type", "text/html");
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
+		return;
+	}
+
+	// 3. If its a directory, check if it is empty
 	if (S_ISDIR(fileStat.st_mode))
 	{
-		response.setStatus(403, "Forbidden");
-		response.setBody(server->getStatusPage(403));
-		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
-		return;
+		// Check if the directory is empty
+		if (FILE_UTILS::isDirectoryEmpty(filePath))
+		{
+			// Delete the directory
+			if (rmdir(filePath.c_str()) != 0)
+			{
+				response.setStatus(500, "Internal Server Error");
+				response.setBody(server->getStatusPage(500));
+				response.setHeader("Content-Type", "text/html");
+				response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
+				return;
+			}
+			else
+			{
+				response.setStatus(200, "OK");
+				response.setBody(server->getStatusPage(200));
+				response.setHeader("Content-Type", "text/html");
+				response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
+				return;
+			}
+		}
+		else
+		{
+			response.setStatus(403, "Forbidden");
+			response.setBody(server->getStatusPage(403));
+			response.setHeader("Content-Type", "text/html");
+			response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
+			return;
+		}
 	}
-
-	// Check if deletion is allowed for this specific path
-	if (!isDeletionAllowed(filePath, location))
+	else if (S_ISREG(fileStat.st_mode))
 	{
-		response.setStatus(403, "Forbidden");
-		response.setBody(server->getStatusPage(403));
-		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
-		return;
-	}
-
-	// Attempt to delete the file
-	if (deleteFile(filePath))
-	{
-		// Successful deletion
-		std::stringstream html;
-		html << "<!DOCTYPE html>\n<html>\n<head>\n";
-		html << "<title>File Deleted</title>\n</head>\n<body>\n";
-		html << "<h1>File Deleted Successfully</h1>\n";
-		html << "<p>The requested resource has been deleted.</p>\n";
-		html << "<p><a href=\"/\">Return to Home</a></p>\n";
-		html << "</body>\n</html>\n";
-
-		response.setStatus(200, "OK");
-		response.setBody(html.str());
-		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
+		// Delete the file
+		if (unlink(filePath.c_str()) != 0)
+		{
+			response.setStatus(500, "Internal Server Error");
+			response.setBody(server->getStatusPage(500));
+			response.setHeader("Content-Type", "text/html");
+			response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
+			return;
+		}
+		else
+		{
+			response.setStatus(200, "OK");
+			response.setBody(server->getStatusPage(200));
+			response.setHeader("Content-Type", "text/html");
+			response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
+			return;
+		}
 	}
 	else
 	{
-		// Failed to delete
-		response.setStatus(500, "Internal Server Error");
-		response.setBody(server->getStatusPage(500));
+		response.setStatus(501, "Not Implemented");
+		response.setBody(server->getStatusPage(501));
 		response.setHeader("Content-Type", "text/html");
 		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
+		return;
 	}
 }
 
