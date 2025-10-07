@@ -49,6 +49,9 @@ public:
 
 	// Parsing methods
 	ParseState parseBuffer(std::vector<char> &holdingBuffer, HttpResponse &response);
+
+	// Sanitization methods
+	void sanitizeRequest(HttpResponse &response, const Server *server, const Location *location);
 	void reset();
 
 	// Mutators

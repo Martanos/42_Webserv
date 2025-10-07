@@ -141,6 +141,17 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 	return _parseState;
 }
 
+void HttpRequest::sanitizeRequest(HttpResponse &response, const Server *server, const Location *location)
+{
+	_uri.sanitizeURI(server, location);
+	if (_uri.getURIState() == HttpURI::URI_PARSING_ERROR)
+	{
+		response.setStatus(400, "Bad Request");
+		_parseState = PARSING_ERROR;
+		return;
+	}
+}
+
 /*
 ** --------------------------------- ACCESSOR METHODS
 *----------------------------------

@@ -16,12 +16,6 @@
 class HttpURI
 {
 public:
-	// Constructor
-	HttpURI();
-	HttpURI(const HttpURI &other);
-	~HttpURI();
-	HttpURI &operator=(const HttpURI &other);
-
 	// Parsing state
 	enum URIState
 	{
@@ -30,30 +24,38 @@ public:
 		URI_PARSING_ERROR = 2
 	};
 
-	// Main parsing method
-	void parseBuffer(std::vector<char> &buffer, HttpResponse &response);
-
-	// Accessors
-	std::string &getMethod();
-	std::string &getURI();
-	std::string &getVersion();
-	const std::string &getMethod() const;
-	const std::string &getURI() const;
-	const std::string &getVersion() const;
-	URIState getURIState() const;
-	size_t getRawURISize() const;
-
-	// Methods
-	void reset();
-
 private:
 	URIState _uriState;
-	size_t _rawURISize;
+	size_t _uriSize;
 
 	// Request line
 	std::string _method;
-	std::string _uri;
+	std::string _URI;
 	std::string _version;
+
+	// Query parameters
+	std::map<std::string, std::vector<std::string> > _queryParameters;
+
+public:
+	// Constructor
+	HttpURI();
+	HttpURI(const HttpURI &other);
+	~HttpURI();
+	HttpURI &operator=(const HttpURI &other);
+
+	// Main parsing method
+	void parseBuffer(std::vector<char> &buffer, HttpResponse &response);
+	void sanitizeURI(const Server *server, const Location *location);
+
+	// Accessors
+	const std::string &getURI() const;
+	const std::string &getVersion() const;
+	const std::string &getMethod() const;
+	const std::map<std::string, std::vector<std::string> > &getQueryParameters() const;
+	URIState getURIState() const;
+
+	// Methods
+	void reset();
 };
 
 #endif /* ********************************************************* HTTPURI_H                                          \

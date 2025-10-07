@@ -41,32 +41,6 @@ void PostMethodHandler::handle(const HttpRequest &request, HttpResponse &respons
 {
 	PERF_SCOPED_TIMER(post_method_handler);
 
-	Logger::info("PostMethodHandler: Handling POST request for URI: " + request.getUri());
-	// Check if location allows POST
-	if (location)
-	{
-		const std::vector<std::string> &methods = location->getAllowedMethods();
-		bool postAllowed = false;
-		for (size_t i = 0; i < methods.size(); ++i)
-		{
-			if (methods[i] == "POST")
-			{
-				postAllowed = true;
-				break;
-			}
-		}
-
-		if (!postAllowed)
-		{
-			response.setStatus(405, "Method Not Allowed");
-			response.setBody(server->getStatusPage(405));
-			response.setHeader("Content-Type", "text/html");
-			response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
-			response.setHeader("Allow", "GET, HEAD");
-			return;
-		}
-	}
-
 	// Check what type of POST handling is configured
 	if (location && !location->getCgiPath().empty())
 	{

@@ -242,6 +242,17 @@ void Client::_handleRequest()
 		_response.setHeader("Allow", "GET, HEAD");
 		return;
 	}
+
+	// 3. Once location is found sanitize the request
+	_request.sanitizeRequest(_response, _request.getServer(), location);
+	if (_request.getParseState() == HttpRequest::PARSING_ERROR)
+	{
+		_responseBuffer.push_back(_response);
+		_response.reset();
+		_state = CLIENT_PROCESSING_RESPONSES;
+		return;
+	}
+
 	// TODO: Implement new static method handler factory
 	MethodHandlerFactory::getInstance()
 		.getHandler(_request.getMethod())

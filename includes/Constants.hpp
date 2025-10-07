@@ -1,8 +1,16 @@
 #ifndef CONSTANTS_HPP
 #define CONSTANTS_HPP
 
+#include "FileDescriptor.hpp"
+#include "HttpRequest.hpp"
+#include "HttpResponse.hpp"
+#include "Location.hpp"
+#include "Logger.hpp"
+#include "Server.hpp"
+#include "StringUtils.hpp"
 #include <cstddef>
 #include <string>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -25,52 +33,48 @@ static const ssize_t MAX_BODY_SIZE = 10485760;		 // 10MB
 static const char *const CRLF = "\r\n";				 // CRLF
 const int DEFAULT_TIMEOUT_SECONDS = 30;				 // 30 second timeout
 
-// HTTP Status Codes
-const int STATUS_CONTINUE = 100;
-const int STATUS_SWITCHING_PROTOCOLS = 101;
-const int STATUS_PROCESSING = 102;
-const int STATUS_EARLY_HINTS = 103;
-const int STATUS_OK = 200;
-const int STATUS_CREATED = 201;
-const int STATUS_ACCEPTED = 202;
-const int STATUS_NON_AUTHORITATIVE_INFORMATION = 203;
-const int STATUS_NO_CONTENT = 204;
-const int STATUS_RESET_CONTENT = 205;
-const int STATUS_PARTIAL_CONTENT = 206;
-const int STATUS_MULTI_STATUS = 207;
-const int STATUS_ALREADY_REPORTED = 208;
-const int STATUS_IM_USED = 226;
-const int STATUS_MULTIPLE_CHOICES = 300;
-const int STATUS_MOVED_PERMANENTLY = 301;
-const int STATUS_FOUND = 302;
-const int STATUS_SEE_OTHER = 303;
-const int STATUS_NOT_MODIFIED = 304;
-const int STATUS_USE_PROXY = 305;
-const int STATUS_TEMPORARY_REDIRECT = 307;
-const int STATUS_PERMANENT_REDIRECT = 308;
-const int STATUS_BAD_REQUEST = 400;
-const int STATUS_UNAUTHORIZED = 401;
-const int STATUS_FORBIDDEN = 403;
-const int STATUS_NOT_FOUND = 404;
-const int STATUS_METHOD_NOT_ALLOWED = 405;
-const int STATUS_REQUEST_ENTITY_TOO_LARGE = 413;
-const int STATUS_URI_TOO_LONG = 414;
-const int STATUS_UNSUPPORTED_MEDIA_TYPE = 415;
-const int STATUS_RANGE_NOT_SATISFIABLE = 416;
-const int STATUS_EXPECTATION_FAILED = 417;
-const int STATUS_IM_A_TEAPOT = 418;
-const int STATUS_MISDIRECTED_REQUEST = 421;
-const int STATUS_UNPROCESSABLE_ENTITY = 422;
-const int STATUS_LOCKED = 423;
-const int STATUS_FAILED_DEPENDENCY = 424;
-const int STATUS_TOO_MANY_REQUESTS = 429;
-const int STATUS_REQUEST_HEADER_FIELDS_TOO_LARGE = 431;
-const int STATUS_UNAVAILABLE_FOR_LEGAL_REASONS = 451;
-const int STATUS_CLIENT_CLOSED_REQUEST = 499;
-const int STATUS_INTERNAL_SERVER_ERROR = 500;
-const int STATUS_NOT_IMPLEMENTED = 501;
-const int STATUS_SERVICE_UNAVAILABLE = 503;
 } // namespace HTTP
+
+namespace HTTP_PARSING_UTILS
+{
+std::string percentDecode(const std::string &input)
+{
+	std::string output;
+	for (size_t i = 0; i < input.size(); ++i)
+	{
+		if (input[i] == '%' && i + 2 < input.size())
+		{
+			char hex[3] = {input[i + 1], input[i + 2], '\0'};
+			if (isxdigit(hex[0]) && isxdigit(hex[1]))
+			{
+				char *end;
+				output += static_cast<char>(strtol(hex, &end, 16));
+				if (*end != '\0')
+				{
+					output += '%'; // Preserve malformed %
+				}
+				i += 2;
+			}
+			else
+			{
+				output += '%'; // Preserve malformed %
+			}
+		}
+		else
+		{
+			output += input[i];
+		}
+	}
+	return output;
+}
+
+} // namespace HTTP_PARSING_UTILS
+
+// TODO: Move string utils here
+namespace STRING_UTILS
+{
+
+} // namespace STRING_UTILS
 
 // Server Constants
 namespace SERVER
@@ -85,5 +89,156 @@ const bool DEFAULT_KEEP_ALIVE = true;
 
 const char *const SERVER_VERSION = "42_Webserv/1.0";
 } // namespace SERVER
+
+namespace FILE_UTILS
+{
+
+// TODO: Move to FileDescriptor / FileManager
+// Check if path is accessible
+static bool isPathAccessible(const std::string &path)
+{
+	struct stat st;
+	if (stat(path.c_str(), &st) != 0)
+	{
+		return false;
+	}
+
+	// Check read permission
+	if (access(path.c_str(), R_OK) != 0)
+	{
+		return false;
+	}
+	return true;
+}
+
+// TODO: Move to FileDescriptor / FileManager
+// Read file using FileDescriptor
+static std::string readFileWithFd(const std::string &filePath)
+{
+	FileDescriptor fd = FileDescriptor::createFromOpen(filePath.c_str(), O_RDONLY);
+
+	if (!fd.isValid())
+	{
+		Logger::log(Logger::ERROR, "Cannot open file: " + filePath);
+		throw std::runtime_error("Cannot open file");
+	}
+
+	// Get file size
+	struct stat fileStat;
+	if (fstat(fd.getFd(), &fileStat) != 0)
+	{
+		throw std::runtime_error("Cannot stat file");
+	}
+
+	// Read file content
+	std::string content;
+	content.resize(fileStat.st_size);
+
+	ssize_t totalRead = 0;
+	while (totalRead < fileStat.st_size)
+	{
+		ssize_t bytesRead = read(fd.getFd(), &content[totalRead], fileStat.st_size - totalRead);
+		if (bytesRead < 0)
+		{
+			throw std::runtime_error("Error reading file");
+		}
+		else if (bytesRead == 0)
+		{
+			break; // End of file
+		}
+		totalRead += bytesRead;
+	}
+
+	content.resize(totalRead);
+	return content;
+}
+
+// TODO: Move to FileDescriptor / FileManager
+// Write file using FileDescriptor
+static bool writeFileWithFd(const std::string &filePath, const std::string &content)
+{
+	FileDescriptor fd = FileDescriptor::createFromOpen(filePath.c_str(), O_WRONLY | O_CREAT | O_TRUNC,
+													   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+
+	if (!fd.isValid())
+	{
+		Logger::log(Logger::ERROR, "Cannot create file: " + filePath);
+		return false;
+	}
+
+	size_t totalWritten = 0;
+	while (totalWritten < content.length())
+	{
+		ssize_t written = write(fd.getFd(), content.c_str() + totalWritten, content.length() - totalWritten);
+		if (written < 0)
+		{
+			Logger::log(Logger::ERROR, "Error writing file: " + filePath);
+			return false;
+		}
+		totalWritten += written;
+	}
+
+	return true;
+}
+
+} // namespace FILE_UTILS
+
+namespace METHOD_UTILS
+{
+
+// Deletion method utilities
+static void deleteMethodHandler(const HttpRequest &request, HttpResponse &response, const Server *server,
+								const Location *location)
+{
+	std::string filePath = absolutePath(request.getUri());
+
+	// Don't allow deletion of directories
+	if (S_ISDIR(fileStat.st_mode))
+	{
+		response.setStatus(403, "Forbidden");
+		response.setBody(server->getStatusPage(403));
+		response.setHeader("Content-Type", "text/html");
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
+		return;
+	}
+
+	// Check if deletion is allowed for this specific path
+	if (!isDeletionAllowed(filePath, location))
+	{
+		response.setStatus(403, "Forbidden");
+		response.setBody(server->getStatusPage(403));
+		response.setHeader("Content-Type", "text/html");
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
+		return;
+	}
+
+	// Attempt to delete the file
+	if (deleteFile(filePath))
+	{
+		// Successful deletion
+		std::stringstream html;
+		html << "<!DOCTYPE html>\n<html>\n<head>\n";
+		html << "<title>File Deleted</title>\n</head>\n<body>\n";
+		html << "<h1>File Deleted Successfully</h1>\n";
+		html << "<p>The requested resource has been deleted.</p>\n";
+		html << "<p><a href=\"/\">Return to Home</a></p>\n";
+		html << "</body>\n</html>\n";
+
+		response.setStatus(200, "OK");
+		response.setBody(html.str());
+		response.setHeader("Content-Type", "text/html");
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
+	}
+	else
+	{
+		// Failed to delete
+		response.setStatus(500, "Internal Server Error");
+		response.setBody(server->getStatusPage(500));
+		response.setHeader("Content-Type", "text/html");
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
+	}
+}
+
+} // namespace METHOD_UTILS
 
 #endif /* CONSTANTS_HPP */

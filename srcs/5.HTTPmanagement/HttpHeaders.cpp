@@ -190,6 +190,13 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 		std::vector<std::string> headerValues = it->second;
 		if (headerName == "content-length")
 		{
+			if (_headers.find("transfer-encoding") != _headers.end())
+			{
+				Logger::log(Logger::WARNING, "Content-Length and Transfer-Encoding headers cannot be used together");
+				_headersState = HEADERS_PARSING_ERROR;
+				response.setStatus(400, "Bad Request");
+				return;
+			}
 			char *endPtr;
 			ssize_t contentLength = std::strtol(headerValues[0].c_str(), &endPtr, 10);
 			if (*endPtr != '\0' || contentLength < 0)
@@ -204,6 +211,13 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 		}
 		else if (headerName == "transfer-encoding")
 		{
+			if (_headers.find("content-length") != _headers.end())
+			{
+				Logger::log(Logger::WARNING, "Content-Length and Transfer-Encoding headers cannot be used together");
+				_headersState = HEADERS_PARSING_ERROR;
+				response.setStatus(400, "Bad Request");
+				return;
+			}
 			// As per requirements, only chunked is supported
 			if (headerValues[0].find("chunked") != std::string::npos)
 			{
@@ -246,6 +260,13 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 				_headersState = HEADERS_PARSING_ERROR;
 				response.setStatus(400, "Bad Request");
 				return;
+			}
+		}
+		else if (headerName == "content-disposition" || headerName == "referer" || headerName == "location")
+		{
+			for (std::vector<std::string>::iterator it = headerValues.begin(); it != headerValues.end(); ++it)
+			{
+				*it = HTTP_PARSING_UTILS::percentDecode(*it);
 			}
 		}
 	}

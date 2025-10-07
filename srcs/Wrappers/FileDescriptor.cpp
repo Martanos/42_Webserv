@@ -12,7 +12,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
-
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
