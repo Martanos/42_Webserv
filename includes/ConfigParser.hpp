@@ -38,9 +38,8 @@ private:
 		LOCATION_RETURN,
 		LOCATION_AUTOINDEX,
 		LOCATION_INDEX,
-		LOCATION_FASTCGI_PASS,
-		LOCATION_FASTCGI_PARAM,
-		LOCATION_FASTCGI_INDEX,
+		LOCATION_CGI_PATH,
+		LOCATION_CGI_PARAM,
 		LOCATION_UPLOAD_PATH,
 		LOCATION_UNKNOWN
 	};
@@ -49,8 +48,6 @@ private:
 	ConfigParser(const ConfigParser &other);
 
 	std::vector<ServerConfig> _serverConfigs;
-	std::string _trim(const std::string &str) const;
-	std::vector<std::string> _split(const std::string &str) const;
 	bool serverblockcheck(const std::string &line, bool &insideHttp, bool &insideServer);
 	bool httpblockcheck(const std::string &line, bool &foundHttp, bool &insideHttp);
 	void _parseServerBlock(std::stringstream &buffer, double &lineNumber);
@@ -64,8 +61,7 @@ public:
 	ConfigParser(const std::string &filename);
 	~ConfigParser();
 
-	// Utility functions
-	static std::string numberToString(double number);
+
 
 	bool parseConfig(const std::string &filename);
 	void printAllConfigs() const;

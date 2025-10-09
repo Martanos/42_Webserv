@@ -101,7 +101,7 @@ void GetMethodHandler::handle(const HttpRequest &request, HttpResponse &response
 			}
 
 			// Check if autoindex is enabled
-			bool autoindex = location ? location->getAutoIndex() : server->getAutoindex();
+                        bool autoindex = location ? location->isAutoIndexEnabled() : server->getAutoindex();
 
 			if (autoindex)
 			{

@@ -1,14 +1,7 @@
 #include "../../includes/ConfigParser.hpp"
-#include "../../includes/LocationConfig.hpp"
+#include "../../includes/Location.hpp"
 #include "../../includes/StringUtils.hpp"
-
-// Static utility functions
-std::string ConfigParser::numberToString(double number)
-{
-	std::stringstream ss;
-	ss << number;
-	return ss.str();
-}
+#include "../../includes/ConfigUtils.hpp"
 
 ConfigParser::ConfigParser()
 {
@@ -39,7 +32,7 @@ ConfigParser::ConfigParser(const ConfigParser &other)
 
 bool ConfigParser::parseConfig(const std::string &filename)
 {
-	Logger::info("ConfigParser: Starting to parse configuration file: " + filename);
+	Logger::debug("ConfigParser: Starting to parse configuration file: " + filename);
 	std::ifstream file(filename.c_str());
 	std::stringstream errorMessage;
 	if (!file.is_open())
@@ -67,10 +60,9 @@ bool ConfigParser::parseConfig(const std::string &filename)
 		{
 			continue; // Skip empty lines and comments
 		}
-		line = _trim(line);
+		line = StringUtils::trim(line);
 
 		httpblockcheck(line, foundHttp, insideHttp);
-
 		if (serverblockcheck(line, insideHttp, insideServer))
 		{
 			_parseServerBlock(buffer, lineNumber); // Handle server block start
@@ -88,7 +80,7 @@ bool ConfigParser::parseConfig(const std::string &filename)
 		Logger::log(Logger::ERROR, errorMessage.str());
 		throw std::runtime_error(errorMessage.str());
 	}
-	Logger::info("ConfigParser: Successfully parsed " + StringUtils::toString(_serverConfigs.size()) + " server configurations");
+	Logger::debug("ConfigParser: Successfully parsed " + StringUtils::toString(_serverConfigs.size()) + " server configurations");
 	return true;
 }
 
@@ -136,9 +128,6 @@ bool ConfigParser::httpblockcheck(const std::string &line, bool &foundHttp, bool
 		insideHttp = true;
 		return true; // Start of http block
 	}
-
-	// Note: http block closing is now handled by checking if we're not inside a
-	// server block This prevents the ambiguity of which block a "}" is closing
 	return false; // Not a http block directive
 }
 
@@ -150,7 +139,7 @@ void ConfigParser::_parseServerBlock(std::stringstream &buffer, double &lineNumb
 
 	while (std::getline(buffer, line))
 	{
-		line = _trim(line);
+		line = StringUtils::trim(line);
 		lineNumber++;
 
 		if (line.empty() || line[0] == '#')
@@ -164,7 +153,7 @@ void ConfigParser::_parseServerBlock(std::stringstream &buffer, double &lineNumb
 		}
 
 		// Basic server directive parsing - can be expanded later
-		std::vector<std::string> tokens = _split(line);
+		std::vector<std::string> tokens = StringUtils::split(line);
 		if (tokens.empty())
 		{
 			continue; // Skip empty lines
@@ -225,36 +214,7 @@ void ConfigParser::_parseServerBlock(std::stringstream &buffer, double &lineNumb
 	Logger::debug("ConfigParser: Successfully parsed server block with " + StringUtils::toString(currentServer.getHosts_ports().size()) + " listen directives");
 }
 
-std::string ConfigParser::_trim(const std::string &str) const
-{
-	// First, remove inline comments
-	std::string cleaned = str;
-	size_t commentPos = cleaned.find('#');
-	if (commentPos != std::string::npos)
-	{
-		cleaned = cleaned.substr(0, commentPos);
-	}
 
-	size_t first = cleaned.find_first_not_of(" \t\n\r");
-	if (first == std::string::npos)
-		return ""; // No non-whitespace characters
-	size_t last = cleaned.find_last_not_of(" \t\n\r");
-	return cleaned.substr(first, (last - first + 1));
-}
-
-std::vector<std::string> ConfigParser::_split(const std::string &str) const
-{
-	std::vector<std::string> tokens;
-	std::istringstream stream(str);
-	std::string token;
-
-	while (stream >> token)
-	{
-		tokens.push_back(token);
-	}
-
-	return tokens;
-}
 
 void ConfigParser::printAllConfigs() const
 {
@@ -310,11 +270,9 @@ ConfigParser::LocationDirectiveType ConfigParser::_getLocationDirectiveType(cons
 	if (directive == "index")
 		return LOCATION_INDEX;
 	if (directive == "cgi_path")
-		return LOCATION_FASTCGI_PASS;
+		return LOCATION_CGI_PATH;
 	if (directive == "cgi_param")
-		return LOCATION_FASTCGI_PARAM;
-	if (directive == "cgi_index")
-		return LOCATION_FASTCGI_INDEX;
+		return LOCATION_CGI_PARAM;
 	if (directive == "upload_path")
 		return LOCATION_UPLOAD_PATH;
 	return LOCATION_UNKNOWN;
@@ -323,7 +281,7 @@ ConfigParser::LocationDirectiveType ConfigParser::_getLocationDirectiveType(cons
 void ConfigParser::_parseLocationBlock(std::stringstream &buffer, double &lineNumber, const std::string &locationLine,
 									   ServerConfig &currentServer)
 {
-	LocationConfig currentLocation;
+	Location currentLocation;
 	std::string line;
 
 	// Parse the location directive line first to extract the path
@@ -332,7 +290,7 @@ void ConfigParser::_parseLocationBlock(std::stringstream &buffer, double &lineNu
 
 	while (std::getline(buffer, line))
 	{
-		line = _trim(line);
+		line = StringUtils::trim(line);
 		lineNumber++;
 
 		if (line.empty() || line[0] == '#')
@@ -346,7 +304,7 @@ void ConfigParser::_parseLocationBlock(std::stringstream &buffer, double &lineNu
 		}
 
 		// Parse location directive
-		std::vector<std::string> tokens = _split(line);
+		std::vector<std::string> tokens = StringUtils::split(line);
 		if (tokens.empty())
 		{
 			continue; // Skip empty lines
@@ -367,17 +325,11 @@ void ConfigParser::_parseLocationBlock(std::stringstream &buffer, double &lineNu
 		case LOCATION_AUTOINDEX:
 			currentLocation.addAutoIndex(line, lineNumber);
 			break;
-		case LOCATION_INDEX:
-			currentLocation.addIndex(line, lineNumber);
-			break;
-		case LOCATION_FASTCGI_PASS:
+		case LOCATION_CGI_PATH:
 			currentLocation.addCgiPath(line, lineNumber);
 			break;
-		case LOCATION_FASTCGI_PARAM:
+		case LOCATION_CGI_PARAM:
 			currentLocation.addCgiParam(line, lineNumber);
-			break;
-		case LOCATION_FASTCGI_INDEX:
-			currentLocation.addCgiIndex(line, lineNumber);
 			break;
 		case LOCATION_UPLOAD_PATH:
 			currentLocation.addUploadPath(line, lineNumber);

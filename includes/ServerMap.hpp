@@ -31,16 +31,20 @@
 class ServerMap
 {
 private:
+	// Owned server configurations (Server objects reference these)
+	std::vector<ServerConfig> _serverConfigs;
+
 	// Server key struct
 	std::map<ListeningSocket, std::vector<Server> > _serverMap;
 
 	// Utility Methods
 	std::vector<Server> _spawnServers(std::vector<ServerConfig> &serverConfigs);
 	void _populateServerMap(std::vector<Server> &servers);
+	void _convertAndAddLocationsToServer(Server &server, const ServerConfig &serverConfig);
 
 public:
 	ServerMap();
-	ServerMap(std::vector<ServerConfig> &serverConfigs);
+	ServerMap(const std::vector<ServerConfig> &serverConfigs);
 	ServerMap(const ServerMap &src);
 	ServerMap &operator=(ServerMap const &rhs);
 	~ServerMap();

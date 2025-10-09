@@ -1,7 +1,7 @@
 #ifndef SERVER_CONFIG_HPP
 #define SERVER_CONFIG_HPP
 
-#include "LocationConfig.hpp"
+#include "Location.hpp"
 #include "Logger.hpp"
 #include <cstring>
 #include <map>
@@ -30,21 +30,15 @@ private:
 	double _maxHeaderSize;
 	double _clientMaxBodySize;
 	std::map<int, std::string> _statusPages;
-	std::vector<LocationConfig> _locations;
+	std::vector<Location> _locations;
 	std::string _accessLog;
 	std::string _errorLog;
 	bool _keepAlive;
 
 	// Private static utilities
-	static std::string _trim(const std::string &str);
-	static std::vector<std::string> _split(const std::string &str);
-	static void throwConfigError(const std::string& msg, const char* file, int line);
-	static bool validateDirective(std::stringstream& stream, const std::string& expectedDirective, double lineNumber, const char* file, int line);
 	static bool try_validate_port_only(std::string token);
 	static bool try_validate_host_only(std::string token);
 	static std::pair<std::string, unsigned short> split_host_port(std::string token);
-	static void lineValidation(std::string &line, int lineNumber);
-	static double parseSizeValue(std::stringstream& sizeStream, const std::string& directive, double lineNumber);
 
 public:
 	ServerConfig();
@@ -62,7 +56,7 @@ public:
 	double getMaxHeaderSize() const;
 	double getClientMaxBodySize() const;
 	const std::map<int, std::string> &getStatusPages() const;
-	const std::vector<LocationConfig> &getLocations() const;
+	const std::vector<Location> &getLocations() const;
 	const std::string &getAccessLog() const;
 	const std::string &getErrorLog() const;
 	bool getKeepAlive() const;
@@ -90,11 +84,11 @@ public:
 	void addAutoindex(std::string line, double lineNumber);
 	void addAccessLog(std::string line, double lineNumber);
 	void addErrorLog(std::string line, double lineNumber);
-	void addLocation(const LocationConfig &location, double lineNumber);
+	void addLocation(const Location &location, double lineNumber);
 	void addKeepAlive(std::string line, double lineNumber);
 
 	// Utils
-	bool hasLocation(const LocationConfig &location) const;
+	bool hasLocation(const Location &location) const;
 
 	// Debugging methods
 	void printConfig() const;

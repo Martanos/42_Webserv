@@ -22,7 +22,6 @@ OBJ_DIR = obj/srcs
 SRC_FILES = main.cpp \
 			1.ConfigParser/ConfigParser.cpp \
 			1.ConfigParser/ServerConfig.cpp \
-			1.ConfigParser/LocationConfig.cpp \
 			2.ServerMap/ServerMap.cpp \
 			2.ServerMap/Server.cpp \
 			2.ServerMap/Location.cpp \

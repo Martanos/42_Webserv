@@ -1,7 +1,6 @@
 #ifndef CGIENV_HPP
 #define CGIENV_HPP
 
-#include "LocationConfig.hpp"
 #include "ServerConfig.hpp"
 
 #include <cstring>

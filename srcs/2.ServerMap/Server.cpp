@@ -6,31 +6,22 @@
 */
 
 Server::Server()
+	: _config(NULL)
 {
 	_serverName = "";
 	_host = SERVER::DEFAULT_HOST;
 	_port = SERVER::DEFAULT_PORT;
-	_root = SERVER::DEFAULT_ROOT;
-	_indexes = std::vector<std::string>(1, SERVER::DEFAULT_INDEX);
-	_autoindex = SERVER::DEFAULT_AUTOINDEX;
-	_clientMaxBodySize = SERVER::DEFAULT_CLIENT_MAX_BODY_SIZE;
-	_statusPages = std::map<int, std::string>();
 	_locations = std::map<std::string, Location>();
 }
 
 Server::Server(const std::string &serverName, const std::string &host, const unsigned short &port,
-			   const ServerConfig &serverConfig)
+			   const ServerConfig* serverConfig)
 {
 	_serverName = serverName;
 	_host = host;
 	_port = port;
-	_root = serverConfig.getRoot();
-	_indexes = serverConfig.getIndexes();
-	_autoindex = serverConfig.getAutoindex();
-	_clientMaxBodySize = serverConfig.getClientMaxBodySize();
-	_statusPages = serverConfig.getStatusPages();
+	_config = serverConfig;
 	_locations = std::map<std::string, Location>();
-	_keepAlive = serverConfig.getKeepAlive();
 }
 
 Server::Server(const Server &src)
@@ -57,13 +48,8 @@ Server &Server::operator=(Server const &rhs)
 		_serverName = rhs._serverName;
 		_host = rhs._host;
 		_port = rhs._port;
-		_root = rhs._root;
-		_indexes = rhs._indexes;
-		_autoindex = rhs._autoindex;
-		_clientMaxBodySize = rhs._clientMaxBodySize;
-		_statusPages = rhs._statusPages;
+		_config = rhs._config;
 		_locations = rhs._locations;
-		_keepAlive = rhs._keepAlive;
 	}
 	return *this;
 }
@@ -103,9 +89,11 @@ std::ostream &operator<<(std::ostream &o, Server const &i)
 ** --------------------------------- GETTERS ---------------------------------
 */
 
-const bool &Server::getKeepAlive() const
+bool Server::getKeepAlive() const
 {
-	return _keepAlive;
+	if (_config)
+		return _config->getKeepAlive();
+	return SERVER::DEFAULT_KEEP_ALIVE; // Need to define this constant
 }
 
 const std::string &Server::getServerName() const
@@ -125,27 +113,40 @@ const unsigned short &Server::getPort() const
 
 const std::string &Server::getRoot() const
 {
-	return _root;
+	if (_config)
+		return _config->getRoot();
+	static const std::string defaultRoot = SERVER::DEFAULT_ROOT;
+	return defaultRoot;
 }
 
 const std::vector<std::string> &Server::getIndexes() const
 {
-	return _indexes;
+	if (_config)
+		return _config->getIndexes();
+	static const std::vector<std::string> defaultIndexes(1, SERVER::DEFAULT_INDEX);
+	return defaultIndexes;
 }
 
-const bool &Server::getAutoindex() const
+bool Server::getAutoindex() const
 {
-	return _autoindex;
+	if (_config)
+		return _config->getAutoindex();
+	return SERVER::DEFAULT_AUTOINDEX;
 }
 
-const double &Server::getClientMaxBodySize() const
+double Server::getClientMaxBodySize() const
 {
-	return _clientMaxBodySize;
+	if (_config)
+		return _config->getClientMaxBodySize();
+	return SERVER::DEFAULT_CLIENT_MAX_BODY_SIZE;
 }
 
 const std::map<int, std::string> &Server::getStatusPages() const
 {
-	return _statusPages;
+	if (_config)
+		return _config->getStatusPages();
+	static const std::map<int, std::string> emptyMap;
+	return emptyMap;
 }
 
 const std::map<std::string, Location> &Server::getLocations() const
@@ -155,9 +156,14 @@ const std::map<std::string, Location> &Server::getLocations() const
 
 const std::string Server::getStatusPage(const int &status) const
 {
-	if (_statusPages.find(status) == _statusPages.end())
-		return DefaultStatusMap::getStatusInfo(status);
-	return _statusPages.at(status);
+	if (_config)
+	{
+		const std::map<int, std::string>& statusPages = _config->getStatusPages();
+		if (statusPages.find(status) == statusPages.end())
+			return DefaultStatusMap::getStatusInfo(status);
+		return statusPages.at(status);
+	}
+	return DefaultStatusMap::getStatusInfo(status);
 }
 
 const Location Server::getLocation(const std::string &path) const
@@ -170,11 +176,6 @@ const Location Server::getLocation(const std::string &path) const
 /*
 ** --------------------------------- SETTERS ---------------------------------
 */
-
-void Server::setKeepAlive(const bool &keepAlive)
-{
-	_keepAlive = keepAlive;
-}
 
 void Server::setServerName(const std::string &serverName)
 {
@@ -191,31 +192,6 @@ void Server::setPort(const unsigned short &port)
 	_port = port;
 }
 
-void Server::setRoot(const std::string &root)
-{
-	_root = root;
-}
-
-void Server::setIndexes(const std::vector<std::string> &indexes)
-{
-	_indexes = indexes;
-}
-
-void Server::setAutoindex(const bool &autoindex)
-{
-	_autoindex = autoindex;
-}
-
-void Server::setClientMaxBodySize(const double &clientMaxBodySize)
-{
-	_clientMaxBodySize = clientMaxBodySize;
-}
-
-void Server::setStatusPages(const std::map<int, std::string> &statusPages)
-{
-	_statusPages = statusPages;
-}
-
 void Server::setLocations(const std::map<std::string, Location> &locations)
 {
 	_locations = locations;
@@ -225,15 +201,6 @@ void Server::setLocations(const std::map<std::string, Location> &locations)
 ** --------------------------------- METHODS ----------------------------------
 */
 
-void Server::addIndex(const std::string &index)
-{
-	if (std::find(_indexes.begin(), _indexes.end(), index) == _indexes.end())
-		_indexes.push_back(index);
-	else
-		Logger::log(Logger::WARNING,
-					"Index " + index + " already exists in server " + _serverName + " ignoring duplicate");
-}
-
 void Server::addLocation(const Location &location)
 {
 	if (_locations.find(location.getPath()) == _locations.end())
@@ -241,19 +208,6 @@ void Server::addLocation(const Location &location)
 	else
 		Logger::log(Logger::WARNING, "Location " + location.getPath() + " already exists in server " + _serverName +
 										 " ignoring duplicate");
-}
-
-void Server::addStatusPage(const int &status, const std::string &path)
-{
-	if (_statusPages.find(status) == _statusPages.end())
-		_statusPages[status] = path;
-	else
-	{
-		std::stringstream ss;
-		ss << status;
-		Logger::log(Logger::WARNING,
-					"Status page " + ss.str() + " already exists in server " + _serverName + " ignoring duplicate");
-	}
 }
 
 /* ************************************************************************** */

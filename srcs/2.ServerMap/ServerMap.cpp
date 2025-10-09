@@ -1,5 +1,6 @@
 #include "../../includes/ServerMap.hpp"
 #include "../../includes/StringUtils.hpp"
+#include <memory>
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -11,15 +12,16 @@ ServerMap::ServerMap()
 }
 
 ServerMap::ServerMap(const ServerMap &src)
+	: _serverConfigs(src._serverConfigs), _serverMap(src._serverMap)
 {
-	*this = src;
 }
 
-ServerMap::ServerMap(std::vector<ServerConfig> &serverConfigs)
+ServerMap::ServerMap(const std::vector<ServerConfig> &serverConfigs)
 {
 	Logger::info("ServerMap: Creating ServerMap from " + StringUtils::toString(serverConfigs.size()) +
 				 " server configurations");
-	std::vector<Server> servers = _spawnServers(serverConfigs);
+	_serverConfigs = serverConfigs;
+	std::vector<Server> servers = _spawnServers(_serverConfigs);
 	_populateServerMap(servers);
 	Logger::debug("ServerMap: ServerMap created successfully");
 }
@@ -40,6 +42,7 @@ ServerMap &ServerMap::operator=(ServerMap const &rhs)
 {
 	if (this != &rhs)
 	{
+		_serverConfigs = rhs._serverConfigs;
 		_serverMap = rhs._serverMap;
 	}
 	return *this;
@@ -49,6 +52,16 @@ ServerMap &ServerMap::operator=(ServerMap const &rhs)
 ** --------------------------------- UTILITY METHODS
 *----------------------------------
 */
+
+void ServerMap::_convertAndAddLocationsToServer(Server &server, const ServerConfig &serverConfig)
+{
+	const std::vector<Location> &locations = serverConfig.getLocations();
+
+	for (std::vector<Location>::const_iterator it = locations.begin(); it != locations.end(); ++it)
+	{
+		server.addLocation(*it);
+	}
+}
 
 // Responsible for spawning the servers from the server configs server class
 // will take care of spawning the locations
@@ -70,7 +83,10 @@ std::vector<Server> ServerMap::_spawnServers(std::vector<ServerConfig> &serverCo
 				 host_port != it->getHosts_ports().end(); ++host_port)
 			{
 				// Spawn a server
-				servers.push_back(Server(*serverName, host_port->first, host_port->second, *it));
+				Server server(*serverName, host_port->first, host_port->second, &(*it));
+				// Add locations to the server
+				_convertAndAddLocationsToServer(server, *it);
+				servers.push_back(server);
 				ListeningSocket listeningSocket(host_port->first, host_port->second);
 				if (listeningSocket.getFd() != -1)
 				{
