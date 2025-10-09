@@ -193,6 +193,11 @@ HttpURI::URIState HttpURI::getURIState() const
 	return _uriState;
 }
 
+size_t HttpURI::getURIsize() const
+{
+	return _uriSize;
+}
+
 const std::string &HttpURI::getMethod() const
 {
 	return _method;

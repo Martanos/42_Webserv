@@ -51,6 +51,7 @@ public:
 	const std::string &getURI() const;
 	const std::string &getVersion() const;
 	const std::string &getMethod() const;
+	size_t getURIsize() const;
 	const std::map<std::string, std::vector<std::string> > &getQueryParameters() const;
 	URIState getURIState() const;
 

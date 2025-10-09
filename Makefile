@@ -6,7 +6,7 @@
 #    By: malee <malee@student.42.fr>                +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/07/24 16:54:44 by malee             #+#    #+#              #
-#    Updated: 2025/10/01 14:17:15 by malee            ###   ########.fr        #
+#    Updated: 2025/10/08 20:36:29 by malee            ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -14,6 +14,7 @@ NAME = webserv
 CC = c++
 CFLAGS = -Wall -Wextra -Werror -MMD -MP
 STD = -std=c++98
+MAKEFLAGS = -j
 # Directory structure
 SRC_DIR = srcs
 INC_DIR = includes

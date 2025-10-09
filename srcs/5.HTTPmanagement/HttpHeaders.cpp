@@ -101,7 +101,6 @@ void HttpHeaders::parseBuffer(std::vector<char> &buffer, HttpResponse &response,
 
 void HttpHeaders::parseHeaderLine(const std::string &line, HttpResponse &response)
 {
-
 	// Find colon separator
 	size_t colonPos = line.find(':');
 	if (colonPos == std::string::npos)
@@ -134,8 +133,10 @@ void HttpHeaders::parseHeaderLine(const std::string &line, HttpResponse &respons
 			return;
 		}
 	}
+
 	std::transform(headerName.begin(), headerName.end(), headerName.begin(), ::tolower);
 
+	// TODO: Divide this into , and ; cases
 	// Extract and sanitize values
 	std::string headerValue = line.substr(colonPos + 1);
 	std::vector<std::string> headerValues;

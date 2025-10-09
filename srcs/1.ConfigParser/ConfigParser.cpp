@@ -80,7 +80,8 @@ bool ConfigParser::parseConfig(const std::string &filename)
 		Logger::log(Logger::ERROR, errorMessage.str());
 		throw std::runtime_error(errorMessage.str());
 	}
-	Logger::info("ConfigParser: Successfully parsed " + StringUtils::toString(_serverConfigs.size()) + " server configurations");
+	Logger::info("ConfigParser: Successfully parsed " + StringUtils::toString(_serverConfigs.size()) +
+				 " server configurations");
 	return true;
 }
 
@@ -208,7 +209,8 @@ void ConfigParser::_parseServerBlock(std::stringstream &buffer, double &lineNumb
 
 	// Add the parsed server to our collection
 	_serverConfigs.push_back(currentServer);
-	Logger::debug("ConfigParser: Successfully parsed server block with " + StringUtils::toString(currentServer.getHosts_ports().size()) + " listen directives");
+	Logger::debug("ConfigParser: Successfully parsed server block with " +
+				  StringUtils::toString(currentServer.getHosts_ports().size()) + " listen directives");
 }
 
 std::string ConfigParser::_trim(const std::string &str) const
@@ -331,6 +333,7 @@ void ConfigParser::_parseLocationBlock(std::stringstream &buffer, double &lineNu
 			break; // End of location block
 		}
 
+		// TODO: Replace with stream parsing
 		// Parse location directive
 		std::vector<std::string> tokens = _split(line);
 		if (tokens.empty())
@@ -387,7 +390,7 @@ void ConfigParser::_parseLocationBlock(std::stringstream &buffer, double &lineNu
 	}
 }
 
-const std::vector<ServerConfig>& ConfigParser::getServerConfigs() const
+const std::vector<ServerConfig> &ConfigParser::getServerConfigs() const
 {
 	return _serverConfigs;
 }

@@ -191,6 +191,7 @@ void HttpRequest::setServer(Server *server)
 *----------------------------------
 */
 
+// TODO: change to reference
 HttpRequest::ParseState HttpRequest::getParseState() const
 {
 	return _parseState;
@@ -229,7 +230,7 @@ HttpBody::BodyType HttpRequest::getBodyType() const
 
 size_t HttpRequest::getMessageSize() const
 {
-	return _uri.getRawURISize() + _headers.getHeadersSize() + _body.getBodySize();
+	return _uri.getURIsize() + _headers.getHeadersSize() + _body.getBodySize();
 };
 
 bool HttpRequest::isUsingTempFile()

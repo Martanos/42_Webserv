@@ -29,7 +29,12 @@ public:
 	};
 
 private:
+	struct Header
+	{
+		std::string value;
+		}
 	HeadersState _headersState;
+	std::vector<std::string
 	std::map<std::string, std::vector<std::string> > _headers;
 	size_t _rawHeadersSize;
 

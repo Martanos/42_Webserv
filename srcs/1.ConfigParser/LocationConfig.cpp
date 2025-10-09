@@ -13,16 +13,7 @@ LocationConfig::~LocationConfig()
 // Copy constructor
 LocationConfig::LocationConfig(const LocationConfig &other)
 {
-	_path = other._path;
-	_root = other._root;
-	_allowedMethods = other._allowedMethods;
-	_redirect = other._redirect;
-	_autoIndex = other._autoIndex;
-	_index = other._index;
-	_cgiPath = other._cgiPath;
-	_cgiIndex = other._cgiIndex;
-	_cgiParams = other._cgiParams;
-	_uploadPath = other._uploadPath;
+	*this = other;
 }
 
 // Assignment operator
