@@ -3,6 +3,7 @@
 
 #include "Logger.hpp"
 #include "ServerConfig.hpp"
+#include "ServerMap.hpp"
 #include <cctype>
 #include <cstdlib>
 #include <sstream>
@@ -64,7 +65,39 @@ public:
 
 	bool parseConfig(const std::string &filename);
 	void printAllConfigs() const;
-	const std::vector<ServerConfig>& getServerConfigs() const;
+	const std::vector<ServerConfig> &getServerConfigs() const;
 };
+
+// Static methods derived from ConfigParser
+namespace ConfigParser
+{
+
+namespace ConfigParserUtils
+{
+// Load file into memory
+std::stringstream loadFile(const std::string &filename)
+{
+	std::ifstream file(filename.c_str());
+	if (!file.is_open())
+	{
+		std::stringstream errorMessage;
+		errorMessage << "Error opening file: " << filename;
+		Logger::error(errorMessage.str(), __FILE__, __LINE__);
+		throw std::runtime_error(errorMessage.str());
+	}
+	std::stringstream buffer;
+	// Load entire file into memory
+	buffer << file.rdbuf();
+	file.close();
+	return buffer;
+}
+} // namespace ConfigParserUtils
+
+void parseConfig(const std::string &filename, ServerMap &serverMap)
+{
+	std::stringstream buffer = ConfigParserUtils::loadFile(filename);
+}
+
+} // namespace ConfigParser
 
 #endif

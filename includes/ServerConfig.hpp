@@ -12,7 +12,8 @@
 
 #include <vector>
 
-#define DEFAULT_SERVER_NAME "default"
+// TODO: move to Constants.hpp
+#define DEFAULT_SERVER_NAME "localhost"
 
 // Temp container to gather all config data
 class ServerConfig

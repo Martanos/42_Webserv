@@ -26,6 +26,17 @@ private:
 	TrieNode<T> *_root;
 	size_t _size;
 
+	struct IteratorState
+	{
+		TrieNode<T> *node;
+		std::string path;
+		typename std::map<char, TrieNode<T> *>::const_iterator childIt;
+
+		IteratorState(TrieNode<T> *n, const std::string &p) : node(n), path(p), childIt()
+		{
+		}
+	};
+
 	// Private helper methods
 	void _collectAll(TrieNode<T> *node, std::vector<T> &result) const
 	{
@@ -130,6 +141,266 @@ private:
 		}
 
 		return false;
+	}
+
+public:
+	// Forward iterator for TrieTree
+	class iterator
+	{
+	private:
+		std::vector<IteratorState> _stack;
+		T *_currentData;
+
+		friend class TrieTree<T>;
+
+		// Private constructor for begin/end
+		explicit iterator(TrieNode<T> *root) : _currentData(NULL)
+		{
+			if (root)
+			{
+				_stack.push_back(IteratorState(root, ""));
+				_advance();
+			}
+		}
+
+		// End iterator constructor
+		iterator() : _currentData(NULL)
+		{
+		}
+
+		void _advance()
+		{
+			while (!_stack.empty())
+			{
+				IteratorState &state = _stack.back();
+
+				// First visit: check if current node is an endpoint
+				if (state.node->isEndOfPath() && state.node->getData() && _currentData != state.node->getData())
+				{
+					_currentData = state.node->getData();
+
+					// Initialize child iterator for next advancement
+					const std::map<char, TrieNode<T> *> &children = state.node->getChildren();
+					state.childIt = children.begin();
+					return;
+				}
+
+				// Try to visit children
+				const std::map<char, TrieNode<T> *> &children = state.node->getChildren();
+				if (state.childIt == children.end())
+				{
+					state.childIt = children.begin();
+				}
+
+				if (state.childIt != children.end())
+				{
+					char c = state.childIt->first;
+					TrieNode<T> *childNode = state.childIt->second;
+					++state.childIt;
+
+					_stack.push_back(IteratorState(childNode, state.path + c));
+				}
+				else
+				{
+					// No more children, backtrack
+					_stack.pop_back();
+				}
+			}
+
+			// Reached end
+			_currentData = NULL;
+		}
+
+	public:
+		// Orthodox Canonical Form
+		iterator(const iterator &other) : _stack(other._stack), _currentData(other._currentData)
+		{
+		}
+
+		~iterator()
+		{
+		}
+
+		iterator &operator=(const iterator &rhs)
+		{
+			if (this != &rhs)
+			{
+				_stack = rhs._stack;
+				_currentData = rhs._currentData;
+			}
+			return *this;
+		}
+
+		// Iterator operations
+		T &operator*() const
+		{
+			return *_currentData;
+		}
+
+		T *operator->() const
+		{
+			return _currentData;
+		}
+
+		iterator &operator++()
+		{
+			_advance();
+			return *this;
+		}
+
+		iterator operator++(int)
+		{
+			iterator tmp(*this);
+			_advance();
+			return tmp;
+		}
+
+		bool operator==(const iterator &other) const
+		{
+			return _currentData == other._currentData;
+		}
+
+		bool operator!=(const iterator &other) const
+		{
+			return !(*this == other);
+		}
+	};
+
+	// Const iterator
+	class const_iterator
+	{
+	private:
+		std::vector<IteratorState> _stack;
+		const T *_currentData;
+
+		friend class TrieTree<T>;
+
+		explicit const_iterator(TrieNode<T> *root) : _currentData(NULL)
+		{
+			if (root)
+			{
+				_stack.push_back(IteratorState(root, ""));
+				_advance();
+			}
+		}
+
+		const_iterator() : _currentData(NULL)
+		{
+		}
+
+		void _advance()
+		{
+			while (!_stack.empty())
+			{
+				IteratorState &state = _stack.back();
+
+				if (state.node->isEndOfPath() && state.node->getData() && _currentData != state.node->getData())
+				{
+					_currentData = state.node->getData();
+					const std::map<char, TrieNode<T> *> &children = state.node->getChildren();
+					state.childIt = children.begin();
+					return;
+				}
+
+				const std::map<char, TrieNode<T> *> &children = state.node->getChildren();
+				if (state.childIt == children.end())
+				{
+					state.childIt = children.begin();
+				}
+
+				if (state.childIt != children.end())
+				{
+					char c = state.childIt->first;
+					TrieNode<T> *childNode = state.childIt->second;
+					++state.childIt;
+					_stack.push_back(IteratorState(childNode, state.path + c));
+				}
+				else
+				{
+					_stack.pop_back();
+				}
+			}
+			_currentData = NULL;
+		}
+
+	public:
+		// Orthodox Canonical Form
+		const_iterator(const const_iterator &other) : _stack(other._stack), _currentData(other._currentData)
+		{
+		}
+
+		// Conversion from iterator
+		const_iterator(const iterator &other) : _stack(other._stack), _currentData(other._currentData)
+		{
+		}
+
+		~const_iterator()
+		{
+		}
+
+		const_iterator &operator=(const const_iterator &rhs)
+		{
+			if (this != &rhs)
+			{
+				_stack = rhs._stack;
+				_currentData = rhs._currentData;
+			}
+			return *this;
+		}
+
+		const T &operator*() const
+		{
+			return *_currentData;
+		}
+
+		const T *operator->() const
+		{
+			return _currentData;
+		}
+
+		const_iterator &operator++()
+		{
+			_advance();
+			return *this;
+		}
+
+		const_iterator operator++(int)
+		{
+			const_iterator tmp(*this);
+			_advance();
+			return tmp;
+		}
+
+		bool operator==(const const_iterator &other) const
+		{
+			return _currentData == other._currentData;
+		}
+
+		bool operator!=(const const_iterator &other) const
+		{
+			return !(*this == other);
+		}
+	};
+
+	// Iterator accessors
+	iterator begin()
+	{
+		return iterator(_root);
+	}
+
+	iterator end()
+	{
+		return iterator();
+	}
+
+	const_iterator begin() const
+	{
+		return const_iterator(_root);
+	}
+
+	const_iterator end() const
+	{
+		return const_iterator();
 	}
 
 public:

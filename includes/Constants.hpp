@@ -33,6 +33,10 @@ static const ssize_t MAX_BODY_BUFFER_SIZE = 1048576; // 1MB
 static const ssize_t MAX_BODY_SIZE = 10485760;		 // 10MB
 static const char *const CRLF = "\r\n";				 // CRLF
 const int DEFAULT_TIMEOUT_SECONDS = 30;				 // 30 second timeout
+static const std::string DEFAULT_HOST = "0.0.0.0";
+static const unsigned short DEFAULT_PORT = 80;
+static const bool DEFAULT_AUTOINDEX = false;
+static const bool DEFAULT_KEEP_ALIVE = true;
 
 } // namespace HTTP
 

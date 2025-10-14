@@ -31,25 +31,7 @@ ConfigParser::ConfigParser(const ConfigParser &other)
 
 bool ConfigParser::parseConfig(const std::string &filename)
 {
-	Logger::info("ConfigParser: Starting to parse configuration file: " + filename);
-	std::ifstream file(filename.c_str());
-	std::stringstream errorMessage;
-	if (!file.is_open())
-	{
-		errorMessage << "Error opening file: " << filename;
-		Logger::error(errorMessage.str(), __FILE__, __LINE__);
-		throw std::runtime_error(errorMessage.str());
-	}
-
-	std::stringstream buffer;
-	buffer << file.rdbuf(); // Load entire file into stringstream for efficient
-							// parsing
-	file.close();
-	Logger::debug("ConfigParser: Configuration file loaded successfully");
-
 	std::string line;
-	bool foundHttp = false;
-	bool insideHttp = false;
 	bool insideServer = false;
 	double lineNumber = 0; // Initialize line number for error reporting
 	while (std::getline(buffer, line))
@@ -109,30 +91,6 @@ bool ConfigParser::serverblockcheck(const std::string &line, bool &insideHttp, b
 		return false; // End of server block - don't trigger parseServerBlock
 	}
 	return false; // Not a server block directive
-}
-
-bool ConfigParser::httpblockcheck(const std::string &line, bool &foundHttp, bool &insideHttp)
-{
-	std::stringstream errorMessage;
-
-	if (line == "http {" || line == "http{")
-	{
-		if (foundHttp)
-		{
-			errorMessage << "Error: Multiple http blocks found. Only one http "
-							"block is allowed.";
-			Logger::error(errorMessage.str(), __FILE__, __LINE__);
-			throw std::runtime_error(errorMessage.str());
-		}
-		Logger::debug("ConfigParser: Found http block");
-		foundHttp = true;
-		insideHttp = true;
-		return true; // Start of http block
-	}
-
-	// Note: http block closing is now handled by checking if we're not inside a
-	// server block This prevents the ambiguity of which block a "}" is closing
-	return false; // Not a http block directive
 }
 
 void ConfigParser::_parseServerBlock(std::stringstream &buffer, double &lineNumber)

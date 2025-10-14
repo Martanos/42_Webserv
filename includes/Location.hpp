@@ -1,9 +1,7 @@
 #ifndef LOCATION_HPP
 #define LOCATION_HPP
 
-#include "Logger.hpp"
-#include <algorithm>
-#include <iostream>
+#include "TrieTree.hpp"
 #include <map>
 #include <string>
 #include <vector>
@@ -16,50 +14,54 @@ class Location
 {
 private:
 	std::string _path;
+	bool _pathSet;
 	std::string _root;
+	bool _rootSet;
 	std::vector<std::string> _allowedMethods;
-	std::string _redirect;
+	TrieTree<std::string> _indexes;
 	bool _autoIndex;
-	std::string _index;
+	bool _autoIndexSet;
+	std::string _redirect;
+	bool _redirectSet;
 	std::string _cgiPath;
+	bool _cgiPathSet;
 	std::map<std::string, std::string> _cgiParams;
-	std::string _uploadPath;
 
 public:
 	Location();
 	Location(Location const &src);
 	~Location();
-
 	Location &operator=(Location const &rhs);
 
-	// Getters
+	// Accessors
 	const std::string &getPath() const;
 	const std::string &getRoot() const;
+	const std::string &getAllowedMethod(const std::string &allowedMethod) const;
 	const std::vector<std::string> &getAllowedMethods() const;
 	const std::string &getRedirect() const;
 	const bool &getAutoIndex() const;
-	const std::string &getIndex() const;
+	const std::string *getIndex(const std::string &index) const;
+	const TrieTree<std::string> &getIndexes() const;
 	const std::string &getCgiPath() const;
 	const std::map<std::string, std::string> &getCgiParams() const;
-	const std::string &getUploadPath() const;
+	const bool getPathSet() const;
+	const bool getRootSet() const;
+	const bool getAutoIndexSet() const;
+	const bool getCgiPathSet() const;
+	const bool getRedirectSet() const;
 
-	// Setters
+	// Mutators
 	void setPath(const std::string &path);
 	void setRoot(const std::string &root);
-	void setAllowedMethods(const std::vector<std::string> &allowedMethods);
+	void insertIndex(const std::string &index);
+	void insertAllowedMethod(const std::string &allowedMethod);
 	void setRedirect(const std::string &redirect);
 	void setAutoIndex(const bool &autoIndex);
-	void setIndex(const std::string &index);
 	void setCgiPath(const std::string &cgiPath);
-	void setCgiParams(const std::map<std::string, std::string> &cgiParams);
-	void setUploadPath(const std::string &uploadPath);
-
-	// Methods
-	void addAllowedMethod(const std::string &allowedMethod);
-	void addCgiParam(const std::string &cgiParam, const std::string &value);
+	void insertCgiParam(const std::string &cgiParam, const std::string &value);
 };
 
-std::ostream &operator<<(std::ostream &o, Location const &i);
+void operator<<(std::ostream &o, Location const &i);
 
 #endif /* ******************************************************** LOCATION_H                                          \
 		*/
