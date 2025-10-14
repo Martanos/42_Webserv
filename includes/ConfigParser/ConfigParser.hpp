@@ -1,103 +1,104 @@
-#ifndef CONFIG_PARSER_HPP
-#define CONFIG_PARSER_HPP
+#ifndef CONFIGPARSER_HPP
+#define CONFIGPARSER_HPP
 
-#include "Logger.hpp"
-#include "ServerConfig.hpp"
-#include "ServerMap.hpp"
-#include <cctype>
-#include <cstdlib>
-#include <sstream>
+#include <iostream>
 #include <string>
 #include <vector>
+#include "ConfigTokeniser.hpp"
 
+// Builds the AST tree
 class ConfigParser
 {
-private:
-	// Enums for directive types to avoid if-else forests
-	enum ServerDirectiveType
+	// Publicly accessible nodes
+public:
+	struct DirectiveNode
 	{
-		SERVER_LISTEN,
-		SERVER_ROOT,
-		SERVER_NAME,
-		SERVER_ERROR_PAGE,
-		SERVER_INDEX,
-		SERVER_CLIENT_MAX_BODY_SIZE,
-		SERVER_AUTOINDEX,
-		SERVER_ACCESS_LOG,
-		SERVER_ERROR_LOG,
-		SERVER_KEEP_ALIVE,
-		SERVER_LOCATION,
-		SERVER_UNKNOWN
+		std::string name;
+		std::vector<std::string> args;
+		int line;
+
+		// Canonical form
+		DirectiveNode() : name(""), args(), line(0) {}
+		DirectiveNode(const std::string &n, const std::vector<std::string> &a, int l)
+			: name(n), args(a), line(l) {}
+		DirectiveNode(const DirectiveNode &other)
+			: name(other.name), args(other.args), line(other.line) {}
+		DirectiveNode &operator=(const DirectiveNode &rhs)
+		{
+			if (this != &rhs)
+			{
+				name = rhs.name;
+				args = rhs.args;
+				line = rhs.line;
+			}
+			return *this;
+		}
+		~DirectiveNode() {}
 	};
 
-	enum LocationDirectiveType
+	struct BlockNode
 	{
-		LOCATION_ROOT,
-		LOCATION_ACCEPTED_HTTP_METHODS,
-		LOCATION_RETURN,
-		LOCATION_AUTOINDEX,
-		LOCATION_INDEX,
-		LOCATION_FASTCGI_PASS,
-		LOCATION_FASTCGI_PARAM,
-		LOCATION_FASTCGI_INDEX,
-		LOCATION_UPLOAD_PATH,
-		LOCATION_UNKNOWN
+		std::string type;
+		std::string selector;
+		std::vector<DirectiveNode> directives;
+		std::vector<BlockNode> children;
+		int line;
+
+		// Canonical form
+		BlockNode() : type(""), selector(""), directives(), children(), line(0) {}
+		BlockNode(const std::string &t, int l)
+			: type(t), selector(""), directives(), children(), line(l) {}
+		BlockNode(const BlockNode &other)
+			: type(other.type), selector(other.selector),
+			  directives(other.directives), children(other.children),
+			  line(other.line) {}
+		BlockNode &operator=(const BlockNode &rhs)
+		{
+			if (this != &rhs)
+			{
+				type = rhs.type;
+				selector = rhs.selector;
+				directives = rhs.directives;
+				children = rhs.children;
+				line = rhs.line;
+			}
+			return *this;
+		}
+		~BlockNode() {}
 	};
-
-	ConfigParser &operator=(const ConfigParser &other);
-	ConfigParser(const ConfigParser &other);
-
-	std::vector<ServerConfig> _serverConfigs;
-	std::string _trim(const std::string &str) const;
-	std::vector<std::string> _split(const std::string &str) const;
-	bool serverblockcheck(const std::string &line, bool &insideHttp, bool &insideServer);
-	bool httpblockcheck(const std::string &line, bool &foundHttp, bool &insideHttp);
-	void _parseServerBlock(std::stringstream &buffer, double &lineNumber);
-	void _parseLocationBlock(std::stringstream &buffer, double &lineNumber, const std::string &locationLine,
-							 ServerConfig &currentServer);
-	ServerDirectiveType _getServerDirectiveType(const std::string &directive) const;
-	LocationDirectiveType _getLocationDirectiveType(const std::string &directive) const;
 
 public:
-	ConfigParser();
-	ConfigParser(const std::string &filename);
-	~ConfigParser();
+	// Canonical form
+	ConfigParser(ConfigTokeniser &tokenizer)
+		: tokenizer(tokenizer), lookaheadValid(false) {}
+	ConfigParser(const ConfigParser &other)
+		: tokenizer(other.tokenizer), lookahead(other.lookahead),
+		  lookaheadValid(other.lookaheadValid) {}
+	ConfigParser &operator=(const ConfigParser &rhs)
+	{
+		if (this != &rhs)
+		{
+			tokenizer = rhs.tokenizer;
+			lookahead = rhs.lookahead;
+			lookaheadValid = rhs.lookaheadValid;
+		}
+		return *this;
+	}
+	~ConfigParser() {}
 
-	bool parseConfig(const std::string &filename);
-	void printAllConfigs() const;
-	const std::vector<ServerConfig> &getServerConfigs() const;
+	std::vector<BlockNode> parse();
+
+private:
+	ConfigTokeniser &tokenizer; // reference, so assignment is tricky
+	ConfigTokeniser::Token lookahead;
+	bool lookaheadValid;
+
+	ConfigTokeniser::Token next();
+	ConfigTokeniser::Token peek();
+	BlockNode parseBlock();
+	DirectiveNode parseDirective();
 };
 
-// Static methods derived from ConfigParser
-namespace ConfigParser
-{
+std::ostream &operator<<(std::ostream &o, ConfigParser const &i);
 
-namespace ConfigParserUtils
-{
-// Load file into memory
-std::stringstream loadFile(const std::string &filename)
-{
-	std::ifstream file(filename.c_str());
-	if (!file.is_open())
-	{
-		std::stringstream errorMessage;
-		errorMessage << "Error opening file: " << filename;
-		Logger::error(errorMessage.str(), __FILE__, __LINE__);
-		throw std::runtime_error(errorMessage.str());
-	}
-	std::stringstream buffer;
-	// Load entire file into memory
-	buffer << file.rdbuf();
-	file.close();
-	return buffer;
-}
-} // namespace ConfigParserUtils
-
-void parseConfig(const std::string &filename, ServerMap &serverMap)
-{
-	std::stringstream buffer = ConfigParserUtils::loadFile(filename);
-}
-
-} // namespace ConfigParser
-
-#endif
+#endif /* **************************************************** CONFIGPARSER_H */

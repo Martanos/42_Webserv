@@ -6,37 +6,12 @@
 #include <sstream>
 #include <stdexcept>
 #include "ConfigFileReader.hpp"
-
+#include "ConfigNameSpace.hpp"
 /// @brief Tokeniser for the config file
 class ConfigTokeniser
 {
-	// Publicly accessible enum for token types
-public:
-	enum TokenType
-	{
-		TOKEN_KEYWORD,	   // e.g. "server", "listen"
-		TOKEN_VALUE,	   // e.g. "8080", "/var/www"
-		TOKEN_OPEN_BRACE,  // {
-		TOKEN_CLOSE_BRACE, // }
-		TOKEN_SEMICOLON,   // ;
-		TOKEN_END_OF_FILE
-	};
-
-	struct Token
-	{
-		TokenType type;
-		std::string text;
-		int line;
-		int column;
-
-		Token(TokenType type, const std::string &text, int line, int column)
-			: type(type), text(text), line(line), column(column)
-		{
-		}
-	};
-
 private:
-	ConfigFileReader &reader;
+	ConfigFileReader reader;
 	std::string currentLine;
 	size_t pos;
 	int lineNumber;
@@ -49,17 +24,17 @@ private:
 	ConfigTokeniser &operator=(ConfigTokeniser const &rhs);
 
 	// Tokeniser methods
-	Token consumeSingle(TokenType type)
+	Token::Token consumeSingle(Token::TokenType type)
 	{
 		char c = currentLine[pos++];
-		return Token(type, std::string(1, c), lineNumber, pos);
+		return Token::Token(type, std::string(1, c), lineNumber, pos);
 	}
 
 public:
 	ConfigTokeniser(ConfigFileReader &reader);
 	~ConfigTokeniser();
 
-	Token nextToken()
+	Token::Token nextToken()
 	{
 		while (true)
 		{
@@ -67,7 +42,7 @@ public:
 			if (pos >= currentLine.size())
 			{
 				if (!reader.nextLine(currentLine))
-					return Token(TOKEN_END_OF_FILE, "", lineNumber, pos);
+					return Token::Token(Token::TOKEN_END_OF_FILE, "", lineNumber, pos);
 				lineNumber = reader.getLineNumber();
 				pos = 0;
 				continue;
@@ -92,11 +67,11 @@ public:
 
 			// single-character tokens
 			if (c == '{')
-				return consumeSingle(TOKEN_OPEN_BRACE);
+				return consumeSingle(Token::TOKEN_OPEN_BRACE);
 			if (c == '}')
-				return consumeSingle(TOKEN_CLOSE_BRACE);
+				return consumeSingle(Token::TOKEN_CLOSE_BRACE);
 			if (c == ';')
-				return consumeSingle(TOKEN_SEMICOLON);
+				return consumeSingle(Token::TOKEN_SEMICOLON);
 
 			// word (keyword or value)
 			if (std::isgraph(static_cast<unsigned char>(c)))
@@ -111,7 +86,7 @@ public:
 					++pos;
 				}
 				std::string word = currentLine.substr(start, pos - start);
-				return Token(TOKEN_KEYWORD, word, lineNumber, start + 1);
+				return Token::Token(Token::TOKEN_KEYWORD, word, lineNumber, start + 1);
 			}
 
 			throw std::runtime_error("Unexpected character in config");
@@ -119,4 +94,4 @@ public:
 	}
 };
 
-#endif /* ******************************************************* TOKENISER_H */
+#endif /* ******************************************************* TOKENISER_HPP */
