@@ -13,6 +13,7 @@
 #include <unistd.h>
 
 // Class wrapper for socket addresses using sockaddr_storage for compatibility
+// TODO: think about just making this a socket class
 class SocketAddress
 {
 private:
