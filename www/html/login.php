@@ -1,10 +1,22 @@
 <?php
+session_start();
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    echo "<h1>Login Successful</h1>";
-    echo "<p>Welcome, " . htmlspecialchars($_POST['username']) . "!</p>";
-    echo "<a href='index.php'>Back to Home</a>";
-} else {
+    $username = $_POST['username'] ?? '';
+    $password = $_POST['password'] ?? '';
+
+    if ($username === 'admin' && $password === '1234') {
+        $_SESSION['user'] = $username;
+        setcookie("login_time", time(), time() + 3600);
+        header("Location: index.php");
+        exit();
+    } else {
+        $error = "Invalid login.";
+    }
+}
 ?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Login</title>
 </head>
 <body>
-    <h1>Login Form</h1>
+    <h3>Login Form</h3>
     <form method="post">
         <label for="username">Username:</label>
         <input type="text" id="username" name="username" required>
@@ -22,9 +34,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <br><br>
         <button type="submit">Login</button>
     </form>
-    <p><a href="index.php">Back to Home</a></p>
+    <?php if (isset($error)) echo "<p style='color:red;'>$error</p>"; ?>
 </body>
 </html>
-<?php
-}
-?>
