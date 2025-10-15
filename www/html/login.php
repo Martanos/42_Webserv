@@ -7,7 +7,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($username === 'admin' && $password === '1234') {
         $_SESSION['user'] = $username;
-        setcookie("login_time", time(), time() + 3600);
         header("Location: index.php");
         exit();
     } else {
