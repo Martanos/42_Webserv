@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   ConfigFileReader.hpp                               :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: malee <malee@student.42singapore.sg>       +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/10/15 00:30:00 by malee             #+#    #+#             */
-/*   Updated: 2025/10/15 01:19:51 by malee            ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #ifndef CONFIGFILEREADER_HPP
 #define CONFIGFILEREADER_HPP
 
@@ -19,25 +7,22 @@
 class ConfigFileReader
 {
 private:
-    std::ifstream file;
-    int lineNumber;
+	std::ifstream _ifs;
+	int _lineNumber;
+
+	// Non copyable
+	ConfigFileReader(const ConfigFileReader &src);
+	ConfigFileReader &operator=(const ConfigFileReader &rhs);
 
 public:
-    ConfigFileReader();
-    ConfigFileReader(const std::string &filename);
-    ConfigFileReader(const ConfigFileReader &src);
-    ~ConfigFileReader();
+	explicit ConfigFileReader(const std::string &filepath);
+	~ConfigFileReader();
 
-    ConfigFileReader &operator=(const ConfigFileReader &rhs);
+	// Public methods
+	bool nextLine(std::string &line);
 
-    // Public methods
-    bool nextLine(std::string &line);
-
-    // Mutators
-    void setFilename(const std::string &filename);
-
-    // Accessors
-    bool isEof() const;
-    int getLineNumber() const;
+	// Accessors
+	bool isEof() const;
+	int getLineNumber() const;
 };
 #endif /* ************************************************** CONFIGFILEREADER_H */

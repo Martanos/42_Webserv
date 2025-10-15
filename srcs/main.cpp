@@ -6,7 +6,7 @@
 /*   By: malee <malee@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/24 18:16:26 by malee             #+#    #+#             */
-/*   Updated: 2025/09/26 15:08:30 by malee            ###   ########.fr       */
+/*   Updated: 2025/10/16 07:53:41 by malee            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,15 @@ int main(int argc, char **argv)
 		Logger::log(Logger::INFO, "Starting WebServ with config file: " + std::string(argv[1]));
 
 		// 1. Parse the config file
-		ConfigParser parser(argv[1]);
+		ConfigFileReader reader(argv[1]); // must implement ConfigFileReader
+		ConfigTokeniser tokenizer(reader);
+		ConfigParser parser(tokenizer);
+		AST::Config cfg = parser.parse();
+		parser.printAST(cfg); // Temporary for debugging
+		// TODO: Validation Layer
+		// TODO: Transformation Layer
+		// TODO: Binding layer
+		// TODO: Mapping layer
 
 		// Get server configurations
 		const std::vector<ServerConfig> &servers = parser.getServerConfigs();

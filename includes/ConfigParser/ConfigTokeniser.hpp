@@ -1,97 +1,46 @@
-#ifndef TOKENISER_HPP
-#define TOKENISER_HPP
+#ifndef CONFIG_TOKENISER_HPP
+#define CONFIG_TOKENISER_HPP
 
-#include <iostream>
-#include <string>
-#include <sstream>
-#include <stdexcept>
 #include "ConfigFileReader.hpp"
 #include "ConfigNameSpace.hpp"
-/// @brief Tokeniser for the config file
+#include <deque>
+#include <string>
+
+// Tokeniser for the config file
 class ConfigTokeniser
 {
 private:
-	ConfigFileReader reader;
-	std::string currentLine;
-	size_t pos;
-	int lineNumber;
+	ConfigFileReader *_reader; // non-owning borrowed pointer
+	std::string _currentLine;  // current line contents
+	size_t _pos;			   // 0-based index into _currentLine
+	size_t _lineNumber;		   // 1-based line number for currentLine
+	size_t _columnBase;		   // usually 1; start column base for currentLine
+	std::deque<Token::Token> _lookahead;
 
-	// Non instantiable without a reader
-	ConfigTokeniser();
+	// internal helpers
+	bool refillLine();								   // reads next line into _currentLine, returns false on EOF
+	Token::Token consumeSingle(Token::TokenType type); // consume single-char tokens { } ;
+	Token::Token lexWord();							   // identifier or number
+	Token::Token lexString();						   // parses double-quoted string with escapes
+	static bool isIdentChar(unsigned char ch);
+	static bool isDigit(unsigned char ch);
 
-	// Non copyable
-	ConfigTokeniser(ConfigTokeniser const &src);
-	ConfigTokeniser &operator=(ConfigTokeniser const &rhs);
-
-	// Tokeniser methods
-	Token::Token consumeSingle(Token::TokenType type)
-	{
-		char c = currentLine[pos++];
-		return Token::Token(type, std::string(1, c), lineNumber, pos);
-	}
+	// Non-copyable
+	ConfigTokeniser(ConfigTokeniser const &);
+	ConfigTokeniser &operator=(ConfigTokeniser const &);
 
 public:
-	ConfigTokeniser(ConfigFileReader &reader);
+	explicit ConfigTokeniser(ConfigFileReader &reader);
 	~ConfigTokeniser();
 
-	Token::Token nextToken()
-	{
-		while (true)
-		{
-			// refill line if needed
-			if (pos >= currentLine.size())
-			{
-				if (!reader.nextLine(currentLine))
-					return Token::Token(Token::TOKEN_END_OF_FILE, "", lineNumber, pos);
-				lineNumber = reader.getLineNumber();
-				pos = 0;
-				continue;
-			}
+	// Consume and return next token
+	Token::Token nextToken();
 
-			char c = currentLine[pos];
+	// Lookahead without consuming. n==1 returns next token.
+	Token::Token peek(size_t n = 1);
 
-			// skip whitespace
-			if (std::isspace(static_cast<unsigned char>(c)))
-			{
-				++pos;
-				continue;
-			}
-
-			// skip comments (# until end of line)
-			if (c == '#')
-			{
-				currentLine.clear();
-				pos = 0;
-				continue;
-			}
-
-			// single-character tokens
-			if (c == '{')
-				return consumeSingle(Token::TOKEN_OPEN_BRACE);
-			if (c == '}')
-				return consumeSingle(Token::TOKEN_CLOSE_BRACE);
-			if (c == ';')
-				return consumeSingle(Token::TOKEN_SEMICOLON);
-
-			// word (keyword or value)
-			if (std::isgraph(static_cast<unsigned char>(c)))
-			{
-				int start = pos;
-				while (pos < currentLine.size() &&
-					   !std::isspace(static_cast<unsigned char>(currentLine[pos])) &&
-					   currentLine[pos] != '{' &&
-					   currentLine[pos] != '}' &&
-					   currentLine[pos] != ';')
-				{
-					++pos;
-				}
-				std::string word = currentLine.substr(start, pos - start);
-				return Token::Token(Token::TOKEN_KEYWORD, word, lineNumber, start + 1);
-			}
-
-			throw std::runtime_error("Unexpected character in config");
-		}
-	}
+	// Push a token back onto the front of the stream (for simple parser backtracking)
+	void pushback(const Token::Token &t);
 };
 
-#endif /* ******************************************************* TOKENISER_HPP */
+#endif /* ******************************************************* CONFIG_TOKENISER_H */
