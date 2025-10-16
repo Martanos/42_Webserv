@@ -3,19 +3,22 @@
 /*                                                        :::      ::::::::   */
 /*   main.cpp                                           :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: malee <malee@student.42.fr>                +#+  +:+       +#+        */
+/*   By: malee <malee@student.42singapore.sg>       +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/07/24 18:16:26 by malee             #+#    #+#             */
-/*   Updated: 2025/10/16 07:53:41 by malee            ###   ########.fr       */
+/*   Updated: 2025/10/16 10:36:09 by malee            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "../includes/ConfigParser.hpp"
-#include "../includes/Logger.hpp"
-#include "../includes/PerformanceMonitor.hpp"
-#include "../includes/ServerConfig.hpp"
-#include "../includes/ServerManager.hpp"
-#include "../includes/StringUtils.hpp"
+#include "../includes/ConfigParser/ConfigFileReader.hpp"
+#include "../includes/ConfigParser/ConfigParser.hpp"
+#include "../includes/ConfigParser/ConfigTokeniser.hpp"
+#include "../includes/Global/Logger.hpp"
+#include "../includes/Global/PerformanceMonitor.hpp"
+#include "../includes/Core/Server.hpp"
+#include "../includes/Core/ServerManager.hpp"
+#include "../includes/Global/StringUtils.hpp"
+#include "../includes/ConfigParser/ConfigNameSpace.hpp"
 
 int main(int argc, char **argv)
 {
@@ -38,13 +41,24 @@ int main(int argc, char **argv)
 	{
 		Logger::log(Logger::INFO, "Starting WebServ with config file: " + std::string(argv[1]));
 
-		// 1. Parse the config file
-		ConfigFileReader reader(argv[1]); // must implement ConfigFileReader
+		// 1. Build the AST
+		ConfigFileReader reader(argv[1]);
 		ConfigTokeniser tokenizer(reader);
 		ConfigParser parser(tokenizer);
 		AST::Config cfg = parser.parse();
+		if (cfg.servers.empty())
+			throw std::runtime_error("No server blocks found in config file");
 		parser.printAST(cfg); // Temporary for debugging
+
+		// 2. Validate the AST
 		// TODO: Validation Layer
+		ConfigValidation validator(cfg);
+		validator.validate();
+		if (cfg.servers.empty())
+			throw std::runtime_error("No valid server blocks found in config file");
+		parser.printAST(cfg); // Print the AST after validation
+
+		// 3. Map configuration
 		// TODO: Transformation Layer
 		// TODO: Binding layer
 		// TODO: Mapping layer

@@ -106,8 +106,8 @@ AST::Directive ConfigParser::parseDirective()
 		{
 			_tok->nextToken(); // consume '{'
 			// parse inner directives until }
-			parseDirectivesInto(d.args.empty() ? /*temporary vector */ *new std::vector<AST::Directive>()
-											   : *new std::vector<AST::Directive>());
+			std::vector<AST::Directive> nestedDirectives;
+			parseDirectivesInto(nestedDirectives);
 			// Note: in this simplified sketch we don't attach nested directives to Directive.
 			// Typical nginx uses block directives (like location) handled explicitly; keep simple here.
 			// Consume matching '}' handled by parseDirectivesInto.
