@@ -1,11 +1,11 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
+#include "../../includes/Wrapper/TrieTree.hpp"
 #include "DefaultStatusMap.hpp"
 #include "Location.hpp"
 #include "Logger.hpp"
 #include "ServerConfig.hpp"
-#include "TrieTree.hpp"
 #include <iostream>
 #include <map>
 #include <string>
@@ -21,20 +21,14 @@ private:
 
 	// Main members
 	std::string _root;
-	bool _rootSet;
 	TrieTree<std::string> _indexes;
 	bool _autoindex;
-	bool _autoindexSet;
 	double _clientMaxUriSize;
-	bool _clientMaxUriSizeSet;
 	double _clientMaxHeadersSize;
-	bool _clientMaxHeadersSizeSet;
 	double _clientMaxBodySize;
-	bool _clientMaxBodySizeSet;
 	std::map<int, std::string> _statusPages;
 	TrieTree<Location> _locations;
 	bool _keepAlive;
-	bool _keepAliveSet;
 
 public:
 	Server();

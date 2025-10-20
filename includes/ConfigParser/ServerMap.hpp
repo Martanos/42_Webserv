@@ -1,9 +1,9 @@
 #ifndef SERVERMAP_HPP
 #define SERVERMAP_HPP
 
-#include "ListeningSocket.hpp"
-#include "Logger.hpp"
-#include "Server.hpp"
+#include "../../includes/Core/Server.hpp"
+#include "../../includes/Wrapper/ListeningSocket.hpp"
+#include "../../includes/Logger.hpp"
 #include "ServerConfig.hpp"
 #include <algorithm>
 #include <cstdlib>
@@ -23,19 +23,20 @@
 class ServerMap
 {
 private:
-	// Vector of servers themselves
 	std::vector<Server> _servers;
+	std::vector<ListeningSocket> _listeningSockets;
 
 	// Server map (key: listening socket, value: vector of references to servers)
-	std::map<ListeningSocket, std::vector<Server> > _serverMap;
+	std::map<int, std::vector<Server> > _serverMap;
 
 	// Utility Methods
 
-public:
-	ServerMap();
-	ServerMap(std::vector<ServerConfig> &serverConfigs);
+	// Non-copyableServerMap(const ServerMap &src);
 	ServerMap(const ServerMap &src);
-	ServerMap &operator=(ServerMap const &rhs);
+	ServerMap &operator=(const ServerMap &rhs);
+
+public:
+	explicit ServerMap(const std::vector<ServerConfig> &serverConfigs);
 	~ServerMap();
 
 	// Getters

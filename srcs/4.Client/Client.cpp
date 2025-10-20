@@ -410,7 +410,9 @@ void Client::_identifyServer()
 	}
 
 	// Determine if the port is the same as current server port
-	if (hostPort != std::to_string(_request.getServer()->getPort()))
+	std::stringstream ss;
+	ss << _request.getServer()->getPort();
+	if (hostPort != ss.str())
 	{
 		return;
 	}

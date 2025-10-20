@@ -50,10 +50,10 @@ bool ConfigParser::accept(Token::TokenType type, Token::Token *out)
 	return false;
 }
 
-void ConfigParser::parseServerBlock(AST::Config &cfg)
+void ConfigParser::parseServerBlock(AST::ASTNode &cfg)
 {
 	Token::Token open = expect(Token::TOKEN_OPEN_BRACE, "'{' after server");
-	AST::Server srv;
+	AST::ASTNode srv(AST::NodeType::SERVER);
 	srv.line = open.line;
 	srv.column = open.column;
 
@@ -74,26 +74,26 @@ void ConfigParser::parseServerBlock(AST::Config &cfg)
 		if (t.type == Token::TOKEN_IDENTIFIER && t.lexeme == "location")
 		{
 			_tok->nextToken(); // consume 'location'
-			AST::Location loc = parseLocation();
-			srv.locations.push_back(loc);
+			AST::ASTNode loc = parseLocation();
+			srv.addChild(&loc);
 			continue;
 		}
-		AST::Directive d = parseDirective();
-		srv.directives.push_back(d);
+		AST::ASTNode d = parseDirective();
+		srv.addChild(&d);
 	}
 
-	cfg.servers.push_back(srv);
+	cfg.addChild(&srv);
 }
 
-AST::Directive ConfigParser::parseDirective()
+AST::ASTNode ConfigParser::parseDirective()
 {
 	Token::Token name = expect(Token::TOKEN_IDENTIFIER, "directive name");
-	AST::Directive d;
-	d.name = name.lexeme;
+	AST::ASTNode d(AST::NodeType::DIRECTIVE);
+	d.value = name.lexeme;
 	d.line = name.line;
 	d.column = name.column;
 
-	// gather args until ';' or block '{'
+	// gather args until ';'
 	while (true)
 	{
 		Token::Token t = _tok->peek(1);
@@ -102,67 +102,25 @@ AST::Directive ConfigParser::parseDirective()
 			_tok->nextToken(); // consume ';'
 			return d;
 		}
-		if (t.type == Token::TOKEN_OPEN_BRACE)
-		{
-			_tok->nextToken(); // consume '{'
-			// parse inner directives until }
-			std::vector<AST::Directive> nestedDirectives;
-			parseDirectivesInto(nestedDirectives);
-			// Note: in this simplified sketch we don't attach nested directives to Directive.
-			// Typical nginx uses block directives (like location) handled explicitly; keep simple here.
-			// Consume matching '}' handled by parseDirectivesInto.
-			return d;
-		}
-		if (t.type == Token::TOKEN_IDENTIFIER || t.type == Token::TOKEN_NUMBER || t.type == Token::TOKEN_STRING)
+		else if (t.type == Token::TOKEN_IDENTIFIER || t.type == Token::TOKEN_NUMBER || t.type == Token::TOKEN_STRING)
 		{
 			Token::Token arg = _tok->nextToken();
-			d.args.push_back(arg.lexeme);
+			AST::ASTNode directiveArg(AST::NodeType::ARG, arg.lexeme);
+			d.addChild(&directiveArg);
 			continue;
 		}
 		std::ostringstream ss;
-		ss << "Unexpected token in directive '" << d.name << "': '" << t.lexeme << "' at " << t.line << ":" << t.column;
+		ss << "Unexpected token in directive '" << d.value << "': '" << t.lexeme << "' at " << t.line << ":"
+		   << t.column;
 		throw std::runtime_error(ss.str());
 	}
 }
 
-// parse directives into a vector until matching closing brace
-void ConfigParser::parseDirectivesInto(std::vector<AST::Directive> &out)
-{
-	while (true)
-	{
-		Token::Token t = _tok->peek(1);
-		if (t.type == Token::TOKEN_CLOSE_BRACE)
-		{
-			_tok->nextToken(); // consume '}'
-			return;
-		}
-		if (t.type == Token::TOKEN_EOF)
-		{
-			throw std::runtime_error("Unterminated block (expected '}' before EOF)");
-		}
-		if (t.type == Token::TOKEN_IDENTIFIER && t.lexeme == "location")
-		{
-			_tok->nextToken(); // consume 'location'
-			AST::Location loc = parseLocation();
-			// Convert location into a Directive-like wrapper if desired, here we ignore
-			AST::Directive d;
-			d.name = "location";
-			d.args.push_back(loc.path);
-			d.line = loc.line;
-			d.column = loc.column;
-			out.push_back(d);
-			continue;
-		}
-		AST::Directive d = parseDirective();
-		out.push_back(d);
-	}
-}
-
-AST::Location ConfigParser::parseLocation()
+AST::ASTNode ConfigParser::parseLocation()
 {
 	Token::Token pathTok = expect(Token::TOKEN_IDENTIFIER, "location path");
-	AST::Location loc;
-	loc.path = pathTok.lexeme;
+	AST::ASTNode loc(AST::NodeType::LOCATION);
+	loc.value = pathTok.lexeme;
 	loc.line = pathTok.line;
 	loc.column = pathTok.column;
 
@@ -181,8 +139,8 @@ AST::Location ConfigParser::parseLocation()
 			ss << "Unterminated location block at " << loc.line << ":" << loc.column;
 			throw std::runtime_error(ss.str());
 		}
-		AST::Directive d = parseDirective();
-		loc.directives.push_back(d);
+		AST::ASTNode d = parseDirective();
+		loc.addChild(&d);
 	}
 	return loc;
 }
@@ -190,9 +148,9 @@ AST::Location ConfigParser::parseLocation()
 /*
 ** --------------------------------- METHODS ----------------------------------
 */
-AST::Config ConfigParser::parse()
+AST::ASTNode ConfigParser::parse()
 {
-	AST::Config cfg;
+	AST::ASTNode cfg(AST::NodeType::CONFIG);
 	while (true)
 	{
 		Token::Token t = _tok->peek(1);
@@ -214,54 +172,55 @@ AST::Config ConfigParser::parse()
 	return cfg;
 }
 
-void ConfigParser::printAST(const AST::Config &cfg) const
+// Recursive descent print
+void ConfigParser::printAST(const AST::ASTNode &cfg) const
 {
-	std::cout << "AST:" << std::endl;
-	for (size_t i = 0; i < cfg.servers.size(); ++i)
+	printASTRecursive(cfg, 0);
+}
+
+void ConfigParser::printASTRecursive(const AST::ASTNode &node, int depth) const
+{
+	// Print indentation based on depth
+	for (int i = 0; i < depth; ++i)
+		std::cout << "  ";
+
+	// Print node type and value
+	switch (node.type)
 	{
-		const AST::Server &srv = cfg.servers[i];
-		std::cout << "Server " << i << " (line " << srv.line << ", column " << srv.column << "):" << std::endl;
-
-		// Print top-level directives
-		for (size_t d = 0; d < srv.directives.size(); ++d)
-		{
-			const AST::Directive &dir = srv.directives[d];
-			std::cout << "  Directive " << d << ": " << dir.name << " (line " << dir.line << ", column " << dir.column
-					  << ")";
-			if (!dir.args.empty())
-			{
-				std::cout << " [args:";
-				for (size_t a = 0; a < dir.args.size(); ++a)
-					std::cout << " " << dir.args[a];
-				std::cout << "]";
-			}
-			std::cout << std::endl;
-		}
-
-		// Print locations
-		for (size_t j = 0; j < srv.locations.size(); ++j)
-		{
-			const AST::Location &loc = srv.locations[j];
-			std::cout << "  Location " << j << ": \"" << loc.path << "\" (line " << loc.line << ", column "
-					  << loc.column << ")" << std::endl;
-
-			for (size_t k = 0; k < loc.directives.size(); ++k)
-			{
-				const AST::Directive &dir = loc.directives[k];
-				std::cout << "    Directive " << k << ": " << dir.name << " (line " << dir.line << ", column "
-						  << dir.column << ")";
-				if (!dir.args.empty())
-				{
-					std::cout << " [args:";
-					for (size_t a = 0; a < dir.args.size(); ++a)
-						std::cout << " {" << dir.args[a] << "}";
-					std::cout << "]";
-				}
-				std::cout << std::endl;
-			}
-		}
+	case AST::NodeType::CONFIG:
+		std::cout << "CONFIG";
+		break;
+	case AST::NodeType::SERVER:
+		std::cout << "SERVER";
+		break;
+	case AST::NodeType::DIRECTIVE:
+		std::cout << "DIRECTIVE: " << node.value;
+		break;
+	case AST::NodeType::LOCATION:
+		std::cout << "LOCATION: " << node.value;
+		break;
+	case AST::NodeType::ARG:
+		std::cout << "ARG: " << node.value;
+		break;
+	case AST::NodeType::ERROR:
+		std::cout << "ERROR: " << node.message;
+		break;
+	default:
+		std::cout << "UNKNOWN";
+		break;
 	}
+
+	// Print line and column info if available
+	if (node.line > 0)
+		std::cout << " (line " << node.line << ", col " << node.column << ")";
+
 	std::cout << std::endl;
+
+	// Recursively print children
+	for (size_t i = 0; i < node.children.size(); ++i)
+	{
+		printASTRecursive(*node.children[i], depth + 1);
+	}
 }
 
 /* ************************************************************************** */

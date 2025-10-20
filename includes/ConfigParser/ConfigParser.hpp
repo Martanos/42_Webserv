@@ -17,10 +17,9 @@ private:
 	Token::Token expect(Token::TokenType type, const char *what = 0);
 	bool accept(Token::TokenType type, Token::Token *out = 0);
 
-	void parseServerBlock(AST::Config &cfg);
-	AST::Directive parseDirective();
-	void parseDirectivesInto(std::vector<AST::Directive> &out);
-	AST::Location parseLocation();
+	void parseServerBlock(AST::ASTNode &cfg);
+	AST::ASTNode parseDirective();
+	AST::ASTNode parseLocation();
 
 	// Non-copyable
 	ConfigParser(ConfigParser const &);
@@ -31,10 +30,11 @@ public:
 	~ConfigParser();
 
 	// Parse entire config; throws std::runtime_error on syntax error.
-	AST::Config parse();
+	AST::ASTNode parse();
 
 	// Diagnosis Method
-	void printAST(const AST::Config &cfg) const;
+	void printAST(const AST::ASTNode &cfg) const;
+	void printASTRecursive(const AST::ASTNode &node, int depth) const;
 };
 
 #endif /* **************************************************** CONFIGPARSER_H */

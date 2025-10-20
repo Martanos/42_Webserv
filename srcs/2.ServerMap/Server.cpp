@@ -222,7 +222,9 @@ void Server::insertStatusPage(const int &status, const std::string &path)
 	if (_statusPages.find(status) == _statusPages.end())
 		_statusPages[status] = path;
 	else
-		throw std::runtime_error("Status page " + std::to_string(status) + " already exists in server");
+		std::stringstream ss;
+	ss << "Status page " << status << " already exists in server";
+	throw std::runtime_error(ss.str());
 }
 
 void Server::setKeepAlive(const bool &keepAlive)
