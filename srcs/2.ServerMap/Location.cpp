@@ -1,4 +1,4 @@
-#include "../../includes/Location.hpp"
+#include "../../includes/Core/Location.hpp"
 #include "../../includes/Logger.hpp"
 #include <algorithm>
 #include <iostream>

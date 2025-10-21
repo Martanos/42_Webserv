@@ -1,5 +1,5 @@
-#include "../../includes/Server.hpp"
-#include "../../includes/Constants.hpp"
+#include "../../includes/Core/Server.hpp"
+#include "../../includes/Global/Constants.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -8,22 +8,23 @@
 Server::Server()
 {
 	_serverNames = TrieTree<std::string>();
-	_hosts_ports = std::vector<std::pair<std::string, unsigned short> >();
-	_root = "";
+	_sockets = std::vector<Socket>();
+	_root = std::string();
 	_indexes = TrieTree<std::string>();
 	_autoindex = HTTP::DEFAULT_AUTOINDEX;
 	_clientMaxUriSize = HTTP::MAX_URI_LINE_SIZE;
 	_clientMaxHeadersSize = HTTP::MAX_HEADERS_SIZE;
 	_clientMaxBodySize = HTTP::MAX_BODY_SIZE;
-	_statusPages = std::map<int, std::string>();
+	_statusPages = std::vector<std::pair<int, std::vector<std::string> > >();
 	_locations = TrieTree<Location>();
 	_keepAlive = HTTP::DEFAULT_KEEP_ALIVE;
-	_keepAliveSet = false;
+	_rootSet = false;
 	_autoindexSet = false;
 	_clientMaxUriSizeSet = false;
 	_clientMaxHeadersSizeSet = false;
 	_clientMaxBodySizeSet = false;
-	_rootSet = false;
+	_keepAliveSet = false;
+	_modified = false;
 }
 
 Server::Server(const Server &src)
@@ -49,7 +50,7 @@ Server &Server::operator=(Server const &rhs)
 	if (this != &rhs)
 	{
 		_serverNames = rhs._serverNames;
-		_hosts_ports = rhs._hosts_ports;
+		_sockets = rhs._sockets;
 		_root = rhs._root;
 		_indexes = rhs._indexes;
 		_autoindex = rhs._autoindex;
@@ -59,12 +60,7 @@ Server &Server::operator=(Server const &rhs)
 		_statusPages = rhs._statusPages;
 		_locations = rhs._locations;
 		_keepAlive = rhs._keepAlive;
-		_keepAliveSet = rhs._keepAliveSet;
-		_autoindexSet = rhs._autoindexSet;
-		_clientMaxUriSizeSet = rhs._clientMaxUriSizeSet;
-		_clientMaxHeadersSizeSet = rhs._clientMaxHeadersSizeSet;
-		_clientMaxBodySizeSet = rhs._clientMaxBodySizeSet;
-		_rootSet = rhs._rootSet;
+		_modified = rhs._modified;
 	}
 	return *this;
 }
@@ -120,10 +116,10 @@ const TrieTree<std::string> &Server::getServerNames() const
 const std::pair<std::string, unsigned short> *Server::getHostPort(const std::string &host,
 																  const unsigned short &port) const
 {
-	std::pair<std::string, unsigned short> host_port(host, port);
-	if (std::find(_hosts_ports.begin(), _hosts_ports.end(), host_port) == _hosts_ports.end())
-		return NULL;
-	return &*std::find(_hosts_ports.begin(), _hosts_ports.end(), host_port);
+	find(_sockets.begin(), _sockets.end(), Socket(host, port));
+	if (it != _sockets.end())
+		return &*it;
+	return NULL;
 }
 
 const std::vector<std::pair<std::string, unsigned short> > &Server::getHosts_ports() const
@@ -193,42 +189,54 @@ const bool Server::getKeepAlive() const
 	return _keepAlive ? true : false;
 }
 
+const bool Server::isModified() const
+{
+	return _modified;
+}
+
 /*
 ** --------------------------------- SETTERS ---------------------------------
 */
 
 void Server::insertServerName(const std::string &serverName)
 {
+	_modified = true;
 	_serverNames.insert(serverName, serverName);
 }
 
-void Server::insertHostPort(const std::string &host, const unsigned short &port)
+void Server::insertSocket(const Socket &socket)
 {
-	_hosts_ports.push_back(std::make_pair(host, port));
+	_modified = true;
+	_sockets.push_back(socket);
 }
 
 void Server::insertIndex(const std::string &index)
 {
+	_modified = true;
 	_indexes.insert(index, index);
 }
 
 void Server::insertLocation(const Location &location)
 {
+	_modified = true;
 	_locations.insert(location.getPath(), location);
 }
 
-void Server::insertStatusPage(const int &status, const std::string &path)
+void Server::insertStatusPage(const std::string &path, const std::vector<int> &codes)
 {
-	if (_statusPages.find(status) == _statusPages.end())
-		_statusPages[status] = path;
-	else
-		std::stringstream ss;
-	ss << "Status page " << status << " already exists in server";
-	throw std::runtime_error(ss.str());
+	_modified = true;
+	for (std::vector<int>::const_iterator it = codes.begin(); it != codes.end(); ++it)
+	{
+		if (_statusPages.find(*it) == _statusPages.end())
+			_statusPages.push_back(std::make_pair(*it, path));
+		else
+			_statusPages[*it].insert(path);
+	}
 }
 
 void Server::setKeepAlive(const bool &keepAlive)
 {
+	_modified = true;
 	if (_keepAliveSet)
 		throw std::runtime_error("Keep alive already set for server");
 	_keepAlive = keepAlive;
@@ -237,6 +245,7 @@ void Server::setKeepAlive(const bool &keepAlive)
 
 void Server::setClientMaxBodySize(const double &clientMaxBodySize)
 {
+	_modified = true;
 	if (_clientMaxBodySizeSet)
 		throw std::runtime_error("Client max body size already set for server");
 	_clientMaxBodySizeSet = true;
@@ -245,6 +254,7 @@ void Server::setClientMaxBodySize(const double &clientMaxBodySize)
 
 void Server::setClientMaxHeadersSize(const double &clientMaxHeadersSize)
 {
+	_modified = true;
 	if (_clientMaxHeadersSizeSet)
 		throw std::runtime_error("Client max headers size already set for server");
 	_clientMaxHeadersSizeSet = true;
@@ -253,6 +263,7 @@ void Server::setClientMaxHeadersSize(const double &clientMaxHeadersSize)
 
 void Server::setClientMaxUriSize(const double &clientMaxUriSize)
 {
+	_modified = true;
 	if (_clientMaxUriSizeSet)
 		throw std::runtime_error("Client max uri size already set for server");
 	_clientMaxUriSizeSet = true;
@@ -261,6 +272,7 @@ void Server::setClientMaxUriSize(const double &clientMaxUriSize)
 
 void Server::setRoot(const std::string &root)
 {
+	_modified = true;
 	if (_rootSet)
 		throw std::runtime_error("Root already set for server");
 	_rootSet = true;
@@ -269,17 +281,23 @@ void Server::setRoot(const std::string &root)
 
 void Server::setAutoindex(const bool &autoindex)
 {
+	_modified = true;
 	if (_autoindexSet)
 		throw std::runtime_error("Autoindex already set for server");
 	_autoindexSet = true;
 	_autoindex = autoindex;
 }
 
+bool Server::isModified() const
+{
+	return _modified;
+}
+
 void Server::reset()
 {
 	_serverNames.clear();
-	_hosts_ports.clear();
-	_root = "";
+	_sockets.clear();
+	_root = std::string();
 	_indexes.clear();
 	_autoindex = HTTP::DEFAULT_AUTOINDEX;
 	_clientMaxUriSize = HTTP::MAX_URI_LINE_SIZE;
@@ -294,6 +312,7 @@ void Server::reset()
 	_clientMaxHeadersSizeSet = false;
 	_clientMaxBodySizeSet = false;
 	_rootSet = false;
+	_modified = false;
 }
 
 /* ************************************************************************** */

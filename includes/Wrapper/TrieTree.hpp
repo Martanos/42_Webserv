@@ -1,10 +1,9 @@
 #ifndef TRIETREE_HPP
 #define TRIETREE_HPP
 
-#include "Logger.hpp"
-#include "StringUtils.hpp"
+#include "../Global/Logger.hpp"
+#include "../Global/StringUtils.hpp"
 #include "TrieNode.hpp"
-#include <algorithm>
 #include <cstddef>
 #include <limits>
 #include <string>

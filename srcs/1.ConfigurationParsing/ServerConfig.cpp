@@ -6,7 +6,7 @@
 /*   By: malee <malee@student.42.fr>                +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/10/09 18:25:58 by malee             #+#    #+#             */
-/*   Updated: 2025/10/09 18:26:00 by malee            ###   ########.fr       */
+/*   Updated: 2025/10/21 15:46:43 by malee            ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -145,77 +145,77 @@ std::vector<std::string> _split(const std::string &str)
 
 	return tokens;
 }
-// Parsing methods
-void ServerConfig::addServerName(std::string line, double lineNumber)
-{
-	lineValidation(line, lineNumber);
+// // Parsing methods
+// void ServerConfig::addServerName(std::string line, double lineNumber)
+// {
+// 	lineValidation(line, lineNumber);
 
-	std::stringstream serverNameStream(line);
-	std::string token;
-	std::stringstream errorMessage;
+// 	std::stringstream serverNameStream(line);
+// 	std::string token;
+// 	std::stringstream errorMessage;
 
-	if (!(serverNameStream >> token) || token != "server_name")
-	{
-		errorMessage << "Invalid server_name directive at line " << lineNumber;
-		Logger::error(errorMessage.str(), __FILE__, __LINE__);
-		throw std::runtime_error(errorMessage.str());
-	}
-	// Server name validation and vector population
-	while (serverNameStream >> token)
-	{
-		// Special cases
-		if (token == "_") // catch all
-		{
-			if (std::find(this->_serverNames.begin(), this->_serverNames.end(), token) != this->_serverNames.end())
-			{
-				errorMessage << "Duplicate catch-all server_name detected: " << token << " at line " << lineNumber;
-				Logger::error(errorMessage.str(), __FILE__, __LINE__);
-				throw std::runtime_error(errorMessage.str());
-			}
-			else
-				_serverNames.push_back(token);
-			continue;
-		}
-		// Simple verification if hostname is valid (no special characters)
-		if (token.length() > 255)
-		{
-			errorMessage << "Invalid server_name at line " << lineNumber << ": " << token
-						 << " (Hostname exceeds 255 characters)";
-			Logger::error(errorMessage.str(), __FILE__, __LINE__);
-			throw std::runtime_error(errorMessage.str());
-		}
-		else if (token.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJK"
-										 "LMNOPQRSTUVWXYZ0123456789.-_") != std::string::npos)
-		{
-			errorMessage << "Invalid server_name at line " << lineNumber << ": " << token
-						 << " (Contains invalid characters)";
-			Logger::error(errorMessage.str(), __FILE__, __LINE__);
-			throw std::runtime_error(errorMessage.str());
-		}
-		else if (!isalpha(token[0]) || !isalnum(token[token.length() - 1]))
-		{
-			errorMessage << "Invalid server_name at line " << lineNumber << ": " << token
-						 << " (Hostname must begin and end with alphanumeric character)";
-			Logger::error(errorMessage.str(), __FILE__, __LINE__);
-			throw std::runtime_error(errorMessage.str());
-		}
-		else if (std::find(this->_serverNames.begin(), this->_serverNames.end(), token) != this->_serverNames.end())
-		{
-			errorMessage << "Duplicate server_name detected: " << token << " at line " << lineNumber;
-			Logger::error(errorMessage.str(), __FILE__, __LINE__);
-			throw std::runtime_error(errorMessage.str());
-		}
-		else
-			_serverNames.push_back(token);
+// 	if (!(serverNameStream >> token) || token != "server_name")
+// 	{
+// 		errorMessage << "Invalid server_name directive at line " << lineNumber;
+// 		Logger::error(errorMessage.str(), __FILE__, __LINE__);
+// 		throw std::runtime_error(errorMessage.str());
+// 	}
+// 	// Server name validation and vector population
+// 	while (serverNameStream >> token)
+// 	{
+// 		// Special cases
+// 		if (token == "_") // catch all
+// 		{
+// 			if (std::find(this->_serverNames.begin(), this->_serverNames.end(), token) != this->_serverNames.end())
+// 			{
+// 				errorMessage << "Duplicate catch-all server_name detected: " << token << " at line " << lineNumber;
+// 				Logger::error(errorMessage.str(), __FILE__, __LINE__);
+// 				throw std::runtime_error(errorMessage.str());
+// 			}
+// 			else
+// 				_serverNames.push_back(token);
+// 			continue;
+// 		}
+// 		// Simple verification if hostname is valid (no special characters)
+// 		if (token.length() > 255)
+// 		{
+// 			errorMessage << "Invalid server_name at line " << lineNumber << ": " << token
+// 						 << " (Hostname exceeds 255 characters)";
+// 			Logger::error(errorMessage.str(), __FILE__, __LINE__);
+// 			throw std::runtime_error(errorMessage.str());
+// 		}
+// 		else if (token.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJK"
+// 										 "LMNOPQRSTUVWXYZ0123456789.-_") != std::string::npos)
+// 		{
+// 			errorMessage << "Invalid server_name at line " << lineNumber << ": " << token
+// 						 << " (Contains invalid characters)";
+// 			Logger::error(errorMessage.str(), __FILE__, __LINE__);
+// 			throw std::runtime_error(errorMessage.str());
+// 		}
+// 		else if (!isalpha(token[0]) || !isalnum(token[token.length() - 1]))
+// 		{
+// 			errorMessage << "Invalid server_name at line " << lineNumber << ": " << token
+// 						 << " (Hostname must begin and end with alphanumeric character)";
+// 			Logger::error(errorMessage.str(), __FILE__, __LINE__);
+// 			throw std::runtime_error(errorMessage.str());
+// 		}
+// 		else if (std::find(this->_serverNames.begin(), this->_serverNames.end(), token) != this->_serverNames.end())
+// 		{
+// 			errorMessage << "Duplicate server_name detected: " << token << " at line " << lineNumber;
+// 			Logger::error(errorMessage.str(), __FILE__, __LINE__);
+// 			throw std::runtime_error(errorMessage.str());
+// 		}
+// 		else
+// 			_serverNames.push_back(token);
 
-		if (_serverNames.size() >= 255)
-		{
-			errorMessage << "Too many server_names at line " << lineNumber << " (Maximum of 255 server_names allowed)";
-			Logger::error(errorMessage.str(), __FILE__, __LINE__);
-			throw std::runtime_error(errorMessage.str());
-		}
-	}
-}
+// 		if (_serverNames.size() >= 255)
+// 		{
+// 			errorMessage << "Too many server_names at line " << lineNumber << " (Maximum of 255 server_names allowed)";
+// 			Logger::error(errorMessage.str(), __FILE__, __LINE__);
+// 			throw std::runtime_error(errorMessage.str());
+// 		}
+// 	}
+// }
 
 //
 void ServerConfig::addHosts_ports(std::string line, double lineNumber)
@@ -227,12 +227,12 @@ void ServerConfig::addHosts_ports(std::string line, double lineNumber)
 	std::string token;
 	std::stringstream errorMessage;
 
-	if (!(hosts_portsStream >> token) || token != "listen")
-	{
-		errorMessage << "Invalid listen directive at line " << lineNumber;
-		Logger::error(errorMessage.str(), __FILE__, __LINE__);
-		throw std::runtime_error(errorMessage.str());
-	}
+	// if (!(hosts_portsStream >> token) || token != "listen")
+	// {
+	// 	errorMessage << "Invalid listen directive at line " << lineNumber;
+	// 	Logger::error(errorMessage.str(), __FILE__, __LINE__);
+	// 	throw std::runtime_error(errorMessage.str());
+	// }
 
 	while (hosts_portsStream >> token)
 	{

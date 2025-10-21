@@ -1,7 +1,6 @@
 #ifndef FILEMANAGER_HPP
 #define FILEMANAGER_HPP
 
-#include "Constants.hpp"
 #include "FileDescriptor.hpp"
 #include "Logger.hpp"
 #include "StringUtils.hpp"

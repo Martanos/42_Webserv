@@ -92,10 +92,12 @@ AST::ASTNode ConfigParser::parseDirective()
 	d.value = name.lexeme;
 	d.line = name.line;
 	d.column = name.column;
+	size_t position = 0;
 
 	// gather args until ';'
 	while (true)
 	{
+		position++;
 		Token::Token t = _tok->peek(1);
 		if (t.type == Token::TOKEN_SEMICOLON)
 		{
@@ -106,6 +108,7 @@ AST::ASTNode ConfigParser::parseDirective()
 		{
 			Token::Token arg = _tok->nextToken();
 			AST::ASTNode directiveArg(AST::NodeType::ARG, arg.lexeme);
+			directiveArg.position = position;
 			d.addChild(&directiveArg);
 			continue;
 		}

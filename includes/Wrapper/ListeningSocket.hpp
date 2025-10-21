@@ -2,7 +2,7 @@
 #define LISTENINGSOCKET_HPP
 
 #include "FileDescriptor.hpp"
-#include "SocketAddress.hpp"
+#include "Socket.hpp"
 #include <cerrno>
 #include <iostream>
 #include <netinet/in.h>
@@ -10,11 +10,12 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+// Acts as a key for the server map
 class ListeningSocket
 {
 private:
-	FileDescriptor _socket;
-	SocketAddress _address;
+	Socket _socket;
+	FileDescriptor _fd;
 
 public:
 	// Constructor
@@ -26,9 +27,9 @@ public:
 	ListeningSocket &operator=(const ListeningSocket &rhs);
 
 	// Accept connection
-	void accept(SocketAddress &address, FileDescriptor &clientFd) const;
+	void accept(Socket &address, FileDescriptor &clientFd) const;
 
-	// Comparator overloads
+	// Comparator overloads for mapping
 	bool operator<(const ListeningSocket &rhs) const;
 	bool operator>(const ListeningSocket &rhs) const;
 	bool operator<=(const ListeningSocket &rhs) const;
@@ -38,8 +39,8 @@ public:
 
 	FileDescriptor &getFd();
 	const FileDescriptor &getFd() const;
-	SocketAddress &getAddress();
-	const SocketAddress &getAddress() const;
+	Socket &getAddress();
+	const Socket &getAddress() const;
 };
 
 std::ostream &operator<<(std::ostream &o, ListeningSocket const &i);

@@ -1,11 +1,14 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
+#include "../../includes/ConfigParser/ServerConfig.hpp"
+#include "../../includes/Core/Location.hpp"
+#include "../../includes/Global/DefaultStatusMap.hpp"
+#include "../../includes/Global/IPAddressParser.hpp"
+#include "../../includes/Global/Logger.hpp"
+#include "../../includes/Global/StrUtils.hpp"
+#include "../../includes/Wrapper/Socket.hpp"
 #include "../../includes/Wrapper/TrieTree.hpp"
-#include "DefaultStatusMap.hpp"
-#include "Location.hpp"
-#include "Logger.hpp"
-#include "ServerConfig.hpp"
 #include <iostream>
 #include <map>
 #include <string>
@@ -17,7 +20,7 @@ class Server
 private:
 	// Identifier members
 	TrieTree<std::string> _serverNames;
-	std::vector<std::pair<std::string, unsigned short> > _hosts_ports;
+	std::vector<Socket> _sockets;
 
 	// Main members
 	std::string _root;
@@ -26,9 +29,18 @@ private:
 	double _clientMaxUriSize;
 	double _clientMaxHeadersSize;
 	double _clientMaxBodySize;
-	std::map<int, std::string> _statusPages;
+	std::vector<std::pair<int, std::vector<std::string> > > _statusPages;
 	TrieTree<Location> _locations;
 	bool _keepAlive;
+
+	// Flags
+	bool _rootSet;
+	bool _autoindexSet;
+	bool _clientMaxUriSizeSet;
+	bool _clientMaxHeadersSizeSet;
+	bool _clientMaxBodySizeSet;
+	bool _keepAliveSet;
+	bool _modified;
 
 public:
 	Server();
@@ -57,10 +69,10 @@ public:
 
 	// Mutators
 	void insertServerName(const std::string &serverName);
-	void insertHostPort(const std::string &host, const unsigned short &port);
+	void insertSocket(const Socket &socket);
 	void insertIndex(const std::string &index);
 	void insertLocation(const Location &location);
-	void insertStatusPage(const int &status, const std::string &path);
+	void insertStatusPage(const std::string &path, const std::vector<int> &codes);
 	void setKeepAlive(const bool &keepAlive);
 	void setClientMaxUriSize(const double &clientMaxUriSize);
 	void setClientMaxHeadersSize(const double &clientMaxHeadersSize);
@@ -68,6 +80,7 @@ public:
 	void setRoot(const std::string &root);
 	void setAutoindex(const bool &autoindex);
 
+	bool isModified() const;
 	void reset();
 };
 

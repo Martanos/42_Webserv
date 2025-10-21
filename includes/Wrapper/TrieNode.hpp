@@ -1,7 +1,7 @@
 #ifndef TRIENODE_HPP
 #define TRIENODE_HPP
 
-#include "Logger.hpp"
+#include "../Global/Logger.hpp"
 #include <map>
 
 // Node class for the trie tree

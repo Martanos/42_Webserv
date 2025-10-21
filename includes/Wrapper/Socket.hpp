@@ -1,5 +1,5 @@
-#ifndef SOCKETADDRESS_HPP
-#define SOCKETADDRESS_HPP
+#ifndef SOCKET_HPP
+#define SOCKET_HPP
 
 #include <cerrno>
 #include <cstdio>
@@ -12,9 +12,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-// Class wrapper for socket addresses using sockaddr_storage for compatibility
-// TODO: think about just making this a socket class
-class SocketAddress
+// Class wrapper for sockets
+class Socket
 {
 private:
 	struct sockaddr_storage _storage; // Universal storage for all address types
@@ -34,20 +33,21 @@ private:
 
 public:
 	// Orthodox Canonical Class Form
-	SocketAddress();
-	SocketAddress(const int port, const std::string ip); // Keep old signature
-	SocketAddress(const std::string &host, unsigned short port);
-	SocketAddress(const SocketAddress &src);
-	~SocketAddress();
+	Socket();
+	Socket(const std::string &host, const std::string &port);
+	Socket(const std::string &host, const unsigned short &port);
+	Socket(const std::string &host_port);
+	Socket(const Socket &src);
+	~Socket();
 
 	// Operators
-	SocketAddress &operator=(const SocketAddress &rhs);
-	bool operator==(const SocketAddress &rhs) const;
-	bool operator!=(const SocketAddress &rhs) const;
-	bool operator<(const SocketAddress &rhs) const;
-	bool operator>(const SocketAddress &rhs) const;
-	bool operator<=(const SocketAddress &rhs) const;
-	bool operator>=(const SocketAddress &rhs) const;
+	Socket &operator=(const Socket &rhs);
+	bool operator==(const Socket &rhs) const;
+	bool operator!=(const Socket &rhs) const;
+	bool operator<(const Socket &rhs) const;
+	bool operator>(const Socket &rhs) const;
+	bool operator<=(const Socket &rhs) const;
+	bool operator>=(const Socket &rhs) const;
 
 	// Getters
 	struct sockaddr_storage *getSockAddr();
@@ -74,16 +74,11 @@ public:
 	bool isValid() const;
 	bool isEmpty() const;
 
-	// Static factory methods - KEEP EXISTING SIGNATURES
-	static SocketAddress createIPv4(const std::string &host, unsigned short port);
-	static SocketAddress createIPv6(const std::string &host, unsigned short port);
-	static SocketAddress createAuto(const std::string &host, unsigned short port);
-
 	// New methods for sockaddr_storage compatibility
-	static SocketAddress createFromStorage(const struct sockaddr_storage &storage, socklen_t addrLen);
+	static Socket createFromStorage(const struct sockaddr_storage &storage, socklen_t addrLen);
 	void clear();
 };
 
-std::ostream &operator<<(std::ostream &o, const SocketAddress &i);
+std::ostream &operator<<(std::ostream &o, const Socket &i);
 
-#endif /* *************************************************** SOCKETADDRESS_H */
+#endif // SOCKET_HPP

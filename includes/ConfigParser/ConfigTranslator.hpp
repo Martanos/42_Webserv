@@ -1,8 +1,10 @@
 #ifndef CONFIG_TRANSLATOR_HPP
 #define CONFIG_TRANSLATOR_HPP
 
+#include "../../includes/ConfigParser/ConfigNameSpace.hpp"
 #include "../../includes/Core/Server.hpp"
-#include "ConfigNameSpace.hpp"
+#include "../../includes/Global/Logger.hpp"
+#include "LocationConfig.hpp"
 #include <vector>
 
 class ConfigTranslator
@@ -14,22 +16,31 @@ private:
 	ConfigTranslator(const ConfigTranslator &other);
 	ConfigTranslator &operator=(const ConfigTranslator &other);
 
-	// Server object creation
+	// Translation helpers
 	void _translate(const AST::ASTNode &ast);
-	void _translateServer(const AST::ASTNode &ast);
-	void _translateServerNames(const AST::ASTNode &directive, Server &server);
-	void _translateHostPorts(const AST::ASTNode &directive, Server &server);
-	void _translateIndex(const AST::ASTNode &directive, Server &server);
-	void _translateAutoIndex(const AST::ASTNode &directive, Server &server);
-	void _translatePages(const AST::ASTNode &directive, Server &server);
-	void _translateKeepAlive(const AST::ASTNode &directive, Server &server);
-	void _translateClientMaxUriSize(const AST::ASTNode &directive, Server &server);
-	void _translateClientMaxHeadersSize(const AST::ASTNode &directive, Server &server);
-	void _translateClientMaxBodySize(const AST::ASTNode &directive, Server &server);
-	void _translateRoot(const AST::ASTNode &directive, Server &server);
+	Server _translateServer(const AST::ASTNode &ast);
 
-	// Location helpers
-	void _translateLocation(const AST::ASTNode &directive, Server &server);
+	// Server specific translation helpers
+	void _translateServerName(const AST::ASTNode &directive, Server &server);
+	void _translateListen(const AST::ASTNode &directive, Server &server);
+	void _translateServerRoot(const AST::ASTNode &directive, Server &server);
+	void _translateServerIndex(const AST::ASTNode &directive, Server &server);
+	void _translateServerAutoindex(const AST::ASTNode &directive, Server &server);
+	void _translateServerClientMaxBodySize(const AST::ASTNode &directive, Server &server);
+	void _translateServerClientMaxHeadersSize(const AST::ASTNode &directive, Server &server);
+	void _translateServerClientMaxUriSize(const AST::ASTNode &directive, Server &server);
+	void _translateServerStatusPage(const AST::ASTNode &directive, Server &server);
+
+	// Location specific translation helpers
+	Location _translateLocation(const AST::ASTNode &location_node);
+	void _translateLocationRoot(const AST::ASTNode &directive, Location &location);
+	void _translateLocationAllowedMethods(const AST::ASTNode &directive, Location &location);
+	void _translateLocationReturn(const AST::ASTNode &directive, Location &location);
+	void _translateLocationAutoindex(const AST::ASTNode &directive, Location &location);
+	void _translateLocationIndex(const AST::ASTNode &directive, Location &location);
+	void _translateLocationCgiPath(const AST::ASTNode &directive, Location &location);
+	void _translateLocationCgiParam(const AST::ASTNode &directive, Location &location);
+	void _translateLocationCgiIndex(const AST::ASTNode &directive, Location &location);
 
 public:
 	explicit ConfigTranslator(const AST::ASTNode &ast);
