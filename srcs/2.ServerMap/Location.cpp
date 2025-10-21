@@ -1,5 +1,4 @@
 #include "../../includes/Core/Location.hpp"
-#include "../../includes/Logger.hpp"
 #include <algorithm>
 #include <iostream>
 
@@ -9,19 +8,19 @@
 
 Location::Location()
 {
-	_path = "";
-	_root = "";
+	_path = std::string();
+	_root = std::string();
 	_allowedMethods = std::vector<std::string>();
-	_redirect = "";
+	_redirect = std::string();
 	_autoIndex = false;
 	_indexes = TrieTree<std::string>();
-	_cgiPath = "";
-	_cgiParams = std::map<std::string, std::string>();
+	_cgiPath = std::string();
 	_pathSet = false;
 	_rootSet = false;
 	_autoIndexSet = false;
 	_cgiPathSet = false;
 	_redirectSet = false;
+	_modified = false;
 }
 
 Location::Location(const Location &src)
@@ -53,12 +52,12 @@ Location &Location::operator=(Location const &rhs)
 		_autoIndex = rhs._autoIndex;
 		_indexes = rhs._indexes;
 		_cgiPath = rhs._cgiPath;
-		_cgiParams = rhs._cgiParams;
 		_pathSet = rhs._pathSet;
 		_rootSet = rhs._rootSet;
 		_autoIndexSet = rhs._autoIndexSet;
 		_cgiPathSet = rhs._cgiPathSet;
 		_redirectSet = rhs._redirectSet;
+		_modified = rhs._modified;
 	}
 	return *this;
 }
@@ -74,17 +73,12 @@ void operator<<(std::ostream &o, Location const &i)
 		o << *it << " ";
 	o << std::endl;
 	o << "Redirect: " << i.getRedirect() << std::endl;
-	o << "AutoIndex: " << i.getAutoIndex() << std::endl;
+	o << "AutoIndex: " << i.isAutoIndex() << std::endl;
 	o << "Indexes: ";
 	for (TrieTree<std::string>::const_iterator it = i.getIndexes().begin(); it != i.getIndexes().end(); ++it)
 		o << *it << " ";
 	o << std::endl;
 	o << "CgiPath: " << i.getCgiPath() << std::endl;
-	o << "CgiParams: ";
-	for (std::map<std::string, std::string>::const_iterator it = i.getCgiParams().begin(); it != i.getCgiParams().end();
-		 ++it)
-		o << it->first << "=" << it->second << " ";
-	o << std::endl;
 	o << "--------------------------------" << std::endl;
 }
 
@@ -94,52 +88,54 @@ void operator<<(std::ostream &o, Location const &i)
 
 const std::string &Location::getPath() const
 {
+	if (_path.empty())
+		throw std::runtime_error("Path not set for location");
 	return _path;
 }
 
 const std::string &Location::getRoot() const
 {
+	if (_root.empty())
+		throw std::runtime_error("Root not set for location " + _path);
 	return _root;
 }
 
 const std::vector<std::string> &Location::getAllowedMethods() const
 {
+	if (_allowedMethods.size() == 0)
+		throw std::runtime_error("Allowed methods not set for location " + _path);
 	return _allowedMethods;
 }
 
-const std::string &Location::getAllowedMethod(const std::string &allowedMethod) const
+bool Location::hasAllowedMethod(const std::string &allowedMethod) const
 {
-	return *std::find(_allowedMethods.begin(), _allowedMethods.end(), allowedMethod);
+	return std::find(_allowedMethods.begin(), _allowedMethods.end(), allowedMethod) != _allowedMethods.end();
 }
 
 const std::string &Location::getRedirect() const
 {
+	if (_redirect.empty())
+		throw std::runtime_error("Redirect not set for location " + _path);
 	return _redirect;
 }
 
-const bool &Location::getAutoIndex() const
+bool Location::isAutoIndex() const
 {
 	return _autoIndex;
 }
 
-const std::string *Location::getIndex(const std::string &index) const
-{
-	return _indexes.find(index);
-}
-
 const TrieTree<std::string> &Location::getIndexes() const
 {
+	if (_indexes.size() == 0)
+		throw std::runtime_error("Indexes not set for location " + _path);
 	return _indexes;
 }
 
 const std::string &Location::getCgiPath() const
 {
+	if (_cgiPath.empty())
+		throw std::runtime_error("Cgi path not set for location " + _path);
 	return _cgiPath;
-}
-
-const std::map<std::string, std::string> &Location::getCgiParams() const
-{
-	return _cgiParams;
 }
 
 /*
@@ -148,66 +144,61 @@ const std::map<std::string, std::string> &Location::getCgiParams() const
 
 void Location::setPath(const std::string &path)
 {
+	_modified = true;
 	if (_pathSet)
 		throw std::runtime_error("Path already set for location " + _path);
-	_pathSet = true;
 	_path = path;
+	_pathSet = true;
 }
 
 void Location::setRoot(const std::string &root)
 {
+	_modified = true;
 	if (_rootSet)
 		throw std::runtime_error("Root already set for location " + _root);
-	_rootSet = true;
 	_root = root;
+	_rootSet = true;
 }
 
 void Location::insertAllowedMethod(const std::string &allowedMethod)
 {
-	if (std::find(_allowedMethods.begin(), _allowedMethods.end(), allowedMethod) == _allowedMethods.end())
+	_modified = true;
+	if (!hasAllowedMethod(allowedMethod))
 		_allowedMethods.push_back(allowedMethod);
-	else
-		throw std::runtime_error("Allowed method " + allowedMethod + " already exists in location " + _path);
 }
 
 void Location::setRedirect(const std::string &redirect)
 {
-	if (_redirectSet)
+	_modified = true;
+	if (_redirect.empty())
+		_redirect = redirect;
+	else
 		throw std::runtime_error("Redirect already set for location " + _redirect);
 	_redirectSet = true;
-	_redirect = redirect;
 }
 
 void Location::setAutoIndex(const bool &autoIndex)
 {
+	_modified = true;
 	if (_autoIndexSet)
 		throw std::runtime_error("Auto index already set for location " + _path);
-	_autoIndexSet = true;
 	_autoIndex = autoIndex;
+	_autoIndexSet = true;
 }
 
 void Location::insertIndex(const std::string &index)
 {
-	if (_indexes.find(index) == NULL)
-		_indexes.insert(index, index);
-	else
-		throw std::runtime_error("Index " + index + " already exists in location " + _path);
+	_modified = true;
+	_indexes.insert(index, index);
 }
 
 void Location::setCgiPath(const std::string &cgiPath)
 {
+	_modified = true;
 	if (_cgiPathSet)
 		throw std::runtime_error("Cgi path already set for location " + _cgiPath);
-	_cgiPathSet = true;
 	_cgiPath = cgiPath;
-}
-
-void Location::insertCgiParam(const std::string &cgiParam, const std::string &value)
-{
-	if (_cgiParams.find(cgiParam) == _cgiParams.end())
-		_cgiParams[cgiParam] = value;
-	else
-		throw std::runtime_error("Cgi param " + cgiParam + " already exists in location " + _path);
+	_cgiPathSet = true;
 }
 
 /* ************************************************************************** */

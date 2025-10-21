@@ -227,7 +227,7 @@ void Server::insertStatusPage(const std::string &path, const std::vector<int> &c
 	_modified = true;
 	for (std::vector<int>::const_iterator it = codes.begin(); it != codes.end(); ++it)
 	{
-		if (_statusPages.find(*it) == _statusPages.end())
+		if (_statusPages.find(*it->) == _statusPages.end())
 			_statusPages.push_back(std::make_pair(*it, path));
 		else
 			_statusPages[*it].insert(path);

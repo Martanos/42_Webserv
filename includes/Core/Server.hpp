@@ -1,12 +1,7 @@
 #ifndef SERVER_HPP
 #define SERVER_HPP
 
-#include "../../includes/ConfigParser/ServerConfig.hpp"
 #include "../../includes/Core/Location.hpp"
-#include "../../includes/Global/DefaultStatusMap.hpp"
-#include "../../includes/Global/IPAddressParser.hpp"
-#include "../../includes/Global/Logger.hpp"
-#include "../../includes/Global/StrUtils.hpp"
 #include "../../includes/Wrapper/Socket.hpp"
 #include "../../includes/Wrapper/TrieTree.hpp"
 #include <iostream>

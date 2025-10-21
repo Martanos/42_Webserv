@@ -2,9 +2,8 @@
 #define CONFIG_TRANSLATOR_HPP
 
 #include "../../includes/ConfigParser/ConfigNameSpace.hpp"
+#include "../../includes/Core/Location.hpp"
 #include "../../includes/Core/Server.hpp"
-#include "../../includes/Global/Logger.hpp"
-#include "LocationConfig.hpp"
 #include <vector>
 
 class ConfigTranslator
@@ -39,8 +38,6 @@ private:
 	void _translateLocationAutoindex(const AST::ASTNode &directive, Location &location);
 	void _translateLocationIndex(const AST::ASTNode &directive, Location &location);
 	void _translateLocationCgiPath(const AST::ASTNode &directive, Location &location);
-	void _translateLocationCgiParam(const AST::ASTNode &directive, Location &location);
-	void _translateLocationCgiIndex(const AST::ASTNode &directive, Location &location);
 
 public:
 	explicit ConfigTranslator(const AST::ASTNode &ast);

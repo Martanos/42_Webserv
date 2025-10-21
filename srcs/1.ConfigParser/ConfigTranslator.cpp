@@ -1,5 +1,6 @@
 #include "../../includes/ConfigParser/ConfigTranslator.hpp"
-#include "../../includes/Global/StringUtils.hpp"
+#include "../../includes/Global/Logger.hpp"
+#include "../../includes/Global/StrUtils.hpp"
 #include <vector>
 
 ConfigTranslator::ConfigTranslator(const AST::ASTNode &ast)
@@ -174,6 +175,84 @@ void ConfigTranslator::_translateListen(const AST::ASTNode &directive, Server &s
 	}
 }
 
+void ConfigTranslator::_translateServerRoot(const AST::ASTNode &directive, Server &server)
+{
+	std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
+	if (it == directive.children.end())
+	{
+		std::stringstream ss;
+		ss << "No arguments in server root directive: " << directive.value << " line: " << directive.line
+		   << " column: " << directive.column << " skipping..." << std::endl;
+		Logger::warning(ss.str());
+		return;
+	}
+	try
+	{
+		if ((*it)->type == AST::NodeType::ARG)
+		{
+			if ((*it)->value.empty())
+			{
+				std::stringstream ss;
+				ss << "Empty root path: " << (*it)->value << " line: " << (*it)->line << " column: " << (*it)->column
+				   << " skipping..." << std::endl;
+				Logger::warning(ss.str());
+				return;
+			}
+			if ((*it)->value[0] == '/')
+			{
+				std::stringstream ss;
+				ss << "Absolute path in root path: " << (*it)->value << " line: " << (*it)->line
+				   << " column: " << (*it)->column << " skipping..." << std::endl;
+				Logger::warning(ss.str());
+				return;
+			}
+			if ((*it)->value.find("..") != std::string::npos)
+			{
+				std::stringstream ss;
+				ss << "Traversal in root path: " << (*it)->value << " line: " << (*it)->line
+				   << " column: " << (*it)->column << " skipping..." << std::endl;
+				Logger::warning(ss.str());
+				return;
+			}
+			for (size_t i = 0; i < (*it)->value.size(); ++i)
+			{
+				unsigned char c = (*it)->value[i];
+				if (c < 0x20 || c == 0x7F)
+				{
+					std::stringstream ss;
+					ss << "Control character in root path: " << (*it)->value << " line: " << (*it)->line
+					   << " column: " << (*it)->column << " skipping..." << std::endl;
+					Logger::warning(ss.str());
+					return;
+				}
+			}
+			server.setRoot((*it)->value);
+		}
+		else
+		{
+			std::stringstream ss;
+			ss << "Unknown token in server root directive: " << (*it)->value << " line: " << (*it)->line
+			   << " column: " << (*it)->column << " skipping..." << std::endl;
+			Logger::warning(ss.str());
+		}
+	}
+	catch (const std::exception &e)
+	{
+		std::stringstream ss;
+		ss << "Error translating server root directive: " << e.what() << " line: " << directive.line
+		   << " column: " << directive.column << " skipping..." << std::endl;
+		Logger::warning(ss.str());
+		return;
+	}
+	while (++it != directive.children.end())
+	{
+		std::stringstream ss;
+		ss << "Extra argument in server root directive: " << (*it)->value << " line: " << (*it)->line
+		   << " column: " << (*it)->column << " skipping..." << std::endl;
+		Logger::warning(ss.str());
+	}
+}
+
 // Translate index directives into server members
 void ConfigTranslator::_translateServerIndex(const AST::ASTNode &directive, Server &server)
 {
@@ -229,7 +308,7 @@ void ConfigTranslator::_translateServerIndex(const AST::ASTNode &directive, Serv
 		{
 			std::stringstream ss;
 			ss << "Unknown token in server index block: " << (*it)->value << " line: " << (*it)->line
-			   << " column: " << (*it)->column << std::endl;
+			   << " column: " << (*it)->column << " skipping..." << std::endl;
 			Logger::warning(ss.str());
 		}
 	}
@@ -444,10 +523,9 @@ void ConfigTranslator::_translateServerStatusPage(const AST::ASTNode &directive,
 	{
 		std::vector<int> codes;
 		std::string path;
-
+		std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
 		// Collect status page codes
-		for (std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
-			 it != directive.children.end() - 1; ++it)
+		while (++it != directive.children.end() - 1)
 		{
 			if ((*it)->type == AST::NodeType::ARG)
 			{
@@ -462,7 +540,7 @@ void ConfigTranslator::_translateServerStatusPage(const AST::ASTNode &directive,
 					return;
 				}
 				else
-					codes.insert(static_cast<int>(code));
+					codes.push_back(static_cast<int>(code));
 			}
 			else
 			{
@@ -531,7 +609,7 @@ void ConfigTranslator::_translateServerStatusPage(const AST::ASTNode &directive,
 */
 
 // Location verification
-void ConfigTranslator::_translateLocation(const AST::ASTNode &location_node)
+Location ConfigTranslator::_translateLocation(const AST::ASTNode &location_node)
 {
 	Location location;
 	for (std::vector<AST::ASTNode *>::const_iterator it = location_node.children.begin();
@@ -540,21 +618,17 @@ void ConfigTranslator::_translateLocation(const AST::ASTNode &location_node)
 		if ((*it)->type == AST::NodeType::DIRECTIVE)
 		{
 			if ((*it)->value == "root")
-				_translateLocationRoot(**it, location_node.value);
+				_translateLocationRoot(**it, location);
 			else if ((*it)->value == "allowed_methods")
-				_translateLocationAllowedMethods(**it, location_node.value);
+				_translateLocationAllowedMethods(**it, location);
 			else if ((*it)->value == "return")
-				_translateLocationReturn(**it, location_node.value);
+				_translateLocationReturn(**it, location);
 			else if ((*it)->value == "autoindex")
-				_translateLocationAutoindex(**it, location_node.value);
+				_translateLocationAutoindex(**it, location);
 			else if ((*it)->value == "index")
-				_translateLocationIndex(**it, location_node.value);
+				_translateLocationIndex(**it, location);
 			else if ((*it)->value == "cgi_path")
-				_translateLocationCgiPath(**it, location_node.value);
-			else if ((*it)->value == "cgi_param")
-				_translateLocationCgiParam(**it, location_node.value);
-			else if ((*it)->value == "cgi_index")
-				_translateLocationCgiIndex(**it, location_node.value);
+				_translateLocationCgiPath(**it, location);
 			else
 			{
 				std::stringstream ss;
@@ -563,12 +637,409 @@ void ConfigTranslator::_translateLocation(const AST::ASTNode &location_node)
 				Logger::warning(ss.str());
 			}
 		}
+		else
+		{
+			std::stringstream ss;
+			ss << "Unknown token in location block: " << (*it)->value << " line: " << (*it)->line
+			   << " column: " << (*it)->column << std::endl;
+			Logger::warning(ss.str());
+		}
 	}
-	else
+	return location;
+}
+
+void ConfigTranslator::_translateLocationRoot(const AST::ASTNode &directive, Location &location)
+{
+	std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
+	if (it == directive.children.end())
 	{
 		std::stringstream ss;
-		ss << "Unknown token in location block: " << (*it)->value << " line: " << (*it)->line
-		   << " column: " << (*it)->column << std::endl;
+		ss << "No arguments in location root directive: " << directive.value << " line: " << directive.line
+		   << " column: " << directive.column << " skipping..." << std::endl;
+		Logger::warning(ss.str());
+		return;
+	}
+	try
+	{
+		if ((*it)->type == AST::NodeType::ARG)
+		{
+			if ((*it)->value.empty())
+			{
+				std::stringstream ss;
+				ss << "Empty root path: " << (*it)->value << " line: " << (*it)->line << " column: " << (*it)->column
+				   << " skipping..." << std::endl;
+				Logger::warning(ss.str());
+				return;
+			}
+			if (!((*it)->value[0] == '/'))
+			{
+				std::stringstream ss;
+				ss << "Root path must be absolute: " << (*it)->value << " line: " << (*it)->line
+				   << " column: " << (*it)->column << " skipping..." << std::endl;
+				Logger::warning(ss.str());
+				return;
+			}
+			if ((*it)->value.find("..") != std::string::npos)
+			{
+				std::stringstream ss;
+				ss << "Traversal in root path: " << (*it)->value << " line: " << (*it)->line
+				   << " column: " << (*it)->column << " skipping..." << std::endl;
+				Logger::warning(ss.str());
+				return;
+			}
+			for (size_t i = 0; i < (*it)->value.size(); ++i)
+			{
+				unsigned char c = (*it)->value[i];
+				if (c < 0x20 || c == 0x7F)
+				{
+					std::stringstream ss;
+					ss << "Control character in root path: " << (*it)->value << " line: " << (*it)->line
+					   << " column: " << (*it)->column << " skipping..." << std::endl;
+					Logger::warning(ss.str());
+					return;
+				}
+			}
+			location.setRoot((*it)->value);
+		}
+		else
+		{
+			std::stringstream ss;
+			ss << "Unknown token in location root directive: " << (*it)->value << " line: " << (*it)->line
+			   << " column: " << (*it)->column << " skipping..." << std::endl;
+			Logger::warning(ss.str());
+		}
+	}
+	catch (const std::exception &e)
+	{
+		std::stringstream ss;
+		ss << "Error translating location root directive: " << e.what() << " line: " << directive.line
+		   << " column: " << directive.column << " skipping..." << std::endl;
+		Logger::warning(ss.str());
+		return;
+	}
+	while (++it != directive.children.end())
+	{
+		std::stringstream ss;
+		ss << "Extra argument in location root directive: " << (*it)->value << " line: " << (*it)->line
+		   << " column: " << (*it)->column << " skipping..." << std::endl;
+		Logger::warning(ss.str());
+	}
+}
+
+void ConfigTranslator::_translateLocationAllowedMethods(const AST::ASTNode &directive, Location &location)
+{
+	std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
+	if (it == directive.children.end())
+	{
+		std::stringstream ss;
+		ss << "No arguments in location allowed methods directive: " << directive.value << " line: " << directive.line
+		   << " column: " << directive.column << " skipping..." << std::endl;
+		Logger::warning(ss.str());
+		return;
+	}
+	try
+	{
+		while (++it != directive.children.end())
+		{
+			if ((*it)->type == AST::NodeType::ARG)
+			{
+				location.insertAllowedMethod((*it)->value);
+			}
+			else
+			{
+				std::stringstream ss;
+				ss << "Unknown token in location allowed methods directive: " << (*it)->value
+				   << " line: " << (*it)->line << " column: " << (*it)->column << " skipping..." << std::endl;
+				Logger::warning(ss.str());
+			}
+		}
+	}
+	catch (const std::exception &e)
+	{
+		std::stringstream ss;
+		ss << "Error translating location allowed methods directive: " << e.what() << " line: " << directive.line
+		   << " column: " << directive.column << " skipping..." << std::endl;
+		Logger::warning(ss.str());
+		return;
+	}
+}
+
+void ConfigTranslator::_translateLocationReturn(const AST::ASTNode &directive, Location &location)
+{
+	std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
+	if (it == directive.children.end())
+	{
+		std::stringstream ss;
+		ss << "No arguments in location return directive: " << directive.value << " line: " << directive.line
+		   << " column: " << directive.column << " skipping..." << std::endl;
+		Logger::warning(ss.str());
+		return;
+	}
+	try
+	{
+		double code = 0;
+		std::string path = "";
+		// Sanitize and verify return code
+		if (it != directive.children.end() && (*it)->type == AST::NodeType::ARG)
+		{
+			char *end;
+			code = strtod((*it)->value.c_str(), &end);
+			if (end == (*it)->value.c_str() || *end != '\0' || code > 599 || code < 100)
+			{
+				std::stringstream ss;
+				ss << "Invalid return code: " << (*it)->value << " line: " << (*it)->line
+				   << " column: " << (*it)->column << " skipping..." << std::endl;
+				Logger::warning(ss.str());
+			}
+		}
+		else
+		{
+			std::stringstream ss;
+			ss << "No return code: " << directive.value << " line: " << directive.line
+			   << " column: " << directive.column << " skipping..." << std::endl;
+			Logger::warning(ss.str());
+			return;
+		}
+		++it;
+		if (it != directive.children.end() && (*it)->type == AST::NodeType::ARG)
+		{
+			path = (*it)->value;
+		}
+		location.setRedirect(std::make_pair(static_cast<int>(code), path));
+	}
+	catch (const std::exception &e)
+	{
+		std::stringstream ss;
+		ss << "Error translating location return directive: " << e.what() << " line: " << directive.line
+		   << " column: " << directive.column << " skipping..." << std::endl
+		   << " skipping..." << std::endl;
+		Logger::warning(ss.str());
+		return;
+	}
+	while (++it != directive.children.end())
+	{
+		std::stringstream ss;
+		ss << "Extra argument in location return directive: " << (*it)->value << " line: " << (*it)->line
+		   << " column: " << (*it)->column << " skipping..." << std::endl;
+		Logger::warning(ss.str());
+	}
+}
+
+void ConfigTranslator::_translateLocationAutoindex(const AST::ASTNode &directive, Location &location)
+{
+	std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
+	if (it == directive.children.end())
+	{
+		std::stringstream ss;
+		ss << "No arguments in location autoindex directive: " << directive.value << " line: " << directive.line
+		   << " column: " << directive.column << " skipping..." << std::endl;
+		Logger::warning(ss.str());
+		return;
+	}
+	try
+	{
+		if ((*it)->type == AST::NodeType::ARG)
+		{
+			if ((*it)->value == "on")
+			{
+				location.setAutoIndex(true);
+			}
+			else if ((*it)->value == "off")
+			{
+				location.setAutoIndex(false);
+			}
+			else
+			{
+				std::stringstream ss;
+				ss << "Invalid autoindex value: " << (*it)->value << " line: " << (*it)->line
+				   << " column: " << (*it)->column << " skipping..." << std::endl;
+				Logger::warning(ss.str());
+				return;
+			}
+		}
+		else
+		{
+			std::stringstream ss;
+			ss << "Unknown token in location autoindex directive: " << (*it)->value << " line: " << (*it)->line
+			   << " column: " << (*it)->column << " skipping..." << std::endl;
+			Logger::warning(ss.str());
+		}
+	}
+	catch (const std::exception &e)
+	{
+		std::stringstream ss;
+		ss << "Error translating location autoindex directive: " << e.what() << " line: " << directive.line
+		   << " column: " << directive.column << " skipping..." << std::endl;
+		Logger::warning(ss.str());
+		return;
+	}
+	while (++it != directive.children.end())
+	{
+		std::stringstream ss;
+		ss << "Extra argument in location autoindex directive: " << (*it)->value << " line: " << (*it)->line
+		   << " column: " << (*it)->column << " skipping..." << std::endl;
+		Logger::warning(ss.str());
+	}
+}
+
+void ConfigTranslator::_translateLocationIndex(const AST::ASTNode &directive, Location &location)
+{
+	std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
+	if (it == directive.children.end())
+	{
+		std::stringstream ss;
+		ss << "No arguments in location index directive: " << directive.value << " line: " << directive.line
+		   << " column: " << directive.column << " skipping..." << std::endl;
+		Logger::warning(ss.str());
+		return;
+	}
+	try
+	{
+		if ((*it)->type == AST::NodeType::ARG)
+		{
+			if ((*it)->value.empty())
+			{
+				std::stringstream ss;
+				ss << "Empty index path: " << (*it)->value << " line: " << (*it)->line << " column: " << (*it)->column
+				   << " skipping..." << std::endl;
+				Logger::warning(ss.str());
+				return;
+			}
+			if ((*it)->value[0] != '/')
+			{
+				std::stringstream ss;
+				ss << "Index path must start with slash: " << (*it)->value << " line: " << (*it)->line
+				   << " column: " << (*it)->column << " skipping..." << std::endl;
+				Logger::warning(ss.str());
+				return;
+			}
+			if ((*it)->value.find("..") != std::string::npos)
+			{
+				std::stringstream ss;
+				ss << "Traversal in index path: " << (*it)->value << " line: " << (*it)->line
+				   << " column: " << (*it)->column << " skipping..." << std::endl;
+				Logger::warning(ss.str());
+				return;
+			}
+			for (size_t i = 0; i < (*it)->value.size(); ++i)
+			{
+				unsigned char c = (*it)->value[i];
+				if (c < 0x20 || c == 0x7F)
+				{
+					std::stringstream ss;
+					ss << "Control character in index path: " << (*it)->value << " line: " << (*it)->line
+					   << " column: " << (*it)->column << " skipping..." << std::endl;
+					Logger::warning(ss.str());
+					return;
+				}
+			}
+			location.insertIndex((*it)->value);
+		}
+		else
+		{
+			std::stringstream ss;
+			ss << "Unknown token in location index directive: " << (*it)->value << " line: " << (*it)->line
+			   << " column: " << (*it)->column << " skipping..." << std::endl;
+			Logger::warning(ss.str());
+		}
+	}
+	catch (const std::exception &e)
+	{
+		std::stringstream ss;
+		ss << "Error translating location index directive: " << e.what() << " line: " << directive.line
+		   << " column: " << directive.column << " skipping..." << std::endl;
+		Logger::warning(ss.str());
+		return;
+	}
+	while (++it != directive.children.end())
+	{
+		std::stringstream ss;
+		ss << "Extra argument in location index directive: " << (*it)->value << " line: " << (*it)->line
+		   << " column: " << (*it)->column << " skipping..." << std::endl;
+		Logger::warning(ss.str());
+	}
+}
+
+void ConfigTranslator::_translateLocationCgiPath(const AST::ASTNode &directive, Location &location)
+{
+	std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
+	if (it == directive.children.end())
+	{
+		std::stringstream ss;
+		ss << "No arguments in location cgi path directive: " << directive.value << " line: " << directive.line
+		   << " column: " << directive.column << " skipping..." << std::endl;
+		Logger::warning(ss.str());
+		return;
+	}
+	try
+	{
+		if ((*it)->type == AST::NodeType::ARG)
+		{
+			if ((*it)->value.empty())
+			{
+				std::stringstream ss;
+				ss << "Empty cgi path: " << (*it)->value << " line: " << (*it)->line << " column: " << (*it)->column
+				   << " skipping..." << std::endl;
+				Logger::warning(ss.str());
+				return;
+			}
+			if (!((*it)->value[0] == '/'))
+			{
+				std::stringstream ss;
+				ss << "Cgi path must be absolute: " << (*it)->value << " line: " << (*it)->line
+				   << " column: " << (*it)->column << " skipping..." << std::endl;
+				Logger::warning(ss.str());
+				return;
+			}
+			if ((*it)->value.find("..") != std::string::npos)
+			{
+				std::stringstream ss;
+				ss << "Traversal in cgi path: " << (*it)->value << " line: " << (*it)->line
+				   << " column: " << (*it)->column << " skipping..." << std::endl;
+				Logger::warning(ss.str());
+				return;
+			}
+			for (size_t i = 0; i < (*it)->value.size(); ++i)
+			{
+				unsigned char c = (*it)->value[i];
+				if (c < 0x20 || c == 0x7F)
+				{
+					std::stringstream ss;
+					ss << "Control character in cgi path: " << (*it)->value << " line: " << (*it)->line
+					   << " column: " << (*it)->column << " skipping..." << std::endl;
+					Logger::warning(ss.str());
+					location.setCgiPath((*it)->value);
+				}
+				else
+				{
+					std::stringstream ss;
+					ss << "Unknown token in location cgi path directive: " << (*it)->value << " line: " << (*it)->line
+					   << " column: " << (*it)->column << " skipping..." << std::endl;
+					Logger::warning(ss.str());
+				}
+			}
+		}
+		else
+		{
+			std::stringstream ss;
+			ss << "Unknown token in location cgi path directive: " << (*it)->value << " line: " << (*it)->line
+			   << " column: " << (*it)->column << " skipping..." << std::endl;
+			Logger::warning(ss.str());
+		}
+	}
+	catch (const std::exception &e)
+	{
+		std::stringstream ss;
+		ss << "Error translating location cgi path directive: " << e.what() << " line: " << directive.line
+		   << " column: " << directive.column << " skipping..." << std::endl;
+		Logger::warning(ss.str());
+		return;
+	}
+	while (++it != directive.children.end())
+	{
+		std::stringstream ss;
+		ss << "Extra argument in location cgi path directive: " << (*it)->value << " line: " << (*it)->line
+		   << " column: " << (*it)->column << " skipping..." << std::endl;
 		Logger::warning(ss.str());
 	}
 }

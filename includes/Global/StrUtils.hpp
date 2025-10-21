@@ -63,7 +63,6 @@ std::vector<std::string> splitString(const std::string &str, char delimiter)
 	return parts;
 }
 
-
 } // namespace StrUtils
 
 #endif // STRINGUTILS_HPP

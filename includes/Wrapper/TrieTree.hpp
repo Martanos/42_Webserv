@@ -2,7 +2,7 @@
 #define TRIETREE_HPP
 
 #include "../Global/Logger.hpp"
-#include "../Global/StringUtils.hpp"
+#include "../Global/StrUtils.hpp"
 #include "TrieNode.hpp"
 #include <cstddef>
 #include <limits>
@@ -507,7 +507,7 @@ public:
 		catch (const std::bad_alloc &e)
 		{
 			Logger::log(Logger::ERROR, "Memory allocation failed in TrieTree::insert");
-			return false;
+			throw std::runtime_error("Memory allocation failed in TrieTree::insert");
 		}
 		return true;
 	}
@@ -666,7 +666,7 @@ public:
 	void printStructure() const
 	{
 		Logger::log(Logger::INFO, "TrieTree structure:");
-		Logger::log(Logger::INFO, "Total entries: " + StringUtils::toString(static_cast<int>(_size)));
+		Logger::log(Logger::INFO, "Total entries: " + StrUtils::toString(static_cast<int>(_size)));
 
 		std::vector<std::string> keys = getAllKeys();
 		for (size_t i = 0; i < keys.size(); ++i)
