@@ -1,5 +1,6 @@
 #include "../../includes/Core/Server.hpp"
 #include "../../includes/Global/Constants.hpp"
+#include "../../includes/Utils/String.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -8,22 +9,18 @@
 Server::Server()
 {
 	_serverNames = TrieTree<std::string>();
-	_sockets = std::vector<Socket>();
-	_root = std::string();
+	_sockets = std::vector<SocketAddress>();
+	_rootPath = std::string();
 	_indexes = TrieTree<std::string>();
-	_autoindex = HTTP::DEFAULT_AUTOINDEX;
+	_autoIndex = HTTP::DEFAULT_AUTOINDEX;
 	_clientMaxUriSize = HTTP::MAX_URI_LINE_SIZE;
 	_clientMaxHeadersSize = HTTP::MAX_HEADERS_SIZE;
 	_clientMaxBodySize = HTTP::MAX_BODY_SIZE;
-	_statusPages = std::vector<std::pair<int, std::vector<std::string> > >();
+	_statusPages = std::map<int, std::string>();
 	_locations = TrieTree<Location>();
 	_keepAlive = HTTP::DEFAULT_KEEP_ALIVE;
-	_rootSet = false;
-	_autoindexSet = false;
-	_clientMaxUriSizeSet = false;
-	_clientMaxHeadersSizeSet = false;
-	_clientMaxBodySizeSet = false;
-	_keepAliveSet = false;
+
+	// Flags
 	_modified = false;
 }
 
@@ -51,9 +48,9 @@ Server &Server::operator=(Server const &rhs)
 	{
 		_serverNames = rhs._serverNames;
 		_sockets = rhs._sockets;
-		_root = rhs._root;
+		_rootPath = rhs._rootPath;
 		_indexes = rhs._indexes;
-		_autoindex = rhs._autoindex;
+		_autoIndex = rhs._autoIndex;
 		_clientMaxUriSize = rhs._clientMaxUriSize;
 		_clientMaxHeadersSize = rhs._clientMaxHeadersSize;
 		_clientMaxBodySize = rhs._clientMaxBodySize;
@@ -73,18 +70,20 @@ std::ostream &operator<<(std::ostream &o, Server const &i)
 		o << *it << " ";
 	o << std::endl;
 	o << "Hosts/ports: ";
-	for (std::vector<std::pair<std::string, unsigned short> >::const_iterator it = i.getHosts_ports().begin();
-		 it != i.getHosts_ports().end(); ++it)
-		o << it->first << ":" << it->second << " ";
+	for (std::vector<SocketAddress>::const_iterator it = i.getSocketAddresses().begin();
+		 it != i.getSocketAddresses().end(); ++it)
+		o << it->getHost() << ":" << it->getPort() << " ";
 	o << std::endl;
-	o << "Root: " << i.getRoot() << std::endl;
+	o << "Root: " << i.getRootPath() << std::endl;
 	o << "Indexes: ";
 	for (TrieTree<std::string>::const_iterator it = i.getIndexes().begin(); it != i.getIndexes().end(); ++it)
 		o << *it << " ";
 	o << std::endl;
-	o << "Autoindex: " << (i.getAutoindex() ? "true" : "false") << std::endl;
+	o << "Autoindex: " << (i.isAutoIndex() ? "true" : "false") << std::endl;
+	o << "Client max uri size: " << i.getClientMaxUriSize() << std::endl;
+	o << "Client max headers size: " << i.getClientMaxHeadersSize() << std::endl;
 	o << "Client max body size: " << i.getClientMaxBodySize() << std::endl;
-	o << "Keep alive: " << (i.getKeepAlive() ? "true" : "false") << std::endl;
+	o << "Keep alive: " << (i.isKeepAlive() ? "true" : "false") << std::endl;
 	o << "Status pages: ";
 	for (std::map<int, std::string>::const_iterator it = i.getStatusPages().begin(); it != i.getStatusPages().end();
 		 ++it)
@@ -99,42 +98,67 @@ std::ostream &operator<<(std::ostream &o, Server const &i)
 }
 
 /*
-** --------------------------------- GETTERS ---------------------------------
+** --------------------------------- INVESTIGATORS ---------------------------------
 */
 
-// Returns pointer to server name if found, NULL otherwise
-const std::string *Server::getServerName(const std::string &serverName) const
+bool Server::hasServerName(const std::string &serverName) const
 {
-	return _serverNames.find(serverName);
+	return _serverNames.contains(serverName);
 }
+
+bool Server::hasSocketAddress(const SocketAddress &socketAddress) const
+{
+	return std::find(_sockets.begin(), _sockets.end(), socketAddress) != _sockets.end();
+}
+
+bool Server::hasIndex(const std::string &index) const
+{
+	return _indexes.contains(index);
+}
+
+// Exact match location
+bool Server::hasLocation(const std::string &path) const
+{
+	return _locations.contains(path);
+}
+
+bool Server::hasStatusPage(int status) const
+{
+	return _statusPages.find(status) != _statusPages.end();
+}
+
+bool Server::isAutoIndex() const
+{
+	return _autoIndex;
+}
+
+bool Server::isKeepAlive() const
+{
+	return _keepAlive;
+}
+
+bool Server::isModified() const
+{
+	return _modified;
+}
+
+/*
+** --------------------------------- GETTERS ---------------------------------
+*/
 
 const TrieTree<std::string> &Server::getServerNames() const
 {
 	return _serverNames;
 }
 
-const std::pair<std::string, unsigned short> *Server::getHostPort(const std::string &host,
-																  const unsigned short &port) const
+const std::vector<SocketAddress> &Server::getSocketAddresses() const
 {
-	find(_sockets.begin(), _sockets.end(), Socket(host, port));
-	if (it != _sockets.end())
-		return &*it;
-	return NULL;
+	return _sockets;
 }
 
-const std::vector<std::pair<std::string, unsigned short> > &Server::getHosts_ports() const
+const std::string &Server::getRootPath() const
 {
-	return _hosts_ports;
-}
-
-const std::string &Server::getRoot() const
-{
-	return _root;
-}
-
-const std::string *Server::getIndex(const std::string &index) const
-{
-	return _indexes.find(index);
+	return _rootPath;
 }
 
 const TrieTree<std::string> &Server::getIndexes() const
@@ -142,30 +166,26 @@ const TrieTree<std::string> &Server::getIndexes() const
 	return _indexes;
 }
 
-const bool Server::getAutoindex() const
-{
-	return _autoindex ? true : false;
-}
-
-const double &Server::getClientMaxBodySize() const
+double Server::getClientMaxBodySize() const
 {
 	return _clientMaxBodySize;
 }
 
-const double &Server::getClientMaxHeadersSize() const
+double Server::getClientMaxHeadersSize() const
 {
 	return _clientMaxHeadersSize;
 }
 
-const double &Server::getClientMaxUriSize() const
+double Server::getClientMaxUriSize() const
 {
 	return _clientMaxUriSize;
 }
-const std::string *Server::getStatusPage(const int &status) const
+
+const std::string &Server::getStatusPath(int status) const
 {
-	if (_statusPages.find(status) == _statusPages.end())
-		return NULL;
-	return &_statusPages.find(status)->second;
+	if (!hasStatusPage(status))
+		throw std::out_of_range("Server: Status page not found");
+	return _statusPages.at(status);
 }
 
 const std::map<int, std::string> &Server::getStatusPages() const
@@ -173,7 +193,7 @@ const std::map<int, std::string> &Server::getStatusPages() const
 	return _statusPages;
 }
 
-// Returns longest prefix match location
+// Returns longest prefix match location null if no match found
 const Location *Server::getLocation(const std::string &path) const
 {
 	return _locations.findLongestPrefix(path);
@@ -184,134 +204,104 @@ const TrieTree<Location> &Server::getLocations() const
 	return _locations;
 }
 
-const bool Server::getKeepAlive() const
-{
-	return _keepAlive ? true : false;
-}
-
-const bool Server::isModified() const
-{
-	return _modified;
-}
-
 /*
 ** --------------------------------- SETTERS ---------------------------------
 */
 
 void Server::insertServerName(const std::string &serverName)
 {
-	_modified = true;
-	_serverNames.insert(serverName, serverName);
+	if (!hasServerName(serverName))
+	{
+		_serverNames.insert(serverName, serverName);
+		_modified = true;
+	}
 }
 
-void Server::insertSocket(const Socket &socket)
+void Server::insertSocketAddress(const SocketAddress &socketAddress)
 {
-	_modified = true;
-	_sockets.push_back(socket);
+	if (!hasSocketAddress(socketAddress))
+	{
+		_sockets.push_back(socketAddress);
+		_modified = true;
+	}
 }
 
 void Server::insertIndex(const std::string &index)
 {
-	_modified = true;
-	_indexes.insert(index, index);
+	if (!hasIndex(index))
+	{
+		_indexes.insert(index, index);
+		_modified = true;
+	}
 }
 
 void Server::insertLocation(const Location &location)
 {
-	_modified = true;
-	_locations.insert(location.getPath(), location);
+	if (!hasLocation(location.getPath()))
+	{
+		_locations.insert(location.getPath(), location);
+		_modified = true;
+	}
 }
 
 void Server::insertStatusPage(const std::string &path, const std::vector<int> &codes)
 {
-	_modified = true;
-	for (std::vector<int>::const_iterator it = codes.begin(); it != codes.end(); ++it)
+	for (std::vector<int>::const_iterator code_it = codes.begin(); code_it != codes.end(); ++code_it)
 	{
-		if (_statusPages.find(*it->) == _statusPages.end())
-			_statusPages.push_back(std::make_pair(*it, path));
-		else
-			_statusPages[*it].insert(path);
+		_statusPages.insert(std::make_pair(*code_it, path));
+		_modified = true;
 	}
 }
 
 void Server::setKeepAlive(const bool &keepAlive)
 {
-	_modified = true;
-	if (_keepAliveSet)
-		throw std::runtime_error("Keep alive already set for server");
 	_keepAlive = keepAlive;
-	_keepAliveSet = true;
+	_modified = true;
 }
 
 void Server::setClientMaxBodySize(const double &clientMaxBodySize)
 {
-	_modified = true;
-	if (_clientMaxBodySizeSet)
-		throw std::runtime_error("Client max body size already set for server");
-	_clientMaxBodySizeSet = true;
 	_clientMaxBodySize = clientMaxBodySize;
+	_modified = true;
 }
 
 void Server::setClientMaxHeadersSize(const double &clientMaxHeadersSize)
 {
-	_modified = true;
-	if (_clientMaxHeadersSizeSet)
-		throw std::runtime_error("Client max headers size already set for server");
-	_clientMaxHeadersSizeSet = true;
 	_clientMaxHeadersSize = clientMaxHeadersSize;
+	_modified = true;
 }
 
 void Server::setClientMaxUriSize(const double &clientMaxUriSize)
 {
-	_modified = true;
-	if (_clientMaxUriSizeSet)
-		throw std::runtime_error("Client max uri size already set for server");
-	_clientMaxUriSizeSet = true;
 	_clientMaxUriSize = clientMaxUriSize;
+	_modified = true;
 }
 
 void Server::setRoot(const std::string &root)
 {
+	_rootPath = root;
 	_modified = true;
-	if (_rootSet)
-		throw std::runtime_error("Root already set for server");
-	_rootSet = true;
-	_root = root;
 }
 
 void Server::setAutoindex(const bool &autoindex)
 {
+	_autoIndex = autoindex;
 	_modified = true;
-	if (_autoindexSet)
-		throw std::runtime_error("Autoindex already set for server");
-	_autoindexSet = true;
-	_autoindex = autoindex;
-}
-
-bool Server::isModified() const
-{
-	return _modified;
 }
 
 void Server::reset()
 {
 	_serverNames.clear();
 	_sockets.clear();
-	_root = std::string();
+	_rootPath = std::string();
 	_indexes.clear();
-	_autoindex = HTTP::DEFAULT_AUTOINDEX;
+	_autoIndex = HTTP::DEFAULT_AUTOINDEX;
 	_clientMaxUriSize = HTTP::MAX_URI_LINE_SIZE;
 	_clientMaxHeadersSize = HTTP::MAX_HEADERS_SIZE;
 	_clientMaxBodySize = HTTP::MAX_BODY_SIZE;
 	_statusPages.clear();
 	_locations.clear();
 	_keepAlive = HTTP::DEFAULT_KEEP_ALIVE;
-	_keepAliveSet = false;
-	_autoindexSet = false;
-	_clientMaxUriSizeSet = false;
-	_clientMaxHeadersSizeSet = false;
-	_clientMaxBodySizeSet = false;
-	_rootSet = false;
 	_modified = false;
 }
 

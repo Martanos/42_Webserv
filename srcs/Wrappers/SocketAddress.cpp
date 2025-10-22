@@ -1,4 +1,4 @@
-#include "../../includes/Wrapper/Socket.hpp"
+#include "../../includes/Wrapper/SocketAddress.hpp"
 #include "../../includes/Global/IPAddressParser.hpp"
 #include "../../includes/Global/Logger.hpp"
 #include <cstddef>
@@ -8,17 +8,17 @@
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-Socket::Socket() : _addrLen(0), _family(AF_UNSPEC), _host("localhost"), _port(80)
+SocketAddress::SocketAddress() : _addrLen(0), _family(AF_UNSPEC), _host("localhost"), _port(80)
 {
 	std::memset(&_storage, 0, sizeof(_storage));
 }
 
-Socket::Socket(const std::string &host, const unsigned short &port) : _addrLen(0), _family(AF_UNSPEC)
+SocketAddress::SocketAddress(const std::string &host, const unsigned short &port) : _addrLen(0), _family(AF_UNSPEC)
 {
-	*this = Socket(host, std::to_string(port));
+	*this = SocketAddress(host, std::to_string(port));
 }
 
-Socket::Socket(const std::string &host, const std::string &port) : _addrLen(0), _family(AF_UNSPEC)
+SocketAddress::SocketAddress(const std::string &host, const std::string &port) : _addrLen(0), _family(AF_UNSPEC)
 {
 	std::memset(&_storage, 0, sizeof(_storage));
 
@@ -130,21 +130,22 @@ Socket::Socket(const std::string &host, const std::string &port) : _addrLen(0), 
 	freeaddrinfo(result);
 }
 
-Socket::Socket(const std::string &host_port) : _addrLen(0), _family(AF_UNSPEC)
+SocketAddress::SocketAddress(const std::string &host_port) : _addrLen(0), _family(AF_UNSPEC)
 {
 	size_t colon_pos = host_port.rfind(':');
 	if (colon_pos == std::string::npos)
 	{
-		*this = Socket(host_port, "80");
+		*this = SocketAddress(host_port, "80");
 	}
 	else
 	{
-		*this = Socket(host_port.substr(0, colon_pos), host_port.substr(colon_pos + 1));
+		*this = SocketAddress(host_port.substr(0, colon_pos), host_port.substr(colon_pos + 1));
 	}
 }
 
 // Copy constructor
-Socket::Socket(const Socket &src) : _addrLen(src._addrLen), _family(src._family), _host(src._host), _port(src._port)
+SocketAddress::SocketAddress(const SocketAddress &src)
+	: _addrLen(src._addrLen), _family(src._family), _host(src._host), _port(src._port)
 {
 	std::memcpy(&_storage, &src._storage, sizeof(_storage));
 }
@@ -152,7 +153,7 @@ Socket::Socket(const Socket &src) : _addrLen(src._addrLen), _family(src._family)
 ** ------------------------------- PRIVATE HELPERS ---------------------------
 */
 
-void Socket::_updateCachedValues()
+void SocketAddress::_updateCachedValues()
 {
 	if (_family == AF_INET && _addrLen >= sizeof(struct sockaddr_in))
 	{
@@ -170,32 +171,32 @@ void Socket::_updateCachedValues()
 	}
 }
 
-const struct sockaddr *Socket::_getSockAddr() const
+const struct sockaddr *SocketAddress::_getSockAddr() const
 {
 	return reinterpret_cast<const struct sockaddr *>(&_storage);
 }
 
-struct sockaddr *Socket::_getSockAddr()
+struct sockaddr *SocketAddress::_getSockAddr()
 {
 	return reinterpret_cast<struct sockaddr *>(&_storage);
 }
 
-const struct sockaddr_in *Socket::_getSockAddrIn() const
+const struct sockaddr_in *SocketAddress::_getSockAddrIn() const
 {
 	return reinterpret_cast<const struct sockaddr_in *>(&_storage);
 }
 
-struct sockaddr_in *Socket::_getSockAddrIn()
+struct sockaddr_in *SocketAddress::_getSockAddrIn()
 {
 	return reinterpret_cast<struct sockaddr_in *>(&_storage);
 }
 
-const struct sockaddr_in6 *Socket::_getSockAddrIn6() const
+const struct sockaddr_in6 *SocketAddress::_getSockAddrIn6() const
 {
 	return reinterpret_cast<const struct sockaddr_in6 *>(&_storage);
 }
 
-struct sockaddr_in6 *Socket::_getSockAddrIn6()
+struct sockaddr_in6 *SocketAddress::_getSockAddrIn6()
 {
 	return reinterpret_cast<struct sockaddr_in6 *>(&_storage);
 }
@@ -204,7 +205,7 @@ struct sockaddr_in6 *Socket::_getSockAddrIn6()
 ** -------------------------------- DESTRUCTOR --------------------------------
 */
 
-Socket::~Socket()
+SocketAddress::~SocketAddress()
 {
 }
 
@@ -212,7 +213,7 @@ Socket::~Socket()
 ** --------------------------------- OVERLOAD ---------------------------------
 */
 
-Socket &Socket::operator=(const Socket &rhs)
+SocketAddress &SocketAddress::operator=(const SocketAddress &rhs)
 {
 	if (this != &rhs)
 	{
@@ -225,37 +226,37 @@ Socket &Socket::operator=(const Socket &rhs)
 	return *this;
 }
 
-bool Socket::operator==(const Socket &rhs) const
+bool SocketAddress::operator==(const SocketAddress &rhs) const
 {
 	return _host == rhs._host && _port == rhs._port;
 }
 
-bool Socket::operator!=(const Socket &rhs) const
+bool SocketAddress::operator!=(const SocketAddress &rhs) const
 {
 	return !(*this == rhs);
 }
 
-bool Socket::operator<(const Socket &rhs) const
+bool SocketAddress::operator<(const SocketAddress &rhs) const
 {
 	return _host == rhs._host && _port < rhs._port;
 }
 
-bool Socket::operator>(const Socket &rhs) const
+bool SocketAddress::operator>(const SocketAddress &rhs) const
 {
 	return rhs < *this;
 }
 
-bool Socket::operator<=(const Socket &rhs) const
+bool SocketAddress::operator<=(const SocketAddress &rhs) const
 {
 	return *this < rhs || *this == rhs;
 }
 
-bool Socket::operator>=(const Socket &rhs) const
+bool SocketAddress::operator>=(const SocketAddress &rhs) const
 {
 	return *this > rhs || *this == rhs;
 }
 
-std::ostream &operator<<(std::ostream &o, const Socket &i)
+std::ostream &operator<<(std::ostream &o, const SocketAddress &i)
 {
 	o << i.getHost() << ":" << i.getPort();
 	return o;
@@ -265,22 +266,22 @@ std::ostream &operator<<(std::ostream &o, const Socket &i)
 ** --------------------------------- VALIDATORS --------------------------------
 */
 
-bool Socket::isIPv4() const
+bool SocketAddress::isIPv4() const
 {
 	return _family == AF_INET;
 }
 
-bool Socket::isIPv6() const
+bool SocketAddress::isIPv6() const
 {
 	return _family == AF_INET6;
 }
 
-bool Socket::isValid() const
+bool SocketAddress::isValid() const
 {
 	return _family != AF_UNSPEC && _addrLen > 0;
 }
 
-bool Socket::isEmpty() const
+bool SocketAddress::isEmpty() const
 {
 	return _addrLen == 0 || _family == AF_UNSPEC;
 }
@@ -289,12 +290,12 @@ bool Socket::isEmpty() const
 ** --------------------------------- ACCESSOR ---------------------------------
 */
 
-struct sockaddr_storage *Socket::getSockAddr()
+struct sockaddr_storage *SocketAddress::getSockAddr()
 {
 	return &_storage;
 }
 
-std::string Socket::getHostString() const
+std::string SocketAddress::getHostString() const
 {
 	if (isIPv4())
 	{
@@ -307,15 +308,14 @@ std::string Socket::getHostString() const
 	return "unknown";
 }
 
-std::string Socket::getPortString() const
+std::string SocketAddress::getPortString() const
 {
 	std::stringstream ss;
 	ss << getPort();
 	return ss.str();
 }
 
-// COMPATIBILITY: Keep original method name with capital V
-const struct sockaddr_in &Socket::getIPV4() const
+const struct sockaddr_in &SocketAddress::getIPV4() const
 {
 	if (isIPv4())
 		return *_getSockAddrIn();
@@ -328,8 +328,7 @@ const struct sockaddr_in &Socket::getIPV4() const
 	}
 }
 
-// COMPATIBILITY: Keep original method name with capital V
-const struct sockaddr_in6 &Socket::getIPV6() const
+const struct sockaddr_in6 &SocketAddress::getIPV6() const
 {
 	if (isIPv6())
 		return *_getSockAddrIn6();
@@ -342,70 +341,37 @@ const struct sockaddr_in6 &Socket::getIPV6() const
 	}
 }
 
-int Socket::getFamily() const
+int SocketAddress::getFamily() const
 {
 	return _family;
 }
 
-unsigned short Socket::getPort() const
+unsigned short SocketAddress::getPort() const
 {
 	return _port;
 }
 
-std::string Socket::getHost() const
+std::string SocketAddress::getHost() const
 {
 	return _host;
 }
 
-socklen_t Socket::getAddrLen() const
+socklen_t SocketAddress::getAddrLen() const
 {
 	return _addrLen;
 }
 
 // COMPATIBILITY: Keep original getSize() method
-socklen_t &Socket::getSize()
+socklen_t &SocketAddress::getSize()
 {
 	return _addrLen;
-}
-
-/*
-** --------------------------------- SETTERS (DEPRECATED) ---------------------
-*/
-
-void Socket::setFamily(int family)
-{
-	_family = family;
-	_getSockAddr()->sa_family = family;
-}
-
-void Socket::setPort(int port)
-{
-	_port = port;
-	if (_family == AF_INET)
-	{
-		_getSockAddrIn()->sin_port = htons(port);
-	}
-	else if (_family == AF_INET6)
-	{
-		_getSockAddrIn6()->sin6_port = htons(port);
-	}
-}
-
-void Socket::setHost(const std::string &host)
-{
-	_host = host;
-}
-
-void Socket::setAddrLen(socklen_t addrLen)
-{
-	_addrLen = addrLen;
 }
 
 /*
 ** --------------------------------- UTILITY ----------------------------------
 */
 
-void Socket::clear()
+void SocketAddress::clear()
 {
 	std::memset(&_storage, 0, sizeof(_storage));
 	_addrLen = 0;

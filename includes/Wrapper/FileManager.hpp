@@ -1,9 +1,8 @@
 #ifndef FILEMANAGER_HPP
 #define FILEMANAGER_HPP
 
+#include "../../includes/Global/Logger.hpp"
 #include "FileDescriptor.hpp"
-#include "Logger.hpp"
-#include "StringUtils.hpp"
 #include <algorithm>
 #include <cerrno>
 #include <cstdlib>

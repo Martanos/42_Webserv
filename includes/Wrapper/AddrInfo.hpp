@@ -6,7 +6,7 @@
 #include <netdb.h>
 #include <string>
 
-#include "Logger.hpp"
+#include "../../includes/Global/Logger.hpp"
 
 class AddrInfo
 {

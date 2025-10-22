@@ -1,5 +1,5 @@
-#include "../../includes/ListeningSocket.hpp"
-#include "../../includes/Logger.hpp"
+#include "../../includes/Wrapper/ListeningSocket.hpp"
+#include "../../includes/Global/Logger.hpp"
 #include <cstring>
 #include <netinet/in.h>
 #include <sstream>
@@ -10,41 +10,27 @@
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-ListeningSocket::ListeningSocket() : _socket(), _address()
-{
-	// Default constructor - creates invalid socket
-	// Should be used with assignment operator or proper initialization
-}
-
 ListeningSocket::ListeningSocket(const ListeningSocket &src)
 {
 	*this = src;
 }
 
-ListeningSocket::ListeningSocket(const std::string &host, const unsigned short port) : _socket(), _address(host, port)
+ListeningSocket::ListeningSocket(const Socket &socket) : _socket(socket)
 {
-
-	_socket = FileDescriptor::createSocket(AF_INET, SOCK_STREAM, 0);
-	if (_socket.getFd() == -1)
-	{
-		std::stringstream ss;
-		ss << "Failed to create socket";
-		Logger::log(Logger::ERROR, ss.str());
-		throw std::runtime_error(ss.str());
-	}
 	try
 	{
-		_socket.setReuseAddr();
-		if (bind(_socket.getFd(), reinterpret_cast<struct sockaddr *>(_address.getSockAddr()), _address.getSize()) ==
+		_bindFd = FileDescriptor::createSocket(_socket.getFamily(), _socket.getType(), _socket.getProtocol());
+		_bindFd.setReuseAddr();
+		if (::bind(_bindFd.getFd(), reinterpret_cast<struct sockaddr *>(_socket.getSockAddr()), _socket.getSize()) ==
 			-1)
 		{
 			std::stringstream ss;
-			ss << "Failed to bind socket: " << strerror(errno) << " on " << _address;
+			ss << "Failed to bind socket: " << strerror(errno) << " on " << _socket;
 			Logger::log(Logger::ERROR, ss.str());
 			throw std::runtime_error(ss.str());
 		}
 
-		if (listen(_socket.getFd(), SOMAXCONN) == -1)
+		if (::listen(_bindFd.getFd(), SOMAXCONN) == -1)
 		{
 			std::stringstream ss;
 			ss << "Failed to listen on socket: " << strerror(errno);
@@ -52,9 +38,12 @@ ListeningSocket::ListeningSocket(const std::string &host, const unsigned short p
 			throw std::runtime_error(ss.str());
 		}
 	}
-	catch (...)
+	catch (std::runtime_error &e)
 	{
-		_socket = FileDescriptor();
+		std::stringstream ss;
+		ss << "ListeningSocket: Failed to bind socket: " << e.what();
+		Logger::warning(ss.str());
+		throw std::runtime_error(ss.str());
 	}
 }
 

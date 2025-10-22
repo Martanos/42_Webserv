@@ -2,7 +2,7 @@
 #define SERVER_HPP
 
 #include "../../includes/Core/Location.hpp"
-#include "../../includes/Wrapper/Socket.hpp"
+#include "../../includes/Wrapper/SocketAddress.hpp"
 #include "../../includes/Wrapper/TrieTree.hpp"
 #include <iostream>
 #include <map>
@@ -15,26 +15,20 @@ class Server
 private:
 	// Identifier members
 	TrieTree<std::string> _serverNames;
-	std::vector<Socket> _sockets;
+	std::vector<SocketAddress> _sockets;
 
 	// Main members
-	std::string _root;
+	std::string _rootPath;
 	TrieTree<std::string> _indexes;
-	bool _autoindex;
+	bool _autoIndex;
 	double _clientMaxUriSize;
 	double _clientMaxHeadersSize;
 	double _clientMaxBodySize;
-	std::vector<std::pair<int, std::vector<std::string> > > _statusPages;
+	std::map<int, std::string> _statusPages;
 	TrieTree<Location> _locations;
 	bool _keepAlive;
 
 	// Flags
-	bool _rootSet;
-	bool _autoindexSet;
-	bool _clientMaxUriSizeSet;
-	bool _clientMaxHeadersSizeSet;
-	bool _clientMaxBodySizeSet;
-	bool _keepAliveSet;
 	bool _modified;
 
 public:
@@ -43,28 +37,32 @@ public:
 	~Server();
 	Server &operator=(Server const &rhs);
 
+	// Investigators
+	bool hasServerName(const std::string &serverName) const;
+	bool hasSocketAddress(const SocketAddress &socketAddress) const;
+	bool hasIndex(const std::string &index) const;
+	bool hasLocation(const std::string &path) const;
+	bool hasStatusPage(int status) const;
+	bool isAutoIndex() const;
+	bool isKeepAlive() const;
+	bool isModified() const;
+
 	// Accessors
-	const std::string *getServerName(const std::string &serverName) const;
 	const TrieTree<std::string> &getServerNames() const;
-	const std::pair<std::string, unsigned short> *getHostPort(const std::string &host,
-															  const unsigned short &port) const;
-	const std::vector<std::pair<std::string, unsigned short> > &getHosts_ports() const;
-	const std::string &getRoot() const;
-	const std::string *getIndex(const std::string &index) const;
+	const std::vector<SocketAddress> &getSocketAddresses() const;
+	const std::string &getRootPath() const;
 	const TrieTree<std::string> &getIndexes() const;
-	const bool getAutoindex() const;
-	const double &getClientMaxUriSize() const;
-	const double &getClientMaxHeadersSize() const;
-	const double &getClientMaxBodySize() const;
-	const std::string *getStatusPage(const int &status) const;
+	double getClientMaxUriSize() const;
+	double getClientMaxHeadersSize() const;
+	double getClientMaxBodySize() const;
+	const std::string &getStatusPath(int status) const;
 	const std::map<int, std::string> &getStatusPages() const;
 	const TrieTree<Location> &getLocations() const;
 	const Location *getLocation(const std::string &path) const;
-	const bool getKeepAlive() const;
 
 	// Mutators
 	void insertServerName(const std::string &serverName);
-	void insertSocket(const Socket &socket);
+	void insertSocketAddress(const SocketAddress &socketAddress);
 	void insertIndex(const std::string &index);
 	void insertLocation(const Location &location);
 	void insertStatusPage(const std::string &path, const std::vector<int> &codes);
@@ -75,7 +73,6 @@ public:
 	void setRoot(const std::string &root);
 	void setAutoindex(const bool &autoindex);
 
-	bool isModified() const;
 	void reset();
 };
 

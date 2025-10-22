@@ -2,32 +2,27 @@
 #define LISTENINGSOCKET_HPP
 
 #include "FileDescriptor.hpp"
-#include "Socket.hpp"
-#include <cerrno>
+#include "SocketAddress.hpp"
 #include <iostream>
-#include <netinet/in.h>
-#include <string>
-#include <sys/socket.h>
-#include <unistd.h>
 
-// Acts as a key for the server map
+// Wrapper for listening socketss
 class ListeningSocket
 {
 private:
-	Socket _socket;
-	FileDescriptor _fd;
+	SocketAddress _socketAddress; // Socket address info
+	FileDescriptor _bindFd;		  // Fd when binded
 
-public:
-	// Constructor
-	ListeningSocket();
+	// Non-copyable
 	ListeningSocket(const ListeningSocket &src);
-	ListeningSocket(const std::string &host, const unsigned short port);
-	~ListeningSocket();
-
 	ListeningSocket &operator=(const ListeningSocket &rhs);
 
+public:
+	explicit ListeningSocket(const SocketAddress &socketAddress);
+	~ListeningSocket();
+
 	// Accept connection
-	void accept(Socket &address, FileDescriptor &clientFd) const;
+	void accept(SocketAddress &address, FileDescriptor &clientFd) const;
+	void bind();
 
 	// Comparator overloads for mapping
 	bool operator<(const ListeningSocket &rhs) const;
@@ -39,8 +34,8 @@ public:
 
 	FileDescriptor &getFd();
 	const FileDescriptor &getFd() const;
-	Socket &getAddress();
-	const Socket &getAddress() const;
+	SocketAddress &getAddress();
+	const SocketAddress &getAddress() const;
 };
 
 std::ostream &operator<<(std::ostream &o, ListeningSocket const &i);

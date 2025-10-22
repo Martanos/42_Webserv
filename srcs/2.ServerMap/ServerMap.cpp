@@ -1,13 +1,19 @@
-#include "../../includes/ServerMap.hpp"
-#include "../../includes/StringUtils.hpp"
+#include "../../includes/ConfigParser/ServerMap.hpp"
+#include "../../includes/Global/Logger.hpp"
+#include "../../includes/Global/StrUtils.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-ServerMap::ServerMap()
+ServerMap::ServerMap(const std::vector<Server> &servers)
 {
-	_serverMap = std::map<ListeningSocket, std::vector<Server> >();
+	_servers = servers;
+	_listeningSockets = std::vector<ListeningSocket>();
+	for (std::vector<Server>::iterator it = _servers.begin(); it != _servers.end(); ++it)
+	{
+		_listeningSockets.push_back(ListeningSocket(it->getHost(), it->getPort()));
+	}
 }
 
 ServerMap::ServerMap(const ServerMap &src)

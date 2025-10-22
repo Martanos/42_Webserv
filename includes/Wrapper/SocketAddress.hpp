@@ -1,5 +1,5 @@
-#ifndef SOCKET_HPP
-#define SOCKET_HPP
+#ifndef SOCKETADDRESS_HPP
+#define SOCKETADDRESS_HPP
 
 #include <cerrno>
 #include <cstdio>
@@ -12,8 +12,8 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-// Class wrapper for sockets
-class Socket
+// Class wrapper for socketAddress data
+class SocketAddress
 {
 private:
 	struct sockaddr_storage _storage; // Universal storage for all address types
@@ -33,21 +33,21 @@ private:
 
 public:
 	// Orthodox Canonical Class Form
-	Socket();
-	Socket(const std::string &host, const std::string &port);
-	Socket(const std::string &host, const unsigned short &port);
-	Socket(const std::string &host_port);
-	Socket(const Socket &src);
-	~Socket();
+	SocketAddress();
+	SocketAddress(const std::string &host, const std::string &port);
+	SocketAddress(const std::string &host, const unsigned short &port);
+	SocketAddress(const std::string &host_port);
+	SocketAddress(const SocketAddress &src);
+	~SocketAddress();
 
 	// Operators
-	Socket &operator=(const Socket &rhs);
-	bool operator==(const Socket &rhs) const;
-	bool operator!=(const Socket &rhs) const;
-	bool operator<(const Socket &rhs) const;
-	bool operator>(const Socket &rhs) const;
-	bool operator<=(const Socket &rhs) const;
-	bool operator>=(const Socket &rhs) const;
+	SocketAddress &operator=(const SocketAddress &rhs);
+	bool operator==(const SocketAddress &rhs) const;
+	bool operator!=(const SocketAddress &rhs) const;
+	bool operator<(const SocketAddress &rhs) const;
+	bool operator>(const SocketAddress &rhs) const;
+	bool operator<=(const SocketAddress &rhs) const;
+	bool operator>=(const SocketAddress &rhs) const;
 
 	// Getters
 	struct sockaddr_storage *getSockAddr();
@@ -62,12 +62,6 @@ public:
 	std::string getHostString() const;
 	std::string getPortString() const;
 
-	// Setters - DEPRECATED but kept for compatibility
-	void setFamily(int family);
-	void setPort(int port);
-	void setHost(const std::string &host);
-	void setAddrLen(socklen_t addrLen);
-
 	// Validators
 	bool isIPv4() const;
 	bool isIPv6() const;
@@ -75,10 +69,10 @@ public:
 	bool isEmpty() const;
 
 	// New methods for sockaddr_storage compatibility
-	static Socket createFromStorage(const struct sockaddr_storage &storage, socklen_t addrLen);
+	static SocketAddress createFromStorage(const struct sockaddr_storage &storage, socklen_t addrLen);
 	void clear();
 };
 
-std::ostream &operator<<(std::ostream &o, const Socket &i);
+std::ostream &operator<<(std::ostream &o, const SocketAddress &i);
 
-#endif // SOCKET_HPP
+#endif // SOCKETADDRESS_HPP

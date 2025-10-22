@@ -31,10 +31,12 @@ private:
 	void _translateServerStatusPage(const AST::ASTNode &directive, Server &server);
 
 	// Location specific translation helpers
-	Location _translateLocation(const AST::ASTNode &location_node);
+	void _translateLocation(const AST::ASTNode &location_node, Location &location);
+	void _translateLocationPath(const AST::ASTNode &directive, Location &location);
 	void _translateLocationRoot(const AST::ASTNode &directive, Location &location);
 	void _translateLocationAllowedMethods(const AST::ASTNode &directive, Location &location);
-	void _translateLocationReturn(const AST::ASTNode &directive, Location &location);
+	void _translateLocationStatusPage(const AST::ASTNode &directive, Location &location);
+	void _translateLocationRedirect(const AST::ASTNode &directive, Location &location);
 	void _translateLocationAutoindex(const AST::ASTNode &directive, Location &location);
 	void _translateLocationIndex(const AST::ASTNode &directive, Location &location);
 	void _translateLocationCgiPath(const AST::ASTNode &directive, Location &location);
@@ -43,6 +45,7 @@ public:
 	explicit ConfigTranslator(const AST::ASTNode &ast);
 	~ConfigTranslator();
 
+	// Accessors
 	const std::vector<Server> &getServers() const;
 };
 

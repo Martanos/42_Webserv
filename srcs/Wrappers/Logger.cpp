@@ -1,5 +1,5 @@
-#include "../../includes/Logger.hpp"
-#include "../../includes/StringUtils.hpp"
+#include "../../includes/Global/Logger.hpp"
+#include "../../includes/Global/StrUtils.hpp"
 #include <iomanip>
 #include <iostream>
 
@@ -109,7 +109,8 @@ void Logger::log(LogLevel level, const std::stringstream &ss)
 	log(level, ss.str());
 }
 
-void Logger::log(LogLevel level, const std::string &message, const std::string &file, int line)
+void Logger::log(LogLevel level, const std::string &message, const std::string &file, int line,
+				 const std::string &function)
 {
 	// Extract just the filename from the full path
 	std::string filename = file;
@@ -121,7 +122,8 @@ void Logger::log(LogLevel level, const std::string &message, const std::string &
 
 	std::string timestamp = _getCurrentTime();
 	std::string levelStr = _getLevelString(level);
-	std::string logEntry = "[" + timestamp + "] " + levelStr + " [" + filename + ":" + StringUtils::toString(line) + "] " + message;
+	std::string logEntry = "[" + timestamp + "] " + levelStr + " [" + filename + ":" + StrUtils::toString<int>(line) +
+						   "] " + function + " " + message;
 
 	// Log to session file
 	if (_sessionInitialized && _logFile.is_open())

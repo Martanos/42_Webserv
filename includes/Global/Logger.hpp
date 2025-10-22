@@ -63,8 +63,10 @@ public:
 	// Primary logging method
 	static void log(LogLevel level, const std::string &message);
 
-	// Enhanced logging method with file and line information
-	static void log(LogLevel level, const std::string &message, const std::string &file, int line);
+	// Enhanced logging method with file and line information and function name (use __FILE__, __LINE__, and
+	// __PRETTY_FUNCTION__ macros)
+	static void log(LogLevel level, const std::string &message, const std::string &file, int line,
+					const std::string &function);
 
 	// Convenience method for stringstream
 	static void log(LogLevel level, const std::stringstream &ss);
@@ -77,11 +79,11 @@ public:
 	static void critical(const std::string &message);
 
 	// Enhanced convenience methods with file and line information
-	static void debug(const std::string &message, const std::string &file, int line);
-	static void info(const std::string &message, const std::string &file, int line);
-	static void warning(const std::string &message, const std::string &file, int line);
-	static void error(const std::string &message, const std::string &file, int line);
-	static void critical(const std::string &message, const std::string &file, int line);
+	static void debug(const std::string &message, const std::string &file, int line, const std::string &function);
+	static void info(const std::string &message, const std::string &file, int line, const std::string &function);
+	static void warning(const std::string &message, const std::string &file, int line, const std::string &function);
+	static void error(const std::string &message, const std::string &file, int line, const std::string &function);
+	static void critical(const std::string &message, const std::string &file, int line, const std::string &function);
 
 	// Specialized logging methods
 	static void logRequest(const std::string &method, const std::string &uri, const std::string &clientIP,

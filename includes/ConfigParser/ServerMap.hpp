@@ -3,18 +3,11 @@
 
 #include "../../includes/Core/Server.hpp"
 #include "../../includes/Wrapper/ListeningSocket.hpp"
-#include "../../includes/Logger.hpp"
-#include "ServerConfig.hpp"
-#include <algorithm>
 #include <cstdlib>
 #include <cstring>
-#include <errno.h>
 #include <fcntl.h>
-#include <iostream>
 #include <map>
 #include <netinet/in.h>
-#include <sstream>
-#include <string>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <vector>
@@ -23,11 +16,11 @@
 class ServerMap
 {
 private:
-	std::vector<Server> _servers;
-	std::vector<ListeningSocket> _listeningSockets;
+	std::vector<Server> _servers;					// Deep copied from ConfigTranslator
+	std::vector<ListeningSocket> _listeningSockets; // Self owned binded listening sockets
 
 	// Server map (key: listening socket, value: vector of references to servers)
-	std::map<int, std::vector<Server> > _serverMap;
+	std::map<ListeningSocket, std::vector<Server> > _serverMap;
 
 	// Utility Methods
 
@@ -36,7 +29,7 @@ private:
 	ServerMap &operator=(const ServerMap &rhs);
 
 public:
-	explicit ServerMap(const std::vector<ServerConfig> &serverConfigs);
+	explicit ServerMap(const std::vector<Server> &servers);
 	~ServerMap();
 
 	// Getters
