@@ -295,6 +295,11 @@ struct sockaddr_storage *SocketAddress::getSockAddr()
 	return &_storage;
 }
 
+const struct sockaddr_storage *SocketAddress::getSockAddr() const
+{
+	return &_storage;
+}
+
 std::string SocketAddress::getHostString() const
 {
 	if (isIPv4())
@@ -362,9 +367,14 @@ socklen_t SocketAddress::getAddrLen() const
 }
 
 // COMPATIBILITY: Keep original getSize() method
-socklen_t &SocketAddress::getSize()
+socklen_t SocketAddress::getSize() const
 {
 	return _addrLen;
+}
+
+void SocketAddress::setAddrLen(socklen_t addrLen)
+{
+	_addrLen = addrLen;
 }
 
 /*

@@ -15,36 +15,19 @@ ListeningSocket::ListeningSocket(const ListeningSocket &src)
 	*this = src;
 }
 
-ListeningSocket::ListeningSocket(const Socket &socket) : _socket(socket)
+ListeningSocket::ListeningSocket(const SocketAddress &socketAddress) : _socketAddress(socketAddress)
 {
-	try
-	{
-		_bindFd = FileDescriptor::createSocket(_socket.getFamily(), _socket.getType(), _socket.getProtocol());
-		_bindFd.setReuseAddr();
-		if (::bind(_bindFd.getFd(), reinterpret_cast<struct sockaddr *>(_socket.getSockAddr()), _socket.getSize()) ==
-			-1)
-		{
-			std::stringstream ss;
-			ss << "Failed to bind socket: " << strerror(errno) << " on " << _socket;
-			Logger::log(Logger::ERROR, ss.str());
-			throw std::runtime_error(ss.str());
-		}
-
-		if (::listen(_bindFd.getFd(), SOMAXCONN) == -1)
-		{
-			std::stringstream ss;
-			ss << "Failed to listen on socket: " << strerror(errno);
-			Logger::log(Logger::ERROR, ss.str());
-			throw std::runtime_error(ss.str());
-		}
-	}
-	catch (std::runtime_error &e)
-	{
-		std::stringstream ss;
-		ss << "ListeningSocket: Failed to bind socket: " << e.what();
-		Logger::warning(ss.str());
-		throw std::runtime_error(ss.str());
-	}
+	errno = 0;
+	_bindFd =
+		FileDescriptor::createSocket(socketAddress.getFamily(), socketAddress.getFamily(), socketAddress.getPort());
+	if (!_bindFd.isValid())
+		throw std::runtime_error("Failed to create socket: " + std::string(strerror(errno)));
+	_bindFd.setReuseAddr();
+	if (::bind(_bindFd.getFd(), reinterpret_cast<const struct sockaddr *>(socketAddress.getSockAddr()),
+			   socketAddress.getSize()) == -1)
+		throw std::runtime_error("Failed to bind socket: " + std::string(strerror(errno)));
+	if (::listen(_bindFd.getFd(), SOMAXCONN) == -1)
+		throw std::runtime_error("Failed to listen on socket: " + std::string(strerror(errno)));
 }
 
 /*
@@ -63,8 +46,8 @@ ListeningSocket &ListeningSocket::operator=(ListeningSocket const &rhs)
 {
 	if (this != &rhs)
 	{
-		_socket = rhs._socket;
-		_address = rhs._address;
+		_socketAddress = rhs._socketAddress;
+		_bindFd = rhs._bindFd;
 	}
 	return *this;
 }
@@ -81,17 +64,14 @@ std::ostream &operator<<(std::ostream &o, ListeningSocket const &i)
 
 void ListeningSocket::accept(SocketAddress &remoteAddr, FileDescriptor &clientFd) const
 {
+	errno = 0;
+	socklen_t addrLen = remoteAddr.getSize();
 	clientFd = FileDescriptor::createFromAccept(
-		_socket.getFd(), reinterpret_cast<struct sockaddr *>(remoteAddr.getSockAddr()), &remoteAddr.getSize());
+		_bindFd.getFd(), reinterpret_cast<struct sockaddr *>(remoteAddr.getSockAddr()), &addrLen);
 	if (!clientFd.isValid())
-	{
-		std::stringstream ss;
-		ss << "[" << __FILE__ << ":" << __LINE__ << "] accept failed: on socket " << _address.getHostString() << ":"
-		   << _address.getPort() << " " << strerror(errno);
-		Logger::log(Logger::ERROR, ss.str());
-	}
+		throw std::runtime_error("Failed to accept connection: " + std::string(strerror(errno)));
 	// Update the remoteAddr with the actual address length returned by accept
-	remoteAddr.setAddrLen(remoteAddr.getSize());
+	remoteAddr.setAddrLen(addrLen);
 }
 
 /*
@@ -101,32 +81,32 @@ void ListeningSocket::accept(SocketAddress &remoteAddr, FileDescriptor &clientFd
 
 bool ListeningSocket::operator<(const ListeningSocket &rhs) const
 {
-	return _socket.getFd() < rhs._socket.getFd();
+	return _bindFd.getFd() < rhs._bindFd.getFd();
 }
 
 bool ListeningSocket::operator>(const ListeningSocket &rhs) const
 {
-	return _socket.getFd() > rhs._socket.getFd();
+	return _bindFd.getFd() > rhs._bindFd.getFd();
 }
 
 bool ListeningSocket::operator<=(const ListeningSocket &rhs) const
 {
-	return _socket.getFd() <= rhs._socket.getFd();
+	return _bindFd.getFd() <= rhs._bindFd.getFd();
 }
 
 bool ListeningSocket::operator>=(const ListeningSocket &rhs) const
 {
-	return _socket.getFd() >= rhs._socket.getFd();
+	return _bindFd.getFd() >= rhs._bindFd.getFd();
 }
 
 bool ListeningSocket::operator==(const ListeningSocket &rhs) const
 {
-	return _socket.getFd() == rhs._socket.getFd();
+	return _bindFd.getFd() == rhs._bindFd.getFd();
 }
 
 bool ListeningSocket::operator!=(const ListeningSocket &rhs) const
 {
-	return _socket.getFd() != rhs._socket.getFd();
+	return _bindFd.getFd() != rhs._bindFd.getFd();
 }
 
 /*
@@ -135,22 +115,22 @@ bool ListeningSocket::operator!=(const ListeningSocket &rhs) const
 
 FileDescriptor &ListeningSocket::getFd()
 {
-	return _socket;
+	return _bindFd;
 }
 
 const FileDescriptor &ListeningSocket::getFd() const
 {
-	return _socket;
+	return _bindFd;
 }
 
 SocketAddress &ListeningSocket::getAddress()
 {
-	return _address;
+	return _socketAddress;
 }
 
 const SocketAddress &ListeningSocket::getAddress() const
 {
-	return _address;
+	return _socketAddress;
 }
 
 /* ************************************************************************** */

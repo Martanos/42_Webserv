@@ -13,16 +13,15 @@ private:
 	FileDescriptor _bindFd;		  // Fd when binded
 
 	// Non-copyable
-	ListeningSocket(const ListeningSocket &src);
-	ListeningSocket &operator=(const ListeningSocket &rhs);
 
 public:
 	explicit ListeningSocket(const SocketAddress &socketAddress);
+	ListeningSocket(const ListeningSocket &src);
+	ListeningSocket &operator=(const ListeningSocket &rhs);
 	~ListeningSocket();
 
 	// Accept connection
 	void accept(SocketAddress &address, FileDescriptor &clientFd) const;
-	void bind();
 
 	// Comparator overloads for mapping
 	bool operator<(const ListeningSocket &rhs) const;

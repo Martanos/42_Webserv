@@ -18,7 +18,7 @@ class SocketAddress
 private:
 	struct sockaddr_storage _storage; // Universal storage for all address types
 	socklen_t _addrLen;				  // Actual length of stored address
-	int _family;					  // Cached family for quick access
+	int _family;					  // Family refers to the address family (AF_INET, AF_INET6, etc.)
 	std::string _host;				  // Original host string for compatibility
 	unsigned short _port;			  // Cached port for quick access
 
@@ -49,18 +49,21 @@ public:
 	bool operator<=(const SocketAddress &rhs) const;
 	bool operator>=(const SocketAddress &rhs) const;
 
-	// Getters
+	// Accessors
 	struct sockaddr_storage *getSockAddr();
+	const struct sockaddr_storage *getSockAddr() const;
 	int getFamily() const;
-	socklen_t &getSize();
+	socklen_t getSize() const;
 	unsigned short getPort() const;
 	const struct sockaddr_in &getIPV4() const;	// Keep old name
 	const struct sockaddr_in6 &getIPV6() const; // Keep old name
-	const struct sockaddr_in &get() const;		// Keep old method
 	std::string getHost() const;
 	socklen_t getAddrLen() const;
 	std::string getHostString() const;
 	std::string getPortString() const;
+
+	// Mutators
+	void setAddrLen(socklen_t addrLen);
 
 	// Validators
 	bool isIPv4() const;

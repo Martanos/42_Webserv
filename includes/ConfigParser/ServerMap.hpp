@@ -16,20 +16,17 @@
 class ServerMap
 {
 private:
-	std::vector<Server> _servers;					// Deep copied from ConfigTranslator
-	std::vector<ListeningSocket> _listeningSockets; // Self owned binded listening sockets
+	std::vector<Server> _servers; // borrowed references to servers from ConfigTranslator
 
-	// Server map (key: listening socket, value: vector of references to servers)
+	// Server map (key: binded socket, value: vector of references to servers)
 	std::map<ListeningSocket, std::vector<Server> > _serverMap;
 
-	// Utility Methods
-
-	// Non-copyableServerMap(const ServerMap &src);
-	ServerMap(const ServerMap &src);
-	ServerMap &operator=(const ServerMap &rhs);
+	void _buildServerMap();
 
 public:
-	explicit ServerMap(const std::vector<Server> &servers);
+	explicit ServerMap(std::vector<Server> &servers);
+	ServerMap(ServerMap const &src);
+	ServerMap &operator=(ServerMap const &rhs);
 	~ServerMap();
 
 	// Getters
