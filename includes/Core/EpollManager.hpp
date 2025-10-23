@@ -1,12 +1,10 @@
 #ifndef EPOLLMANAGER_HPP
 #define EPOLLMANAGER_HPP
 
-#include <iostream>
-#include <string>
+#include "../../includes/Wrapper/FileDescriptor.hpp"
+#include <cstring>
+#include <sys/epoll.h>
 #include <vector>
-
-#include "FileDescriptor.hpp"
-#include "Logger.hpp"
 
 class EpollManager
 {

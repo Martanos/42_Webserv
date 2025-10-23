@@ -1,10 +1,11 @@
 #ifndef SERVERMANAGER_HPP
 #define SERVERMANAGER_HPP
 
-#include "Client.hpp"
-#include "EpollManager.hpp"
-#include "Logger.hpp"
-#include "ServerMap.hpp"
+#include "../../includes/ConfigParser/ServerMap.hpp"
+#include "../../includes/Core/Client.hpp"
+#include "../../includes/Core/EpollManager.hpp"
+#include "../../includes/Core/Logger.hpp"
+#include "../../includes/Wrapper/FileDescriptor.hpp"
 #include <map>
 #include <sys/epoll.h>
 #include <unistd.h>
@@ -25,20 +26,21 @@ private:
 	void _checkClientTimeouts();
 
 	// Private methods
+	void _handleEventLoop(int ready_events, std::vector<epoll_event> &events);
 
-	void _handleEpollEvents(int ready_events, std::vector<epoll_event> &events);
-
-public:
-	ServerManager();
-	~ServerManager();
+	// Signal handlers
+	static void _handleSignal(int signal);
 
 	// Internal members
 	ServerMap _serverMap;					   // Map to servers via their host_port/connection fd
 	std::map<FileDescriptor, Client> _clients; // clients that are currently active
 	EpollManager _epollManager;				   // epoll instance class
 
-	void run(std::vector<ServerConfig> &serverConfigs);
-	static void _handleSignal(int signal);
+public:
+	explicit ServerManager(ServerMap &serverMap);
+	~ServerManager();
+
+	void run();
 
 	bool isServerRunning();
 	static void setServerRunning(bool shouldRun);

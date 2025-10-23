@@ -2,16 +2,15 @@
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
 
-#include "DefaultStatusMap.hpp"
-#include "FileDescriptor.hpp"
-#include "HttpRequest.hpp"
-#include "HttpResponse.hpp"
-#include "Logger.hpp"
-#include "MimeTypes.hpp"
-#include "Server.hpp"
-#include "ServerMap.hpp"
-#include "SocketAddress.hpp"
-#include "StringUtils.hpp"
+#include "../../includes/Core/Server.hpp"
+#include "../../includes/Global/DefaultStatusMap.hpp"
+#include "../../includes/Global/Logger.hpp"
+#include "../../includes/Global/MimeTypeResolver.hpp"
+#include "../../includes/Global/StrUtils.hpp"
+#include "../../includes/HTTP/HttpRequest.hpp"
+#include "../../includes/HTTP/HttpResponse.hpp"
+#include "../../includes/Wrapper/FileDescriptor.hpp"
+#include "../../includes/Wrapper/SocketAddress.hpp"
 #include <deque>
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -70,7 +69,6 @@ private:
 	void _handleResponseBuffer();
 
 	// Method handlers
-	
 
 	// TODO: Utility methods
 
