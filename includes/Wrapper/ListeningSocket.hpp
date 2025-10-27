@@ -9,15 +9,10 @@
 class ListeningSocket
 {
 private:
-<<<<<<< HEAD:includes/ListeningSocket.hpp
-	FileDescriptor _socket;
-	SocketAddress _address;
-=======
 	SocketAddress _socketAddress; // Socket address info
 	FileDescriptor _bindFd;		  // Fd when binded
 
 	// Non-copyable
->>>>>>> ConfigParserRefactor:includes/Wrapper/ListeningSocket.hpp
 
 public:
 	explicit ListeningSocket(const SocketAddress &socketAddress);
