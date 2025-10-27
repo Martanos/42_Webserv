@@ -1,5 +1,11 @@
-#include "../../includes/EpollManager.hpp"
-#include "../../includes/StringUtils.hpp"
+#include "../../includes/Core/EpollManager.hpp"
+#include "../../includes/Global/Logger.hpp"
+#include "../../includes/Global/StrUtils.hpp"
+#include <cstring>
+#include <sstream>
+#include <stdexcept>
+#include <sys/epoll.h>
+#include <vector>
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -27,11 +33,10 @@ EpollManager::EpollManager()
 	{
 		std::stringstream ss;
 		ss << "Failed to create epoll instance";
-		Logger::error(ss.str(), __FILE__, __LINE__);
+		Logger::log(Logger::ERROR, ss.str());
 		throw std::runtime_error(ss.str());
 	}
-	Logger::info("EpollManager: Epoll instance created successfully with fd " +
-				 StringUtils::toString(_epollFd.getFd()));
+	Logger::info("EpollManager: Epoll instance created successfully with fd " + StrUtils::toString(_epollFd.getFd()));
 }
 
 /*
@@ -60,7 +65,7 @@ void EpollManager::addFd(FileDescriptor fd, uint32_t events)
 	{
 		std::stringstream ss;
 		ss << "epoll_ctl ADD failed for fd: " << fd.getFd();
-		Logger::error(ss.str(), __FILE__, __LINE__);
+		Logger::log(Logger::ERROR, ss.str());
 		throw std::runtime_error(ss.str());
 	}
 }
@@ -71,12 +76,36 @@ void EpollManager::modifyFd(FileDescriptor fd, uint32_t events)
 	event.events = events;
 	event.data.fd = fd.getFd();
 
-	if (epoll_ctl(_epollFd.getFd(), EPOLL_CTL_MOD, fd.getFd(), &event) == -1)
+	switch (events)
 	{
+	case EPOLLIN | EPOLLET | EPOLLOUT | EPOLLET:
+	{
+		if (epoll_ctl(_epollFd.getFd(), EPOLL_CTL_MOD, fd.getFd(), &event) == -1)
+		{
+			std::stringstream ss;
+			ss << "epoll_ctl MOD failed for fd: " << fd;
+			Logger::log(Logger::ERROR, ss.str());
+			throw std::runtime_error(ss.str());
+		}
+		break;
+	}
+	case EPOLLHUP | EPOLLRDHUP | EPOLLERR:
+	{
+		if (epoll_ctl(_epollFd.getFd(), EPOLL_CTL_DEL, fd.getFd(), NULL) == -1)
+		{
+			std::stringstream ss;
+			ss << "epoll_ctl DEL failed for fd: " << fd;
+			Logger::log(Logger::ERROR, ss.str());
+			throw std::runtime_error(ss.str());
+		}
+		break;
+	}
+	default:
 		std::stringstream ss;
-		ss << "epoll_ctl MOD failed for fd: " << fd;
-		Logger::error(ss.str(), __FILE__, __LINE__);
+		ss << "Unknown events: " << events;
+		Logger::log(Logger::ERROR, ss.str());
 		throw std::runtime_error(ss.str());
+		break;
 	}
 }
 
@@ -86,7 +115,7 @@ void EpollManager::removeFd(FileDescriptor fd)
 	{
 		std::stringstream ss;
 		ss << "epoll_ctl DEL failed for fd: " << fd;
-		Logger::error(ss.str(), __FILE__, __LINE__);
+		Logger::log(Logger::ERROR, ss.str());
 	}
 }
 
@@ -102,7 +131,7 @@ int EpollManager::wait(std::vector<epoll_event> &events, int timeout)
 	{
 		std::stringstream ss;
 		ss << "epoll_wait failed: " << strerror(errno);
-		Logger::error(ss.str(), __FILE__, __LINE__);
+		Logger::log(Logger::ERROR, ss.str());
 		throw std::runtime_error(ss.str());
 	}
 	return readyCount;

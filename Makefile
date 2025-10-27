@@ -6,7 +6,7 @@
 #    By: malee <malee@student.42.fr>                +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/07/24 16:54:44 by malee             #+#    #+#              #
-#    Updated: 2025/09/25 13:12:18 by malee            ###   ########.fr        #
+#    Updated: 2025/10/27 13:05:47 by malee            ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -14,6 +14,7 @@ NAME = webserv
 CC = c++
 CFLAGS = -Wall -Wextra -Werror -MMD -MP
 STD = -std=c++98
+MAKEFLAGS = -j
 # Directory structure
 SRC_DIR = srcs
 INC_DIR = includes
@@ -22,6 +23,7 @@ OBJ_DIR = obj/srcs
 SRC_FILES = main.cpp \
 			1.ConfigParser/ConfigParser.cpp \
 			1.ConfigParser/ServerConfig.cpp \
+			1.ConfigParser/LocationConfig.cpp \
 			2.ServerMap/ServerMap.cpp \
 			2.ServerMap/Server.cpp \
 			2.ServerMap/Location.cpp \
@@ -39,11 +41,9 @@ SRC_FILES = main.cpp \
 			MethodHandlers/PostMethodHandler.cpp \
 			MethodHandlers/DeleteMethodHandler.cpp \
 			MethodHandlers/MethodHandlerFactory.cpp \
-			MethodHandlers/RequestRouter.cpp \
 			Wrappers/FileDescriptor.cpp \
 			Wrappers/SocketAddress.cpp \
 			Wrappers/AddrInfo.cpp \
-			Wrappers/RingBuffer.cpp \
 			Wrappers/FileManager.cpp \
 			Wrappers/Logger.cpp \
 			Wrappers/PerformanceMonitor.cpp \

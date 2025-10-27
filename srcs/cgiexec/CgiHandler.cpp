@@ -173,7 +173,7 @@ CgiHandler::ExecutionResult CgiHandler::executeCgiScript(const std::string &scri
 
 	// Execute the script
 	CgiExecutor::ExecutionResult execResult =
-		_executor.execute(scriptPath, interpreter, envArray, request.getBody(), output, error);
+		_executor.execute(scriptPath, interpreter, envArray, request.getBodyData(), output, error);
 
 	// Clean up environment array
 	_cgiEnv.freeEnvArray(envArray);

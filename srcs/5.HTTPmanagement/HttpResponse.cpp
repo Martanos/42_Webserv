@@ -1,5 +1,6 @@
-#include "../../includes/HttpResponse.hpp"
-#include "../../includes/StringUtils.hpp"
+#include "../../includes/HTTP/HttpResponse.hpp"
+#include "../../includes/Global/Logger.hpp"
+#include "../../includes/Global/StrUtils.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -65,7 +66,7 @@ void HttpResponse::setHeader(const std::string &name, const std::string &value)
 void HttpResponse::setBody(const std::string &body)
 {
 	_body = body;
-	Logger::debug("HttpResponse: Set body with " + StringUtils::toString(body.length()) + " bytes");
+	Logger::debug("HttpResponse: Set body with " + StrUtils::toString(body.length()) + " bytes");
 }
 
 // Formats the response into a HTTP 1.1 compliant format
@@ -185,37 +186,69 @@ void HttpResponse::setAutoFields()
 	{
 		_version = "HTTP/1.1";
 	}
-	
+
 	// Set default status message if not set
 	if (_statusMessage.empty())
 	{
 		switch (_statusCode)
 		{
-		case 200: _statusMessage = "OK"; break;
-		case 201: _statusMessage = "Created"; break;
-		case 204: _statusMessage = "No Content"; break;
-		case 301: _statusMessage = "Moved Permanently"; break;
-		case 302: _statusMessage = "Found"; break;
-		case 400: _statusMessage = "Bad Request"; break;
-		case 401: _statusMessage = "Unauthorized"; break;
-		case 403: _statusMessage = "Forbidden"; break;
-		case 404: _statusMessage = "Not Found"; break;
-		case 405: _statusMessage = "Method Not Allowed"; break;
-		case 413: _statusMessage = "Payload Too Large"; break;
-		case 414: _statusMessage = "URI Too Long"; break;
-		case 500: _statusMessage = "Internal Server Error"; break;
-		case 501: _statusMessage = "Not Implemented"; break;
-		case 503: _statusMessage = "Service Unavailable"; break;
-		default: _statusMessage = "Unknown"; break;
+		case 200:
+			_statusMessage = "OK";
+			break;
+		case 201:
+			_statusMessage = "Created";
+			break;
+		case 204:
+			_statusMessage = "No Content";
+			break;
+		case 301:
+			_statusMessage = "Moved Permanently";
+			break;
+		case 302:
+			_statusMessage = "Found";
+			break;
+		case 400:
+			_statusMessage = "Bad Request";
+			break;
+		case 401:
+			_statusMessage = "Unauthorized";
+			break;
+		case 403:
+			_statusMessage = "Forbidden";
+			break;
+		case 404:
+			_statusMessage = "Not Found";
+			break;
+		case 405:
+			_statusMessage = "Method Not Allowed";
+			break;
+		case 413:
+			_statusMessage = "Payload Too Large";
+			break;
+		case 414:
+			_statusMessage = "URI Too Long";
+			break;
+		case 500:
+			_statusMessage = "Internal Server Error";
+			break;
+		case 501:
+			_statusMessage = "Not Implemented";
+			break;
+		case 503:
+			_statusMessage = "Service Unavailable";
+			break;
+		default:
+			_statusMessage = "Unknown";
+			break;
 		}
 	}
-	
+
 	// Set Content-Length if body exists and not already set
 	if (!_body.empty() && _headers.find("content-length") == _headers.end())
 	{
-		_headers["content-length"] = StringUtils::toString(_body.length());
+		_headers["content-length"] = StrUtils::toString(_body.length());
 	}
-	
+
 	// Set Date header if not already set
 	if (_headers.find("date") == _headers.end())
 	{
@@ -224,7 +257,7 @@ void HttpResponse::setAutoFields()
 		std::strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&now));
 		_headers["date"] = std::string(buf);
 	}
-	
+
 	// Set Server header if not already set
 	if (_headers.find("server") == _headers.end())
 	{

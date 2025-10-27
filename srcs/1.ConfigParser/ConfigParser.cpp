@@ -1,47 +1,102 @@
+<<<<<<< HEAD
 #include "../../includes/ConfigParser.hpp"
 #include "../../includes/Location.hpp"
 #include "../../includes/StringUtils.hpp"
 #include "../../includes/ConfigUtils.hpp"
+=======
+#include "../../includes/ConfigParser/ConfigParser.hpp"
+#include <sstream>
+#include <stdexcept>
+>>>>>>> ConfigParserRefactor
 
-ConfigParser::ConfigParser()
+/*
+** ------------------------------- CONSTRUCTOR --------------------------------
+*/
+
+ConfigParser::ConfigParser(ConfigTokeniser &tok) : _tok(&tok)
 {
 }
 
-ConfigParser::ConfigParser(const std::string &filename)
-{
-	parseConfig(filename);
-}
+/*
+** -------------------------------- DESTRUCTOR --------------------------------
+*/
 
 ConfigParser::~ConfigParser()
 {
 }
 
-ConfigParser &ConfigParser::operator=(const ConfigParser &other)
+/*
+** --------------------------------- Private Helpers----------------------------------
+*/
+
+Token::Token ConfigParser::expect(Token::TokenType type, const char *what)
 {
-	if (this != &other)
+	Token::Token t = _tok->nextToken();
+	if (t.type != type)
 	{
-		_serverConfigs = other._serverConfigs;
+		std::ostringstream ss;
+		if (what)
+			ss << "Expected " << what << " but found '" << t.lexeme << "' at " << t.line << ":" << t.column;
+		else
+			ss << "Unexpected token '" << t.lexeme << "' at " << t.line << ":" << t.column;
+		throw std::runtime_error(ss.str());
 	}
-	return *this;
+	return t;
 }
 
-ConfigParser::ConfigParser(const ConfigParser &other)
+bool ConfigParser::accept(Token::TokenType type, Token::Token *out)
 {
-	*this = other;
+	Token::Token t = _tok->peek(1);
+	if (t.type == type)
+	{
+		_tok->nextToken();
+		if (out)
+			*out = t;
+		return true;
+	}
+	return false;
 }
 
-bool ConfigParser::parseConfig(const std::string &filename)
+void ConfigParser::parseServerBlock(AST::ASTNode &cfg)
 {
+<<<<<<< HEAD
 	Logger::debug("ConfigParser: Starting to parse configuration file: " + filename);
 	std::ifstream file(filename.c_str());
 	std::stringstream errorMessage;
 	if (!file.is_open())
+=======
+	Token::Token open = expect(Token::TOKEN_OPEN_BRACE, "'{' after server");
+	AST::ASTNode srv(AST::NodeType::SERVER);
+	srv.line = open.line;
+	srv.column = open.column;
+
+	while (true)
+>>>>>>> ConfigParserRefactor
 	{
-		errorMessage << "Error opening file: " << filename;
-		Logger::error(errorMessage.str(), __FILE__, __LINE__);
-		throw std::runtime_error(errorMessage.str());
+		Token::Token t = _tok->peek(1);
+		if (t.type == Token::TOKEN_CLOSE_BRACE)
+		{
+			_tok->nextToken(); // consume '}'
+			break;
+		}
+		if (t.type == Token::TOKEN_EOF)
+		{
+			std::ostringstream ss;
+			ss << "Unterminated server block starting at " << srv.line << ":" << srv.column;
+			throw std::runtime_error(ss.str());
+		}
+		if (t.type == Token::TOKEN_IDENTIFIER && t.lexeme == "location")
+		{
+			_tok->nextToken(); // consume 'location'
+			AST::ASTNode loc = parseLocation();
+			srv.addChild(&loc);
+			continue;
+		}
+		AST::ASTNode d = parseDirective();
+		srv.addChild(&d);
 	}
 
+<<<<<<< HEAD
 	std::stringstream buffer;
 	buffer << file.rdbuf(); // Load entire file into stringstream for efficient
 							// parsing
@@ -82,63 +137,87 @@ bool ConfigParser::parseConfig(const std::string &filename)
 	}
 	Logger::debug("ConfigParser: Successfully parsed " + StringUtils::toString(_serverConfigs.size()) + " server configurations");
 	return true;
+=======
+	cfg.addChild(&srv);
+>>>>>>> ConfigParserRefactor
 }
 
-bool ConfigParser::serverblockcheck(const std::string &line, bool &insideHttp, bool &insideServer)
+AST::ASTNode ConfigParser::parseDirective()
 {
-	std::stringstream errorMessage;
+	Token::Token name = expect(Token::TOKEN_IDENTIFIER, "directive name");
+	AST::ASTNode d(AST::NodeType::DIRECTIVE);
+	d.value = name.lexeme;
+	d.line = name.line;
+	d.column = name.column;
+	size_t position = 0;
 
-	if (line == "server {" || line == "server{")
+	// gather args until ';'
+	while (true)
 	{
-		if (!insideHttp)
+		position++;
+		Token::Token t = _tok->peek(1);
+		if (t.type == Token::TOKEN_SEMICOLON)
 		{
-			errorMessage << "Error: 'server' directive is not allowed here. "
-							"Server blocks must be inside an http block.";
-			Logger::error(errorMessage.str(), __FILE__, __LINE__);
-			throw std::runtime_error(errorMessage.str());
+			_tok->nextToken(); // consume ';'
+			return d;
 		}
-		Logger::debug("ConfigParser: Found server block");
-		insideServer = true;
-		return true; // Start of server block
+		else if (t.type == Token::TOKEN_IDENTIFIER || t.type == Token::TOKEN_NUMBER || t.type == Token::TOKEN_STRING)
+		{
+			Token::Token arg = _tok->nextToken();
+			AST::ASTNode directiveArg(AST::NodeType::ARG, arg.lexeme);
+			directiveArg.position = position;
+			d.addChild(&directiveArg);
+			continue;
+		}
+		std::ostringstream ss;
+		ss << "Unexpected token in directive '" << d.value << "': '" << t.lexeme << "' at " << t.line << ":"
+		   << t.column;
+		throw std::runtime_error(ss.str());
 	}
-
-	if (insideServer && line == "}")
-	{
-		insideServer = false;
-		return false; // End of server block - don't trigger parseServerBlock
-	}
-	return false; // Not a server block directive
 }
 
-bool ConfigParser::httpblockcheck(const std::string &line, bool &foundHttp, bool &insideHttp)
+AST::ASTNode ConfigParser::parseLocation()
 {
-	std::stringstream errorMessage;
+	Token::Token pathTok = expect(Token::TOKEN_IDENTIFIER, "location path");
+	AST::ASTNode loc(AST::NodeType::LOCATION);
+	loc.value = pathTok.lexeme;
+	loc.line = pathTok.line;
+	loc.column = pathTok.column;
 
-	if (line == "http {" || line == "http{")
+	Token::Token open = expect(Token::TOKEN_OPEN_BRACE, "'{' after location");
+	while (true)
 	{
-		if (foundHttp)
+		Token::Token t = _tok->peek(1);
+		if (t.type == Token::TOKEN_CLOSE_BRACE)
 		{
-			errorMessage << "Error: Multiple http blocks found. Only one http "
-							"block is allowed.";
-			Logger::error(errorMessage.str(), __FILE__, __LINE__);
-			throw std::runtime_error(errorMessage.str());
+			_tok->nextToken(); // consume '}'
+			break;
 		}
-		Logger::debug("ConfigParser: Found http block");
-		foundHttp = true;
-		insideHttp = true;
-		return true; // Start of http block
+		if (t.type == Token::TOKEN_EOF)
+		{
+			std::ostringstream ss;
+			ss << "Unterminated location block at " << loc.line << ":" << loc.column;
+			throw std::runtime_error(ss.str());
+		}
+		AST::ASTNode d = parseDirective();
+		loc.addChild(&d);
 	}
+<<<<<<< HEAD
 	return false; // Not a http block directive
+=======
+	return loc;
+>>>>>>> ConfigParserRefactor
 }
 
-void ConfigParser::_parseServerBlock(std::stringstream &buffer, double &lineNumber)
+/*
+** --------------------------------- METHODS ----------------------------------
+*/
+AST::ASTNode ConfigParser::parse()
 {
-	Logger::debug("ConfigParser: Starting to parse server block at line " + StringUtils::toString(lineNumber));
-	ServerConfig currentServer;
-	std::string line;
-
-	while (std::getline(buffer, line))
+	AST::ASTNode cfg(AST::NodeType::CONFIG);
+	while (true)
 	{
+<<<<<<< HEAD
 		line = StringUtils::trim(line);
 		lineNumber++;
 
@@ -204,32 +283,83 @@ void ConfigParser::_parseServerBlock(std::stringstream &buffer, double &lineNumb
 		case SERVER_UNKNOWN:
 		default:
 			Logger::log(Logger::WARNING, "Unknown server directive: " + directive);
+=======
+		Token::Token t = _tok->peek(1);
+		if (t.type == Token::TOKEN_EOF)
+		{
+			_tok->nextToken();
+>>>>>>> ConfigParserRefactor
 			break;
 		}
-		// For now, just create a basic server config
+		if (t.type == Token::TOKEN_IDENTIFIER && t.lexeme == "server")
+		{
+			_tok->nextToken(); // consume 'server'
+			parseServerBlock(cfg);
+			continue;
+		}
+		std::ostringstream ss;
+		ss << "Top-level: unexpected token '" << t.lexeme << "' at " << t.line << ":" << t.column;
+		throw std::runtime_error(ss.str());
 	}
-
-	// Add the parsed server to our collection
-	_serverConfigs.push_back(currentServer);
-	Logger::debug("ConfigParser: Successfully parsed server block with " + StringUtils::toString(currentServer.getHosts_ports().size()) + " listen directives");
+	return cfg;
 }
 
+<<<<<<< HEAD
 
-
-void ConfigParser::printAllConfigs() const
+=======
+// Recursive descent print
+void ConfigParser::printAST(const AST::ASTNode &cfg) const
 {
-	std::cout << "=== Configuration Summary ===" << std::endl;
-	std::cout << "Total servers configured: " << _serverConfigs.size() << std::endl;
+	printASTRecursive(cfg, 0);
+}
+
+void ConfigParser::printASTRecursive(const AST::ASTNode &node, int depth) const
+{
+	// Print indentation based on depth
+	for (int i = 0; i < depth; ++i)
+		std::cout << "  ";
+
+	// Print node type and value
+	switch (node.type)
+	{
+	case AST::NodeType::CONFIG:
+		std::cout << "CONFIG";
+		break;
+	case AST::NodeType::SERVER:
+		std::cout << "SERVER";
+		break;
+	case AST::NodeType::DIRECTIVE:
+		std::cout << "DIRECTIVE: " << node.value;
+		break;
+	case AST::NodeType::LOCATION:
+		std::cout << "LOCATION: " << node.value;
+		break;
+	case AST::NodeType::ARG:
+		std::cout << "ARG: " << node.value;
+		break;
+	case AST::NodeType::ERROR:
+		std::cout << "ERROR: " << node.message;
+		break;
+	default:
+		std::cout << "UNKNOWN";
+		break;
+	}
+
+	// Print line and column info if available
+	if (node.line > 0)
+		std::cout << " (line " << node.line << ", col " << node.column << ")";
+>>>>>>> ConfigParserRefactor
+
 	std::cout << std::endl;
 
-	for (size_t i = 0; i < _serverConfigs.size(); ++i)
+	// Recursively print children
+	for (size_t i = 0; i < node.children.size(); ++i)
 	{
-		std::cout << "--- Server " << (i + 1) << " ---" << std::endl;
-		_serverConfigs[i].printConfig();
-		std::cout << std::endl;
+		printASTRecursive(*node.children[i], depth + 1);
 	}
 }
 
+<<<<<<< HEAD
 ConfigParser::ServerDirectiveType ConfigParser::_getServerDirectiveType(const std::string &directive) const
 {
 	if (directive == "listen")
@@ -357,3 +487,6 @@ const std::vector<ServerConfig>& ConfigParser::getServerConfigs() const
 {
 	return _serverConfigs;
 }
+=======
+/* ************************************************************************** */
+>>>>>>> ConfigParserRefactor

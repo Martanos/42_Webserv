@@ -1,27 +1,47 @@
+<<<<<<< HEAD
 #include "../../includes/Location.hpp"
 #include "../../includes/ConfigUtils.hpp"
 #include "../../includes/StringUtils.hpp"
+=======
+#include "../../includes/Core/Location.hpp"
+#include <algorithm>
+#include <iostream>
+>>>>>>> ConfigParserRefactor
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
+<<<<<<< HEAD
 Location::Location() : _autoIndex(false)
+=======
+Location::Location(const std::string &path)
+>>>>>>> ConfigParserRefactor
 {
-	_path = "";
-	_root = "";
+	// Identifier members
+	_path = path;
+	_root = std::string();
 	_allowedMethods = std::vector<std::string>();
+<<<<<<< HEAD
 	_redirect = "";
 	_index = "";
 	_cgiPath = "";
 	_cgiParams = std::map<std::string, std::string>();
 	_uploadPath = "";
+=======
+	_statusPages = std::map<int, std::string>();
+	_redirect = std::pair<int, std::string>();
+	_indexes = TrieTree<std::string>();
+	_cgiPath = std::string();
+
+	// Flags
+	_modified = false;
+>>>>>>> ConfigParserRefactor
 }
 
 Location::Location(const Location &src)
 {
-	if (this != &src)
-		*this = src;
+	*this = src;
 }
 
 /*
@@ -45,15 +65,14 @@ Location &Location::operator=(Location const &rhs)
 		_allowedMethods = rhs._allowedMethods;
 		_redirect = rhs._redirect;
 		_autoIndex = rhs._autoIndex;
-		_index = rhs._index;
+		_indexes = rhs._indexes;
 		_cgiPath = rhs._cgiPath;
-		_cgiParams = rhs._cgiParams;
-		_uploadPath = rhs._uploadPath;
+		_modified = rhs._modified;
 	}
 	return *this;
 }
 
-std::ostream &operator<<(std::ostream &o, Location const &i)
+void operator<<(std::ostream &o, Location const &i)
 {
 	o << "--------------------------------" << std::endl;
 	o << "Path: " << i.getPath() << std::endl;
@@ -63,22 +82,75 @@ std::ostream &operator<<(std::ostream &o, Location const &i)
 		 ++it)
 		o << *it << " ";
 	o << std::endl;
+<<<<<<< HEAD
 	o << "Redirect: " << i.getRedirect() << std::endl;
 	o << "AutoIndex: " << (i.isAutoIndexEnabled() ? "on" : "off") << std::endl;
 	o << "Index: " << i.getIndex() << std::endl;
 	o << "CgiPath: " << i.getCgiPath() << std::endl;
 	o << "CgiParams: ";
 	for (std::map<std::string, std::string>::const_iterator it = i.getCgiParams().begin(); it != i.getCgiParams().end();
+=======
+	o << "Redirect: " << i.getRedirect().first << " " << i.getRedirect().second << std::endl;
+	o << "Status pages: ";
+	for (std::map<int, std::string>::const_iterator it = i.getStatusPages().begin(); it != i.getStatusPages().end();
+>>>>>>> ConfigParserRefactor
 		 ++it)
-		o << it->first << "=" << it->second << " ";
+		o << it->first << ": " << it->second << " ";
 	o << std::endl;
-	o << "UploadPath: " << i.getUploadPath() << std::endl;
+	o << "AutoIndex: " << i.hasAutoIndex() << std::endl;
+	o << "Indexes: ";
+	for (TrieTree<std::string>::const_iterator it = i.getIndexes().begin(); it != i.getIndexes().end(); ++it)
+		o << *it << " ";
+	o << std::endl;
+	o << "CgiPath: " << i.getCgiPath() << std::endl;
 	o << "--------------------------------" << std::endl;
-	return o;
 }
 
 /*
-** --------------------------------- GETTERS ---------------------------------
+** --------------------------------- INVESTIGATORS ---------------------------------
+*/
+
+bool Location::hasAllowedMethod(const std::string &allowedMethod) const
+{
+	return std::find(_allowedMethods.begin(), _allowedMethods.end(), allowedMethod) != _allowedMethods.end();
+}
+
+bool Location::hasStatusPage(const int &status) const
+{
+	return _statusPages.find(status) != _statusPages.end();
+}
+
+bool Location::hasRedirect() const
+{
+	return _redirect.first != 0 && _redirect.second.empty();
+}
+
+bool Location::hasAutoIndex() const
+{
+	return _autoIndex;
+}
+
+bool Location::hasIndexes() const
+{
+	return _indexes.size() > 0;
+}
+
+bool Location::hasIndex(const std::string &index) const
+{
+	return _indexes.find(index) != NULL;
+}
+bool Location::hasCgiPath() const
+{
+	return _cgiPath.empty();
+}
+
+bool Location::hasModified() const
+{
+	return _modified;
+}
+
+/*
+** --------------------------------- ACCESSORS ---------------------------------
 */
 
 const std::string &Location::getPath() const
@@ -96,19 +168,23 @@ const std::vector<std::string> &Location::getAllowedMethods() const
 	return _allowedMethods;
 }
 
-const std::string &Location::getRedirect() const
+const std::pair<int, std::string> &Location::getRedirect() const
 {
 	return _redirect;
 }
 
+<<<<<<< HEAD
 bool Location::isAutoIndexEnabled() const
+=======
+const std::map<int, std::string> &Location::getStatusPages() const
+>>>>>>> ConfigParserRefactor
 {
-	return _autoIndex;
+	return _statusPages;
 }
 
-const std::string &Location::getIndex() const
+const TrieTree<std::string> &Location::getIndexes() const
 {
-	return _index;
+	return _indexes;
 }
 
 const std::string &Location::getCgiPath() const
@@ -116,18 +192,8 @@ const std::string &Location::getCgiPath() const
 	return _cgiPath;
 }
 
-const std::map<std::string, std::string> &Location::getCgiParams() const
-{
-	return _cgiParams;
-}
-
-const std::string &Location::getUploadPath() const
-{
-	return _uploadPath;
-}
-
 /*
-** --------------------------------- SETTERS ---------------------------------
+** --------------------------------- Mutators ---------------------------------
 */
 
 void Location::setPath(const std::string &path)
@@ -138,31 +204,46 @@ void Location::setPath(const std::string &path)
 void Location::setRoot(const std::string &root)
 {
 	_root = root;
+	_modified = true;
 }
 
-void Location::setAllowedMethods(const std::vector<std::string> &allowedMethods)
+void Location::insertAllowedMethod(const std::string &allowedMethod)
 {
-	_allowedMethods = allowedMethods;
+	_allowedMethods.push_back(allowedMethod);
+	_modified = true;
 }
 
-void Location::setRedirect(const std::string &redirect)
+void Location::insertStatusPage(const std::vector<int> &codes, const std::string &path)
+{
+	for (std::vector<int>::const_iterator it = codes.begin(); it != codes.end(); ++it)
+	{
+		_statusPages.insert(std::make_pair(*it, path));
+	}
+	_modified = true;
+}
+
+void Location::setRedirect(const std::pair<int, std::string> &redirect)
 {
 	_redirect = redirect;
+	_modified = true;
 }
 
 void Location::setAutoIndex(const bool &autoIndex)
 {
 	_autoIndex = autoIndex;
+	_modified = true;
 }
 
-void Location::setIndex(const std::string &index)
+void Location::insertIndex(const std::string &index)
 {
-	_index = index;
+	_indexes.insert(index, index);
+	_modified = true;
 }
 
 void Location::setCgiPath(const std::string &cgiPath)
 {
 	_cgiPath = cgiPath;
+<<<<<<< HEAD
 }
 
 void Location::setCgiParams(const std::map<std::string, std::string> &cgiParams)
@@ -416,6 +497,9 @@ void Location::printConfig() const
 	}
 
 	std::cout << "      Upload Path: " << _uploadPath << std::endl;
+=======
+	_modified = true;
+>>>>>>> ConfigParserRefactor
 }
 
 /* ************************************************************************** */
