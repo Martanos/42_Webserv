@@ -8,22 +8,6 @@
 Server::Server()
 	: _config(NULL)
 {
-<<<<<<< HEAD
-	_serverName = "";
-	_host = SERVER::DEFAULT_HOST;
-	_port = SERVER::DEFAULT_PORT;
-	_locations = std::map<std::string, Location>();
-}
-
-Server::Server(const std::string &serverName, const std::string &host, const unsigned short &port,
-			   const ServerConfig* serverConfig)
-{
-	_serverName = serverName;
-	_host = host;
-	_port = port;
-	_config = serverConfig;
-	_locations = std::map<std::string, Location>();
-=======
 	_serverNames = TrieTree<std::string>();
 	_sockets = std::vector<SocketAddress>();
 	_rootPath = std::string();
@@ -38,7 +22,6 @@ Server::Server(const std::string &serverName, const std::string &host, const uns
 
 	// Flags
 	_modified = false;
->>>>>>> ConfigParserRefactor
 }
 
 Server::Server(const Server &src)
@@ -63,13 +46,6 @@ Server &Server::operator=(Server const &rhs)
 {
 	if (this != &rhs)
 	{
-<<<<<<< HEAD
-		_serverName = rhs._serverName;
-		_host = rhs._host;
-		_port = rhs._port;
-		_config = rhs._config;
-		_locations = rhs._locations;
-=======
 		_serverNames = rhs._serverNames;
 		_sockets = rhs._sockets;
 		_rootPath = rhs._rootPath;
@@ -82,7 +58,6 @@ Server &Server::operator=(Server const &rhs)
 		_locations = rhs._locations;
 		_keepAlive = rhs._keepAlive;
 		_modified = rhs._modified;
->>>>>>> ConfigParserRefactor
 	}
 	return *this;
 }
@@ -171,17 +146,9 @@ bool Server::isModified() const
 ** --------------------------------- GETTERS ---------------------------------
 */
 
-<<<<<<< HEAD
-bool Server::getKeepAlive() const
-{
-	if (_config)
-		return _config->getKeepAlive();
-	return SERVER::DEFAULT_KEEP_ALIVE; // Need to define this constant
-=======
 const TrieTree<std::string> &Server::getServerNames() const
 {
 	return _serverNames;
->>>>>>> ConfigParserRefactor
 }
 
 const std::vector<SocketAddress> &Server::getSocketAddresses() const
@@ -194,41 +161,13 @@ const std::string &Server::getRootPath() const
 	return _rootPath;
 }
 
-<<<<<<< HEAD
-const unsigned short &Server::getPort() const
-{
-	return _port;
-}
-
-const std::string &Server::getRoot() const
-{
-	if (_config)
-		return _config->getRoot();
-	static const std::string defaultRoot = SERVER::DEFAULT_ROOT;
-	return defaultRoot;
-}
-
-const std::vector<std::string> &Server::getIndexes() const
-=======
 const TrieTree<std::string> &Server::getIndexes() const
->>>>>>> ConfigParserRefactor
 {
 	if (_config)
 		return _config->getIndexes();
-	static const std::vector<std::string> defaultIndexes(1, SERVER::DEFAULT_INDEX);
-	return defaultIndexes;
+]	return defaultIndexes;
 }
 
-<<<<<<< HEAD
-bool Server::getAutoindex() const
-{
-	if (_config)
-		return _config->getAutoindex();
-	return SERVER::DEFAULT_AUTOINDEX;
-}
-
-=======
->>>>>>> ConfigParserRefactor
 double Server::getClientMaxBodySize() const
 {
 	if (_config)
@@ -272,50 +211,10 @@ const TrieTree<Location> &Server::getLocations() const
 	return _locations;
 }
 
-<<<<<<< HEAD
-const std::string Server::getStatusPage(const int &status) const
-{
-	if (_config)
-	{
-		const std::map<int, std::string>& statusPages = _config->getStatusPages();
-		if (statusPages.find(status) == statusPages.end())
-			return DefaultStatusMap::getStatusInfo(status);
-		return statusPages.at(status);
-	}
-	return DefaultStatusMap::getStatusInfo(status);
-}
-
-const Location Server::getLocation(const std::string &path) const
-{
-	if (_locations.find(path) == _locations.end())
-		return Location();
-	return _locations.at(path);
-}
-
-=======
->>>>>>> ConfigParserRefactor
 /*
 ** --------------------------------- SETTERS ---------------------------------
 */
 
-<<<<<<< HEAD
-void Server::setServerName(const std::string &serverName)
-{
-	_serverName = serverName;
-}
-
-void Server::setHost(const std::string &host)
-{
-	_host = host;
-}
-
-void Server::setPort(const unsigned short &port)
-{
-	_port = port;
-}
-
-void Server::setLocations(const std::map<std::string, Location> &locations)
-=======
 void Server::insertServerName(const std::string &serverName)
 {
 	if (!hasServerName(serverName))
@@ -380,19 +279,11 @@ void Server::setClientMaxHeadersSize(const double &clientMaxHeadersSize)
 }
 
 void Server::setClientMaxUriSize(const double &clientMaxUriSize)
->>>>>>> ConfigParserRefactor
 {
 	_clientMaxUriSize = clientMaxUriSize;
 	_modified = true;
 }
 
-<<<<<<< HEAD
-/*
-** --------------------------------- METHODS ----------------------------------
-*/
-
-void Server::addLocation(const Location &location)
-=======
 void Server::setRoot(const std::string &root)
 {
 	_rootPath = root;
@@ -400,14 +291,11 @@ void Server::setRoot(const std::string &root)
 }
 
 void Server::setAutoindex(const bool &autoindex)
->>>>>>> ConfigParserRefactor
 {
 	_autoIndex = autoindex;
 	_modified = true;
 }
 
-<<<<<<< HEAD
-=======
 void Server::reset()
 {
 	_serverNames.clear();
@@ -424,5 +312,4 @@ void Server::reset()
 	_modified = false;
 }
 
->>>>>>> ConfigParserRefactor
 /* ************************************************************************** */

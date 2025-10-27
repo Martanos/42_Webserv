@@ -1,12 +1,6 @@
-<<<<<<< HEAD
-#include "../../includes/ServerMap.hpp"
-#include "../../includes/StringUtils.hpp"
-#include <memory>
-=======
 #include "../../includes/ConfigParser/ServerMap.hpp"
 #include "../../includes/Global/Logger.hpp"
 #include "../../includes/Global/StrUtils.hpp"
->>>>>>> ConfigParserRefactor
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -18,24 +12,10 @@ ServerMap::ServerMap(std::vector<Server> &servers)
 	_buildServerMap();
 }
 
-ServerMap::ServerMap(const ServerMap &src)
-	: _serverConfigs(src._serverConfigs), _serverMap(src._serverMap)
+ServerMap::ServerMap(const ServerMap &src) : _serverMap(src._serverMap)
 {
 }
 
-<<<<<<< HEAD
-ServerMap::ServerMap(const std::vector<ServerConfig> &serverConfigs)
-{
-	Logger::info("ServerMap: Creating ServerMap from " + StringUtils::toString(serverConfigs.size()) +
-				 " server configurations");
-	_serverConfigs = serverConfigs;
-	std::vector<Server> servers = _spawnServers(_serverConfigs);
-	_populateServerMap(servers);
-	Logger::debug("ServerMap: ServerMap created successfully");
-}
-
-=======
->>>>>>> ConfigParserRefactor
 /*
 ** -------------------------------- DESTRUCTOR --------------------------------
 */
@@ -52,11 +32,7 @@ ServerMap &ServerMap::operator=(ServerMap const &rhs)
 {
 	if (this != &rhs)
 	{
-<<<<<<< HEAD
-		_serverConfigs = rhs._serverConfigs;
-=======
 		_servers = rhs._servers;
->>>>>>> ConfigParserRefactor
 		_serverMap = rhs._serverMap;
 	}
 	return *this;
@@ -64,23 +40,7 @@ ServerMap &ServerMap::operator=(ServerMap const &rhs)
 
 /* --------------------------------- Private Utilities --------------------------------- */
 
-<<<<<<< HEAD
-void ServerMap::_convertAndAddLocationsToServer(Server &server, const ServerConfig &serverConfig)
-{
-	const std::vector<Location> &locations = serverConfig.getLocations();
-
-	for (std::vector<Location>::const_iterator it = locations.begin(); it != locations.end(); ++it)
-	{
-		server.addLocation(*it);
-	}
-}
-
-// Responsible for spawning the servers from the server configs server class
-// will take care of spawning the locations
-std::vector<Server> ServerMap::_spawnServers(std::vector<ServerConfig> &serverConfigs)
-=======
 void ServerMap::_buildServerMap()
->>>>>>> ConfigParserRefactor
 {
 	for (std::vector<Server>::iterator server_it = _servers.begin(); server_it != _servers.end(); ++server_it)
 	{
@@ -91,17 +51,7 @@ void ServerMap::_buildServerMap()
 			for (std::map<ListeningSocket, std::vector<Server> >::iterator listening_socket_it = _serverMap.begin();
 				 listening_socket_it != _serverMap.end(); ++listening_socket_it)
 			{
-<<<<<<< HEAD
-				// Spawn a server
-				Server server(*serverName, host_port->first, host_port->second, &(*it));
-				// Add locations to the server
-				_convertAndAddLocationsToServer(server, *it);
-				servers.push_back(server);
-				ListeningSocket listeningSocket(host_port->first, host_port->second);
-				if (listeningSocket.getFd() != -1)
-=======
 				if (listening_socket_it->first.getAddress() == *socketAddress_it)
->>>>>>> ConfigParserRefactor
 				{
 					listening_socket_it->second.push_back(*server_it);
 					found = true;
