@@ -45,4 +45,6 @@ public:
 	void merge(const Header &other);
 };
 
+std::ostream &operator<<(std::ostream &os, const Header &header);
+
 #endif /* HEADER_HPP */

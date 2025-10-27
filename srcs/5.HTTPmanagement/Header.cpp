@@ -149,6 +149,23 @@ void Header::merge(const Header &other)
 	}
 }
 
+std::ostream &operator<<(std::ostream &os, const Header &header)
+{
+	os << header.getRawHeader();
+	os << ": ";
+	for (size_t i = 0; i < header.getValues().size(); i++)
+	{
+		os << header.getValues()[i];
+		if (i < header.getValues().size() - 1)
+			os << ", ";
+	}
+	for (size_t i = 0; i < header.getParameters().size(); i++)
+	{
+		os << ";" << header.getParameters()[i].first << "=" << header.getParameters()[i].second;
+	}
+	return os;
+}
+
 /*
 ** --------------------------------- COMPARATORS ---------------------------------
 */

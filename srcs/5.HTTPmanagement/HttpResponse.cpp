@@ -2,6 +2,7 @@
 #include "../../includes/Core/Location.hpp"
 #include "../../includes/Core/Server.hpp"
 #include "../../includes/Global/DefaultStatusMap.hpp"
+#include "../../includes/Global/FileUtils.hpp"
 #include "../../includes/Global/Logger.hpp"
 #include "../../includes/Global/StrUtils.hpp"
 /*
@@ -39,20 +40,48 @@ HttpResponse &HttpResponse::operator=(HttpResponse const &rhs)
 		_version = rhs._version;
 		_headers = rhs._headers;
 		_body = rhs._body;
+		_streamBody = rhs._streamBody;
+		_bodyFileDescriptor = rhs._bodyFileDescriptor;
 		_bytesSent = rhs._bytesSent;
 		_rawResponse = rhs._rawResponse;
+		_httpResponseState = rhs._httpResponseState;
 	}
 	return *this;
 }
 
 /*
-** --------------------------------- METHODS ----------------------------------
+** --------------------------------- PRIVATE METHODS ----------------------------------
 */
 
-bool HttpResponse::isEmpty() const
+void HttpResponse::_getDateHeader()
 {
-	return _body.empty();
+	std::time_t now = std::time(0);
+	char buf[80];
+	std::strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&now));
+	insertHeader(Header("date: " + std::string(buf) + " GMT"));
 }
+
+void HttpResponse::_setServerHeader()
+{
+	insertHeader(Header("server: " + HTTP_RESPONSE_DEFAULT::SERVER));
+}
+
+void HttpResponse::_setContentLengthHeader()
+{
+	if (!_body.empty())
+	{
+		insertHeader(Header("content-length: " + StrUtils::toString(_body.length())));
+	}
+}
+
+void HttpResponse::_setVersionHeader()
+{
+	_version = HTTP_RESPONSE_DEFAULT::VERSION;
+}
+
+/*
+** --------------------------------- METHODS ----------------------------------
+*/
 
 void HttpResponse::setStatus(int code, const std::string &message)
 {
@@ -60,38 +89,61 @@ void HttpResponse::setStatus(int code, const std::string &message)
 	_statusMessage = message;
 }
 
-void HttpResponse::setHeader(const std::string &name, const std::string &value)
+void HttpResponse::insertHeader(const Header &header)
 {
-	_headers[name] = value;
+	for (std::vector<Header>::iterator it = _headers.begin(); it != _headers.end(); ++it)
+	{
+		if (*it == header)
+		{
+			it->merge(header);
+			return;
+		}
+	}
+	_headers.push_back(header);
 }
 
 void HttpResponse::setBody(const std::string &body)
 {
 	_body = body;
-	Logger::debug("HttpResponse: Set body with " + StrUtils::toString(body.length()) + " bytes");
 }
 
-void HttpResponse::setBody(const Location *location, const Server *server)
+// Used when location and server have not been identified
+void HttpResponse::setResponse(int statusCode, const std::string &statusMessage)
 {
+	setStatus(statusCode, statusMessage);
+	_body = DefaultStatusMap::getStatusBody(statusCode);
+}
+
+void HttpResponse::setResponse(int statusCode, const std::string &statusMessage, const Server *server,
+							   const Location *location, const std::string &filePath)
+{
+	setStatus(statusCode, statusMessage);
 	if (location && location->hasStatusPage(_statusCode))
 	{
-		_body = location->getStatusPages().find(_statusCode)->second;
+		std::string statusPagePath = filePath + location->getStatusPages().find(_statusCode)->second;
+		statusPagePath = FileUtils::normalizePath(statusPagePath);
+		if (FileUtils::isFileReadable(statusPagePath))
+		{
+			_bodyFileDescriptor = FileDescriptor::createFromOpen(statusPagePath.c_str(), O_RDONLY);
+			_streamBody = true;
+		}
+		else
+			_body = DefaultStatusMap::getStatusBody(_statusCode);
 	}
 	else if (server && server->hasStatusPage(_statusCode))
 	{
-		_body = server->getStatusPages().find(_statusCode)->second;
-	}
-	else if (DefaultStatusMap::hasStatusBody(_statusCode))
-	{
-		_body = DefaultStatusMap::getStatusBody(_statusCode);
+		std::string statusPagePath = filePath + server->getStatusPages().find(_statusCode)->second;
+		statusPagePath = FileUtils::normalizePath(statusPagePath);
+		if (FileUtils::isFileReadable(statusPagePath))
+		{
+			_bodyFileDescriptor = FileDescriptor::createFromOpen(statusPagePath.c_str(), O_RDONLY);
+			_streamBody = true;
+		}
+		else
+			_body = DefaultStatusMap::getStatusBody(_statusCode);
 	}
 	else
-	{
-		Logger::log(Logger::ERROR, "No status page found for status code: " + StrUtils::toString(_statusCode));
-		_body = DefaultStatusMap::getStatusBody(500);
-	}
-	setHeader("Content-Type", "text/html");
-	setHeader("Content-Length", StrUtils::toString(_body.length()));
+		_body = DefaultStatusMap::getStatusBody(_statusCode);
 }
 
 // Formats the response into a HTTP 1.1 compliant format
@@ -100,19 +152,23 @@ std::string HttpResponse::toString() const
 	std::stringstream response;
 
 	// Status line
-	response << "HTTP/1.1 " << _statusCode << " " << _statusMessage << "\r\n";
+	response << _version << " " << _statusCode << " " << _statusMessage << "\r\n";
 
 	// Headers
-	for (std::map<std::string, std::string>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
+	for (std::vector<Header>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
 	{
-		response << it->first << ": " << it->second << "\r\n";
+		response << *it << "\r\n";
 	}
 
 	// Empty line between headers and body
 	response << "\r\n";
 
 	// Body (if any)
-	if (!_body.empty())
+	if (_streamBody)
+	{
+		response << _bodyFileDescriptor.readFile();
+	}
+	else
 	{
 		response << _body;
 	}
@@ -122,13 +178,18 @@ std::string HttpResponse::toString() const
 
 void HttpResponse::reset()
 {
-	_statusCode = 0;
-	_statusMessage = "";
-	_version = "";
+	_statusCode = HTTP_RESPONSE_DEFAULT::DEFAULT_STATUS_CODE;
+	_statusMessage = HTTP_RESPONSE_DEFAULT::DEFAULT_STATUS_MESSAGE;
 	_headers.clear();
 	_body = "";
+	_streamBody = false;
+	_bodyFileDescriptor = FileDescriptor();
 	_bytesSent = 0;
 	_rawResponse = "";
+	_httpResponseState = RESPONSE_SENDING_URI;
+	_getDateHeader();
+	_setServerHeader();
+	_setVersionHeader();
 }
 
 /*
@@ -147,10 +208,17 @@ std::string HttpResponse::getStatusMessage() const
 
 std::string HttpResponse::getVersion() const
 {
-	return _version;
+	for (std::vector<Header>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
+	{
+		if (it->getDirective() == "version")
+		{
+			return it->getValues()[0];
+		}
+	}
+	return HTTP_RESPONSE_DEFAULT::VERSION;
 }
 
-std::map<std::string, std::string> HttpResponse::getHeaders() const
+std::vector<Header> HttpResponse::getHeaders() const
 {
 	return _headers;
 }
@@ -189,7 +257,7 @@ void HttpResponse::setVersion(const std::string &version)
 	_version = version;
 }
 
-void HttpResponse::setHeaders(const std::map<std::string, std::string> &headers)
+void HttpResponse::setHeaders(const std::vector<Header> &headers)
 {
 	_headers = headers;
 }
@@ -202,92 +270,6 @@ void HttpResponse::setBytesSent(size_t bytesSent)
 void HttpResponse::setRawResponse(const std::string &rawResponse)
 {
 	_rawResponse = rawResponse;
-}
-
-void HttpResponse::setAutoFields()
-{
-	// Set default version if not set
-	if (_version.empty())
-	{
-		_version = "HTTP/1.1";
-	}
-
-	// Set default status message if not set
-	if (_statusMessage.empty())
-	{
-		switch (_statusCode)
-		{
-		case 200:
-			_statusMessage = "OK";
-			break;
-		case 201:
-			_statusMessage = "Created";
-			break;
-		case 204:
-			_statusMessage = "No Content";
-			break;
-		case 301:
-			_statusMessage = "Moved Permanently";
-			break;
-		case 302:
-			_statusMessage = "Found";
-			break;
-		case 400:
-			_statusMessage = "Bad Request";
-			break;
-		case 401:
-			_statusMessage = "Unauthorized";
-			break;
-		case 403:
-			_statusMessage = "Forbidden";
-			break;
-		case 404:
-			_statusMessage = "Not Found";
-			break;
-		case 405:
-			_statusMessage = "Method Not Allowed";
-			break;
-		case 413:
-			_statusMessage = "Payload Too Large";
-			break;
-		case 414:
-			_statusMessage = "URI Too Long";
-			break;
-		case 500:
-			_statusMessage = "Internal Server Error";
-			break;
-		case 501:
-			_statusMessage = "Not Implemented";
-			break;
-		case 503:
-			_statusMessage = "Service Unavailable";
-			break;
-		default:
-			_statusMessage = "Unknown";
-			break;
-		}
-	}
-
-	// Set Content-Length if body exists and not already set
-	if (!_body.empty() && _headers.find("content-length") == _headers.end())
-	{
-		_headers["content-length"] = StrUtils::toString(_body.length());
-	}
-
-	// Set Date header if not already set
-	if (_headers.find("date") == _headers.end())
-	{
-		std::time_t now = std::time(0);
-		char buf[80];
-		std::strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&now));
-		_headers["date"] = std::string(buf);
-	}
-
-	// Set Server header if not already set
-	if (_headers.find("server") == _headers.end())
-	{
-		_headers["server"] = "42_Webserv/1.0";
-	}
 }
 
 /* ************************************************************************** */

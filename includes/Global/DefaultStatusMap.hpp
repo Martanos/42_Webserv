@@ -15,6 +15,7 @@
 // vector of size 1, the first element is the message and it must never contain
 // a body This map is to be used as a fallback if the server does not define its
 // own body
+// TODO: Unknown status codes should return a body that explains the status code
 class DefaultStatusMap
 {
 private:
