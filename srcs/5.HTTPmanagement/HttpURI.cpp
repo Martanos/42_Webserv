@@ -138,21 +138,21 @@ void HttpURI::sanitizeURI(const Server *server, const Location *location)
 		std::string value = token.substr(keyPos + 1);
 
 		// Decode key and value
-		key = HTTP_PARSING_UTILS::percentDecode(key);
-		value = HTTP_PARSING_UTILS::percentDecode(value);
+		key = StrUtils::percentDecode(key);
+		value = StrUtils::percentDecode(value);
 
 		// Add to query parameters
 		_queryParameters[key].push_back(value);
 	}
 
 	// 3. Sanitize path
-	path = HTTP_PARSING_UTILS::percentDecode(path);
+	path = StrUtils::percentDecode(path);
 
 	// 4. Combine path and root path
 	std::string root;
 	if (location && !location->getRoot().empty())
 		root = location->getRoot();
-	else 
+	else
 		root = server->getRootPath();
 
 	std::string fullPath = root;
@@ -178,6 +178,10 @@ void HttpURI::sanitizeURI(const Server *server, const Location *location)
 	_URI = resolvedPath;
 	return;
 }
+
+/*
+** --------------------------------- ACCESSORS ----------------------------------
+*/
 
 const std::string &HttpURI::getURI() const
 {

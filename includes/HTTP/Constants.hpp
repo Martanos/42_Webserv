@@ -46,47 +46,6 @@ bool isSupportedMethod(const std::string &method)
 
 } // namespace HTTP
 
-namespace HTTP_PARSING_UTILS
-{
-std::string percentDecode(const std::string &input)
-{
-	std::string output;
-	for (size_t i = 0; i < input.size(); ++i)
-	{
-		if (input[i] == '%' && i + 2 < input.size())
-		{
-			char hex[3] = {input[i + 1], input[i + 2], '\0'};
-			if (isxdigit(hex[0]) && isxdigit(hex[1]))
-			{
-				char *end;
-				output += static_cast<char>(strtol(hex, &end, 16));
-				if (*end != '\0')
-				{
-					output += '%'; // Preserve malformed %
-				}
-				i += 2;
-			}
-			else
-			{
-				output += '%'; // Preserve malformed %
-			}
-		}
-		else
-		{
-			output += input[i];
-		}
-	}
-	return output;
-}
-
-} // namespace HTTP_PARSING_UTILS
-
-// TODO: Move string utils here
-namespace STRING_UTILS
-{
-
-} // namespace STRING_UTILS
-
 // Server Constants
 namespace SERVER
 {

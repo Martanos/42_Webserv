@@ -111,8 +111,7 @@ void Client::handleEvent(epoll_event event)
 	updateActivity();
 	switch (event.events)
 	{
-	case EPOLLIN:
-	case EPOLLOUT:
+	case EPOLLIN | EPOLLOUT:
 	{
 		switch (_state)
 		{
@@ -131,21 +130,19 @@ void Client::handleEvent(epoll_event event)
 			break;
 		}
 	}
-	case EPOLLHUP:
-	case EPOLLRDHUP:
-	case EPOLLERR:
+	case EPOLLHUP | EPOLLRDHUP | EPOLLERR:
 	{
-		std::stringstream ss;
-		ss << "Client disconnected: " << _clientFd.getFd();
-		Logger::log(Logger::INFO, ss.str());
+		Logger::log(Logger::INFO, "Client disconnected: " + StrUtils::toString(_clientFd.getFd()), __FILE__, __LINE__,
+					__PRETTY_FUNCTION__);
 		_state = CLIENT_DISCONNECTED;
 		break;
 	}
 	default:
 	{
-		std::stringstream ss;
-		ss << "Unknown event: " << event.events << " for client " << _clientFd.getFd();
-		Logger::log(Logger::INFO, ss.str());
+		Logger::log(Logger::INFO,
+					"Unknown event: " + StrUtils::toString(event.events) + " for client " +
+						StrUtils::toString(_clientFd.getFd()),
+					__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		_state = CLIENT_DISCONNECTED;
 		break;
 	}
@@ -218,11 +215,18 @@ void Client::_handleBuffer()
 			break;
 		}
 	}
-	if (_responseBuffer.empty())
+	if (_responseBuffer.empty()) // Nothing to send wait for more data
 	{
-		_state = CLIENT_WAITING_FOR_REQUEST;
+		if (_holdingBuffer.empty()) // No data to process wait for more data
+		{
+			_state = CLIENT_WAITING_FOR_REQUEST;
+		}
+		else
+		{
+			_state = CLIENT_PROCESSING_REQUESTS;
+		}
 	}
-	else
+	else // We have something to send send it first
 	{
 		_state = CLIENT_PROCESSING_RESPONSES;
 	}
@@ -231,17 +235,24 @@ void Client::_handleBuffer()
 void Client::_handleRequest()
 {
 	// Identify if request is handled by the server then route
-	// 1. Verify location can be found on server (returns root if longest prefix match is not found)
-	// TODO: remove already inlined method handler factory
 	const Location *location = _request.getServer()->getLocation(_request.getUri());
-	// 2. Verify method is allowed
-	if (location->getAllowedMethods().find(_request.getMethod()) == location->getAllowedMethods().end())
+	if (!location) // 1. Verify location can be found on server (returns Null if exact match / longest prefix match is
+				   // not found)
+	{
+		_response.setStatus(404, "Not Found");
+		_response.setBody(_request.getServer()->getStatusPath(404));
+		_response.setHeader("Content-Type", "text/html");
+		_response.setHeader("Content-Length", StrUtils::toString(_response.getBody().length()));
+		return;
+	}
+	else if (std::find(location->getAllowedMethods().begin(), location->getAllowedMethods().end(),
+					   _request.getMethod()) == location->getAllowedMethods().end()) // 2. Verify method is allowed
+
 	{
 		_response.setStatus(405, "Method Not Allowed");
-		_response.setBody(_request.getServer()->getStatusPage(405));
+		_response.setBody(_request.getServer()->getStatusPath(405));
 		_response.setHeader("Content-Type", "text/html");
-		_response.setHeader("Content-Length", StringUtils::toString(_response.getBody().length()));
-		_response.setHeader("Allow", "GET, HEAD");
+		_response.setHeader("Content-Length", StrUtils::toString(_response.getBody().length()));
 		return;
 	}
 

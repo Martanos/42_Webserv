@@ -205,38 +205,52 @@ std::string removeControlCharacters(const std::string &str)
 // ============================================================
 
 // Decode percent-encoded URL string
-std::string percentDecode(const std::string &str)
+std::string percentDecode(const std::string &input)
 {
-	std::string result;
-	result.reserve(str.length());
+	std::string output;
+	output.reserve(input.length()); // Optimize memory allocation
 
-	for (size_t i = 0; i < str.length(); ++i)
+	for (size_t i = 0; i < input.length(); ++i)
 	{
-		if (str[i] == '%' && i + 2 < str.length())
+		if (input[i] == '%')
 		{
-			int high = hexCharToInt(str[i + 1]);
-			int low = hexCharToInt(str[i + 2]);
+			// Check if we have enough characters for %XX
+			if (i + 2 < input.length())
+			{
+				const char c1 = input[i + 1];
+				const char c2 = input[i + 2];
 
-			if (high >= 0 && low >= 0)
-			{
-				result += static_cast<char>((high << 4) | low);
-				i += 2;
+				// Validate hex digits (C++98 compatible)
+				if (std::isxdigit(static_cast<unsigned char>(c1)) && std::isxdigit(static_cast<unsigned char>(c2)))
+				{
+					// Convert hex to decimal
+					char hex[3] = {c1, c2, '\0'};
+					char *endPtr = NULL;
+					long value = std::strtol(hex, &endPtr, 16);
+
+					if (endPtr && *endPtr == '\0') // Successful conversion
+					{
+						output += static_cast<char>(value);
+						i += 2; // Skip the two hex digits
+						continue;
+					}
+				}
 			}
-			else
-			{
-				result += str[i];
-			}
+			// Invalid percent encoding - keep the '%' literally
+			output += input[i];
 		}
-		else if (str[i] == '+')
+		else if (input[i] == '+')
 		{
-			result += ' '; // Query string convention
+			// Query string convention: '+' represents space
+			output += ' ';
 		}
 		else
 		{
-			result += str[i];
+			output += input[i];
 		}
 	}
-	return result;
+
+	return output;
 }
 
 // Normalize multiple slashes to single slash
