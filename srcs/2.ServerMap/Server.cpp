@@ -126,6 +126,11 @@ bool Server::hasStatusPage(int status) const
 	return _statusPages.find(status) != _statusPages.end();
 }
 
+bool Server::hasRootPath() const
+{
+	return !_rootPath.empty();
+}
+
 bool Server::isAutoIndex() const
 {
 	return _autoIndex;

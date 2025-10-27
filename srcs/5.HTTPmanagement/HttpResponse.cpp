@@ -1,7 +1,9 @@
-#include "../../includes/HTTP/Response.hpp"
+#include "../../includes/HTTP/HttpResponse.hpp"
+#include "../../includes/Core/Location.hpp"
+#include "../../includes/Core/Server.hpp"
+#include "../../includes/Global/DefaultStatusMap.hpp"
 #include "../../includes/Global/Logger.hpp"
 #include "../../includes/Global/StrUtils.hpp"
-
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
@@ -67,6 +69,29 @@ void HttpResponse::setBody(const std::string &body)
 {
 	_body = body;
 	Logger::debug("HttpResponse: Set body with " + StrUtils::toString(body.length()) + " bytes");
+}
+
+void HttpResponse::setBody(const Location *location, const Server *server)
+{
+	if (location && location->hasStatusPage(_statusCode))
+	{
+		_body = location->getStatusPages().find(_statusCode)->second;
+	}
+	else if (server && server->hasStatusPage(_statusCode))
+	{
+		_body = server->getStatusPages().find(_statusCode)->second;
+	}
+	else if (DefaultStatusMap::hasStatusBody(_statusCode))
+	{
+		_body = DefaultStatusMap::getStatusBody(_statusCode);
+	}
+	else
+	{
+		Logger::log(Logger::ERROR, "No status page found for status code: " + StrUtils::toString(_statusCode));
+		_body = DefaultStatusMap::getStatusBody(500);
+	}
+	setHeader("Content-Type", "text/html");
+	setHeader("Content-Length", StrUtils::toString(_body.length()));
 }
 
 // Formats the response into a HTTP 1.1 compliant format

@@ -38,6 +38,7 @@ public:
 	bool hasIndexes() const;
 	bool hasCgiPath() const;
 	bool hasModified() const;
+	bool hasRoot() const;
 
 	// Accessors
 	const std::string &getPath() const;

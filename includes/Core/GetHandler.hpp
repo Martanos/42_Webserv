@@ -3,6 +3,7 @@
 
 #include "../../includes/Core/Location.hpp"
 #include "../../includes/Core/Server.hpp"
+#include "../../includes/Global/DefaultStatusMap.hpp"
 #include "../../includes/Global/Logger.hpp"
 #include "../../includes/Global/MimeTypeResolver.hpp"
 #include "../../includes/Global/StrUtils.hpp"
@@ -26,7 +27,7 @@ static inline bool isHiddenFile(const std::string &filename)
 	return filename.empty() || filename[0] == '.' || filename == "." || filename == "..";
 }
 
-// TODO: Move to response class/FileManager serveFile should jsut read the file into the kernel buffer no need to laod
+// TODO: Move to response class/FileManager serveFile should just read the file into the kernel buffer no need to laod
 // anything into memory
 static inline void serveFile(const std::string &filePath, HttpResponse &response)
 {
@@ -86,10 +87,10 @@ static inline void serveFile(const std::string &filePath, HttpResponse &response
 }
 
 // Try to serve index files from a directory
-static inline bool tryIndexFiles(const std::string &dirPath, const std::vector<std::string> &indexes,
+static inline bool tryIndexFiles(const std::string &dirPath, const TrieTree<std::string> &indexes,
 								 HttpResponse &response)
 {
-	for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); ++it)
+	for (TrieTree<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); ++it)
 	{
 		std::string indexPath = dirPath;
 		if (indexPath[indexPath.length() - 1] != '/')
@@ -268,6 +269,14 @@ static inline void handler(const HttpRequest &request, HttpResponse &response, c
 	try
 	{
 		std::string filePath = request.getUri();
+		if (filePath.empty())
+		{
+			response.setStatus(404, "Not Found");
+			response.setBody(location, server);
+			response.setHeader("Content-Type", "text/html");
+			response.setHeader("Content-Length", StrUtils::toString(response.getBody().length()));
+			return;
+		}
 		// Check if there's a redirect configured
 		if (location && location->hasRedirect())
 		{
@@ -283,7 +292,7 @@ static inline void handler(const HttpRequest &request, HttpResponse &response, c
 		{
 			Logger::log(Logger::WARNING, "File not found: " + filePath);
 			response.setStatus(404, "Not Found");
-			response.setBody(server->getStatusPath(404));
+			response.setBody(location, server);
 			response.setHeader("Content-Type", "text/html");
 			response.setHeader("Content-Length", StrUtils::toString(response.getBody().length()));
 			return;
@@ -306,7 +315,10 @@ static inline void handler(const HttpRequest &request, HttpResponse &response, c
 			std::vector<std::string> indexes;
 			if (location && location->hasIndexes())
 			{
-				indexes.push_back(location->getIndex());
+				if (GET_UTILS::tryIndexFiles(filePath, location->getIndexes(), response))
+				{
+					return;
+				}
 			}
 			else
 			{

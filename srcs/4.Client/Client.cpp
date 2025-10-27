@@ -1,4 +1,5 @@
 #include "../../includes/Core/Client.hpp"
+#include "../../includes/Core/GetHandler.hpp"
 #include "../../includes/Global/Logger.hpp"
 #include "../../includes/Global/StrUtils.hpp"
 #include "../../includes/HTTP/HttpRequest.hpp"
@@ -240,7 +241,7 @@ void Client::_handleRequest()
 				   // not found)
 	{
 		_response.setStatus(404, "Not Found");
-		_response.setBody(_request.getServer()->getStatusPath(404));
+		_response.setBody(location, _request.getServer());
 		_response.setHeader("Content-Type", "text/html");
 		_response.setHeader("Content-Length", StrUtils::toString(_response.getBody().length()));
 		return;
@@ -250,7 +251,7 @@ void Client::_handleRequest()
 
 	{
 		_response.setStatus(405, "Method Not Allowed");
-		_response.setBody(_request.getServer()->getStatusPath(405));
+		_response.setBody(location, _request.getServer());
 		_response.setHeader("Content-Type", "text/html");
 		_response.setHeader("Content-Length", StrUtils::toString(_response.getBody().length()));
 		return;
@@ -266,8 +267,30 @@ void Client::_handleRequest()
 		return;
 	}
 
-	// TODO: Function tree
-	// TODO: Implement switch case for method handlers
+	if (_request.getMethod() == "GET" || _request.getMethod() == "HEAD")
+	{
+		GET::handler(_request, _response, _request.getServer(), location);
+	}
+	else if (_request.getMethod() == "POST")
+	{
+		POST::handler(_request, _response, _request.getServer(), location);
+	}
+	else if (_request.getMethod() == "PUT")
+	{
+		PUT::handler(_request, _response, _request.getServer(), location);
+	}
+	else if (_request.getMethod() == "DELETE")
+	{
+		DELETE::handler(_request, _response, _request.getServer(), location);
+	}
+	else
+	{
+		_response.setStatus(405, "Method Not Allowed");
+		_response.setBody(location, _request.getServer());
+		_response.setHeader("Content-Type", "text/html");
+		_response.setHeader("Content-Length", StrUtils::toString(_response.getBody().length()));
+		return;
+	}
 }
 
 /*

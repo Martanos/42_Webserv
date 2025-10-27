@@ -110,7 +110,7 @@ void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 	_uriState = URI_PARSING_COMPLETE;
 }
 
-void HttpURI::sanitizeURI(const Server *server, const Location *location)
+void HttpURI::sanitizeURI(const Server *server, const Location *location, HttpResponse &response)
 {
 	std::string path;
 	std::string queryParameters;
@@ -163,15 +163,23 @@ void HttpURI::sanitizeURI(const Server *server, const Location *location)
 	char resolvedPath[PATH_MAX];
 	if (realpath(fullPath.c_str(), resolvedPath) == NULL)
 	{
-		Logger::log(Logger::ERROR, "Cannot resolve path: " + fullPath);
 		_uriState = URI_PARSING_ERROR;
+		Logger::log(Logger::ERROR, "Cannot resolve path: " + fullPath);
+		response.setStatus(404, "Not Found");
+		response.setBody(location, server);
+		response.setHeader("Content-Type", "text/html");
+		response.setHeader("Content-Length", StrUtils::toString(response.getBody().length()));
 		return;
 	}
 
 	if (std::string(resolvedPath).compare(0, root.size(), root) != 0)
 	{
-		Logger::log(Logger::ERROR, "Resolved path escapes root: " + std::string(resolvedPath));
 		_uriState = URI_PARSING_ERROR;
+		Logger::log(Logger::ERROR, "Resolved path escapes root: " + std::string(resolvedPath));
+		response.setStatus(404, "Not Found");
+		response.setBody(location, server);
+		response.setHeader("Content-Type", "text/html");
+		response.setHeader("Content-Length", StrUtils::toString(response.getBody().length()));
 		return;
 	}
 

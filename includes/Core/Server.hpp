@@ -60,6 +60,7 @@ public:
 	bool isAutoIndex() const;
 	bool isKeepAlive() const;
 	bool isModified() const;
+	bool hasRootPath() const;
 
 	// Accessors
 	const TrieTree<std::string> &getServerNames() const;

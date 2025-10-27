@@ -136,12 +136,6 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 void HttpRequest::sanitizeRequest(HttpResponse &response, const Server *server, const Location *location)
 {
 	_uri.sanitizeURI(server, location);
-	if (_uri.getURIState() == HttpURI::URI_PARSING_ERROR)
-	{
-		response.setStatus(400, "Bad Request");
-		_parseState = PARSING_ERROR;
-		return;
-	}
 }
 
 /*
@@ -149,7 +143,7 @@ void HttpRequest::sanitizeRequest(HttpResponse &response, const Server *server, 
 *----------------------------------
 */
 
-const std::vector<std::string> HttpRequest::getHeader(const std::string &name) const
+const Header::Header *HttpRequest::getHeader(const std::string &name) const
 {
 	return _headers.getHeader(name);
 }

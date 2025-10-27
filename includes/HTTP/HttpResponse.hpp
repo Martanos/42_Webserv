@@ -1,6 +1,9 @@
 #ifndef HTTPRESPONSE_HPP
 #define HTTPRESPONSE_HPP
 
+#include "../../includes/Core/Location.hpp"
+#include "../../includes/Core/Server.hpp"
+#include "../../includes/HTTP/Header.hpp"
 #include <map>
 #include <string>
 
@@ -20,7 +23,7 @@ private:
 	int _statusCode;
 	std::string _statusMessage;
 	std::string _version;
-	std::map<std::string, std::string> _headers;
+	std::vector<Header> _headers;
 	std::string _body;
 	size_t _bytesSent;
 	std::string _rawResponse;
@@ -47,8 +50,9 @@ public:
 	void setStatusMessage(const std::string &message);
 	void setStatus(int code, const std::string &message);
 	void setVersion(const std::string &version);
-	void setHeaders(const std::map<std::string, std::string> &headers);
+	void setHeaders(const std::vector<Header> &headers);
 	void setBody(const std::string &body);
+	void setBody(const Location *location, const Server *server);
 	void setBytesSent(size_t bytesSent);
 	void setRawResponse(const std::string &rawResponse);
 

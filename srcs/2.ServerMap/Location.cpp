@@ -122,6 +122,11 @@ bool Location::hasModified() const
 	return _modified;
 }
 
+bool Location::hasRoot() const
+{
+	return !_root.empty();
+}
+
 /*
 ** --------------------------------- ACCESSORS ---------------------------------
 */
