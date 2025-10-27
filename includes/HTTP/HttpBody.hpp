@@ -1,9 +1,9 @@
 #ifndef HTTPBODY_HPP
 #define HTTPBODY_HPP
 
-#include "../Core/FileDescriptor.hpp"
-#include "../Core/FileManager.hpp"
-#include "../Core/HttpResponse.hpp"
+#include "../../includes/HTTP/HttpResponse.hpp"
+#include "../../includes/Wrapper/FileDescriptor.hpp"
+#include "../../includes/Wrapper/FileManager.hpp"
 #include <cerrno>
 #include <climits>
 #include <cstdlib>

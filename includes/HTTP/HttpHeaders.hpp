@@ -1,17 +1,12 @@
 #ifndef HTTPHEADERS_HPP
 #define HTTPHEADERS_HPP
 
-#include "Constants.hpp"
-#include "HttpBody.hpp"
-#include "HttpResponse.hpp"
-#include "Logger.hpp"
-#include "StringUtils.hpp"
-#include <algorithm>
+#include "../../includes/HTTP/HttpBody.hpp"
+#include "../../includes/HTTP/HttpResponse.hpp"
 #include <cstddef>
 #include <cstdlib>
 #include <ctime>
 #include <map>
-#include <sstream>
 #include <string>
 #include <sys/types.h>
 #include <unistd.h>
@@ -32,9 +27,9 @@ private:
 	struct Header
 	{
 		std::string value;
-		}
+	};
+
 	HeadersState _headersState;
-	std::vector<std::string
 	std::map<std::string, std::vector<std::string> > _headers;
 	size_t _rawHeadersSize;
 

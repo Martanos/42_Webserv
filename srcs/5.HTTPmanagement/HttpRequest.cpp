@@ -1,18 +1,10 @@
-#include "../../includes/HttpRequest.hpp"
-#include "../../includes/PerformanceMonitor.hpp"
-
-#include "Constants.hpp"
-#include "FileDescriptor.hpp"
-#include "HttpBody.hpp"
-#include "HttpHeaders.hpp"
-#include "HttpURI.hpp"
-#include "Logger.hpp"
-#include "Server.hpp"
-#include "StringUtils.hpp"
-#include <algorithm>
-#include <cctype>
-#include <cstdlib>
-#include <sstream>
+#include "../../includes/HTTP/HttpRequest.hpp"
+#include "../../includes/Core/Server.hpp"
+#include "../../includes/Global/Logger.hpp"
+#include "../../includes/Global/PerformanceMonitor.hpp"
+#include "../../includes/HTTP/HttpBody.hpp"
+#include "../../includes/HTTP/HttpHeaders.hpp"
+#include "../../includes/HTTP/HttpURI.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -100,7 +92,7 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 			_parseState = PARSING_BODY;
 			break;
 		case HttpHeaders::HEADERS_PARSING_ERROR:
-			Logger::error("HttpRequest: Headers parsing error", __FILE__, __LINE__);
+			Logger::error("HttpRequest: Headers parsing error", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			_parseState = PARSING_ERROR;
 			break;
 		}
@@ -110,7 +102,7 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 	{
 		if (_server == NULL)
 		{
-			Logger::error("HttpRequest: No server found", __FILE__, __LINE__);
+			Logger::error("HttpRequest: No server found", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			response.setStatus(400, "Bad Request");
 			_parseState = PARSING_ERROR;
 			break;
@@ -128,7 +120,7 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 			_parseState = PARSING_BODY;
 			break;
 		case HttpBody::BODY_PARSING_ERROR:
-			Logger::error("HttpRequest: Body parsing error", __FILE__, __LINE__);
+			Logger::error("HttpRequest: Body parsing error", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			_parseState = PARSING_ERROR;
 			break;
 		}

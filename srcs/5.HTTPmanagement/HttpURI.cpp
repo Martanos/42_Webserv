@@ -1,7 +1,8 @@
-#include "../../includes/HttpURI.hpp"
-#include "../../includes/HttpResponse.hpp"
-#include "../../includes/Logger.hpp"
-#include "../../includes/StringUtils.hpp"
+#include "../../includes/HTTP/HttpURI.hpp"
+#include "../../includes/Global/Logger.hpp"
+#include "../../includes/Global/StrUtils.hpp"
+#include "../../includes/HTTP/Constants.hpp"
+#include "../../includes/HTTP/HttpResponse.hpp"
 #include <algorithm>
 #include <sstream>
 
@@ -151,8 +152,8 @@ void HttpURI::sanitizeURI(const Server *server, const Location *location)
 	std::string root;
 	if (location && !location->getRoot().empty())
 		root = location->getRoot();
-	else
-		root = server->getRoot();
+	else 
+		root = server->getRootPath();
 
 	std::string fullPath = root;
 	if (!root.empty() && root[root.size() - 1] != '/')

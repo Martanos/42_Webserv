@@ -1,10 +1,11 @@
 #ifndef HTTPREQUEST_HPP
 #define HTTPREQUEST_HPP
 
-#include "HttpBody.hpp"
-#include "HttpHeaders.hpp"
-#include "HttpURI.hpp"
-#include "Server.hpp"
+#include "../../includes/Core/Server.hpp"
+#include "../../includes/HTTP/HttpBody.hpp"
+#include "../../includes/HTTP/HttpHeaders.hpp"
+#include "../../includes/HTTP/HttpResponse.hpp"
+#include "../../includes/HTTP/HttpURI.hpp"
 #include <cstdlib>
 #include <ctime>
 #include <map>

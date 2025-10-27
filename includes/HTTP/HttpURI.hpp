@@ -1,11 +1,10 @@
 #ifndef HTTPURI_HPP
 #define HTTPURI_HPP
 
-#include "Constants.hpp"
-#include "HttpResponse.hpp"
-#include "Logger.hpp"
+#include "../../includes/Core/Location.hpp"
+#include "../../includes/Core/Server.hpp"
+#include "../../includes/HTTP/HttpResponse.hpp"
 #include <cstddef>
-#include <iostream>
 #include <string>
 #include <sys/types.h>
 #include <unistd.h>

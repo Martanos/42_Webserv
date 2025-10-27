@@ -1,7 +1,7 @@
 #include "../../includes/ConfigParser/ConfigTranslator.hpp"
-#include "../../includes/Global/Constants.hpp"
 #include "../../includes/Global/Logger.hpp"
 #include "../../includes/Global/StrUtils.hpp"
+#include "../../includes/HTTP/Constants.hpp"
 #include <vector>
 
 /*

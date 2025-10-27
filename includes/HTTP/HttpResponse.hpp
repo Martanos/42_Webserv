@@ -1,8 +1,8 @@
 #ifndef HTTPRESPONSE_HPP
 #define HTTPRESPONSE_HPP
 
-#include "Logger.hpp"
-#include "StringUtils.hpp"
+#include "../../includes/Global/Logger.hpp"
+#include "../../includes/Global/StrUtils.hpp"
 #include <iostream>
 #include <map>
 #include <sstream>

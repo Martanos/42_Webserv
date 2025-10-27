@@ -1,11 +1,10 @@
-#include "../../includes/HttpHeaders.hpp"
-#include "../../includes/HttpBody.hpp"
-#include "../../includes/HttpResponse.hpp"
-#include "../../includes/Logger.hpp"
+#include "../../includes/HTTP/HttpHeaders.hpp"
+#include "../../includes/Global/Logger.hpp"
+#include "../../includes/HTTP/Constants.hpp"
+#include "../../includes/HTTP/HttpBody.hpp"
+#include "../../includes/HTTP/HttpResponse.hpp"
 #include <algorithm>
 #include <cctype>
-#include <iostream>
-#include <limits>
 #include <sstream>
 
 /*

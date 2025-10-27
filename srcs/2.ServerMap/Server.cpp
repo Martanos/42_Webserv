@@ -1,6 +1,5 @@
 #include "../../includes/Core/Server.hpp"
-#include "../../includes/Global/Constants.hpp"
-#include "../../includes/Utils/String.hpp"
+#include "../../includes/HTTP/Constants.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------

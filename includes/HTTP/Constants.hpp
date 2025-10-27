@@ -1,11 +1,7 @@
 #ifndef CONSTANTS_HPP
 #define CONSTANTS_HPP
 
-#include "../../includes/Core/Location.hpp"
-#include "../../includes/Core/Server.hpp"
 #include "../../includes/Global/Logger.hpp"
-#include "../../includes/HTTP_Parsing/HttpRequest.hpp"
-#include "../../includes/HTTP_Parsing/HttpResponse.hpp"
 #include "../../includes/Wrapper/FileDescriptor.hpp"
 #include <cstddef>
 #include <dirent.h>
@@ -42,7 +38,7 @@ bool isSupportedMethod(const std::string &method)
 {
 	for (size_t i = 0; i < sizeof(HTTP::SUPPORTED_METHODS) / sizeof(HTTP::SUPPORTED_METHODS[0]); ++i)
 	{
-		if (std::string(SUPPORTED_METHODS[i]) == method)
+		if (SUPPORTED_METHODS[i] == method)
 			return true;
 	}
 	return false;

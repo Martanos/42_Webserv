@@ -1,6 +1,8 @@
-#include "../../includes/Client.hpp"
-#include "../../includes/Logger.hpp"
-#include "../../includes/PerformanceMonitor.hpp"
+#include "../../includes/Core/Client.hpp"
+#include "../../includes/Global/Logger.hpp"
+#include "../../includes/Global/StrUtils.hpp"
+#include "../../includes/HTTP/HttpRequest.hpp"
+#include "../../includes/HTTP/HttpResponse.hpp"
 #include <cstdio>
 #include <sstream>
 #include <sys/epoll.h>
@@ -243,6 +245,7 @@ void Client::_handleRequest()
 		return;
 	}
 
+	// TODO: Move sanitization to HTTP Parser
 	// 3. Once location is found sanitize the request
 	_request.sanitizeRequest(_response, _request.getServer(), location);
 	if (_request.getParseState() == HttpRequest::PARSING_ERROR)
@@ -253,10 +256,8 @@ void Client::_handleRequest()
 		return;
 	}
 
-	// TODO: Implement new static method handler factory
-	MethodHandlerFactory::getInstance()
-		.getHandler(_request.getMethod())
-		->handle(_request, _response, _request.getServer(), location);
+	// TODO: Function tree
+	// TODO: Implement switch case for method handlers
 }
 
 /*
