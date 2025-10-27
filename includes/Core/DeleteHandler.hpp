@@ -3,7 +3,6 @@
 
 #include "../../includes/Core/Location.hpp"
 #include "../../includes/Core/Server.hpp"
-#include "../../includes/Global/StrUtils.hpp"
 #include "../../includes/HTTP/HttpRequest.hpp"
 #include "../../includes/HTTP/HttpResponse.hpp"
 #include <dirent.h>

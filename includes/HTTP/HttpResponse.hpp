@@ -77,6 +77,7 @@ public:
 	std::string getRawResponse() const;
 
 	// Mutators
+	void setHeader(const Header &header);
 	void insertHeader(const Header &header);
 	void setStatusCode(int code);
 	void setStatusMessage(const std::string &message);
@@ -87,6 +88,7 @@ public:
 	void setBody(const Location *location, const Server *server);
 	void setBytesSent(size_t bytesSent);
 	void setRawResponse(const std::string &rawResponse);
+	void setLastModifiedHeader();
 
 	// Methods
 	void setResponse(int statusCode, const std::string &statusMessage, const Server *server, const Location *location,

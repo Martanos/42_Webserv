@@ -89,6 +89,20 @@ void HttpResponse::setStatus(int code, const std::string &message)
 	_statusMessage = message;
 }
 
+// Replaces a header if it exists else inserts it
+void HttpResponse::setHeader(const Header &header)
+{
+	for (std::vector<Header>::iterator it = _headers.begin(); it != _headers.end(); ++it)
+	{
+		if (*it == header)
+		{
+			*it = header;
+			return;
+		}
+	}
+	_headers.push_back(header);
+}
+// Inserts/mergers a header if it exists
 void HttpResponse::insertHeader(const Header &header)
 {
 	for (std::vector<Header>::iterator it = _headers.begin(); it != _headers.end(); ++it)
@@ -105,6 +119,9 @@ void HttpResponse::insertHeader(const Header &header)
 void HttpResponse::setBody(const std::string &body)
 {
 	_body = body;
+	_streamBody = false;
+	setHeader(Header("content-type: text/html"));
+	setHeader(Header("content-length: " + StrUtils::toString(body.length())));
 }
 
 // Used when location and server have not been identified
@@ -270,6 +287,15 @@ void HttpResponse::setBytesSent(size_t bytesSent)
 void HttpResponse::setRawResponse(const std::string &rawResponse)
 {
 	_rawResponse = rawResponse;
+}
+
+void HttpResponse::setLastModifiedHeader()
+{
+	std::time_t lastModified = std::time(0);
+	char buffer[100];
+	struct tm *tm = std::gmtime(&lastModified);
+	strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", tm);
+	setHeader(Header("last-modified: " + std::string(buffer) + " GMT"));
 }
 
 /* ************************************************************************** */

@@ -35,55 +35,26 @@ static inline void serveFile(const std::string &filePath, HttpResponse &response
 	FileDescriptor fd = FileDescriptor::createFromOpen(filePath.c_str(), O_RDONLY);
 
 	if (!fd.isValid())
-	{
-		Logger::log(Logger::ERROR, "Cannot open file: " + filePath);
-		response.setStatus(403, "Forbidden");
-		return;
-	}
+		return response.setResponse(500, "Cannot access file: " + filePath, NULL, NULL, filePath);
 
 	// Get file size
 	struct stat fileStat;
 	if (fstat(fd.getFd(), &fileStat) != 0)
-	{
-		Logger::log(Logger::ERROR, "Cannot stat file: " + filePath);
-		response.setStatus(500, "Internal Server Error");
-		return;
-	}
+		return response.setResponse(500, "Cannot get file statistics", NULL, NULL, filePath);
 
 	// Check file size (prevent loading huge files into memory)
 	const size_t MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB limit
 	if (static_cast<size_t>(fileStat.st_size) > MAX_FILE_SIZE)
-	{
-		Logger::log(Logger::ERROR, "File too large: " + filePath);
-		response.setStatus(413, "Payload Too Large");
-		return;
-	}
+		return response.setResponse(413, "Payload Too Large", NULL, NULL, filePath);
 
 	// Read file content using FileDescriptor's readFile method
-	std::string content;
-	content.resize(fileStat.st_size);
-	ssize_t bytesRead = read(fd.getFd(), &content[0], fileStat.st_size);
-
-	if (bytesRead < 0 || bytesRead != fileStat.st_size)
-	{
-		Logger::log(Logger::ERROR, "Error reading file: " + filePath);
-		response.setStatus(500, "Internal Server Error");
-		return;
-	}
+	response.setBody(fd.readFile());
 
 	// Set response
-	response.setStatus(200, "OK");
-	response.setBody(content);
-	response.setHeader("Content-Type", MimeTypeResolver::getMimeType(filePath));
-	response.setHeader("Content-Length", StrUtils::toString(content.length()));
+	response.setResponse(200, "OK", NULL, NULL, filePath);
 
 	// Add Last-Modified header
-	char buffer[100];
-	struct tm *tm = gmtime(&fileStat.st_mtime);
-	strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", tm);
-	response.setHeader("Last-Modified", std::string(buffer));
-
-	// FileDescriptor destructor will automatically close the file
+	response.setLastModifiedHeader();
 }
 
 // Try to serve index files from a directory
@@ -110,6 +81,7 @@ static inline bool tryIndexFiles(const std::string &dirPath, const TrieTree<std:
 }
 
 // URL encode a string
+// TODO: Move to StrUtils
 static inline std::string urlEncode(const std::string &str)
 {
 	std::stringstream encoded;
@@ -129,7 +101,7 @@ static inline std::string urlEncode(const std::string &str)
 	return encoded.str();
 }
 
-// Format file size for display
+// Format file size for display TODO: Move to StrUtils
 static inline std::string formatFileSize(off_t size)
 {
 	std::stringstream ss;
@@ -255,10 +227,8 @@ static inline void generateDirectoryListing(const std::string &dirPath, const st
 	html << "</body>\n</html>\n";
 
 	std::string htmlContent = html.str();
-	response.setStatus(200, "OK");
+	response.setResponse(200, "OK", NULL, NULL, dirPath);
 	response.setBody(htmlContent);
-	response.setHeader("Content-Type", "text/html");
-	response.setHeader("Content-Length", StrUtils::toString(htmlContent.length()));
 }
 
 } // namespace GET_UTILS
@@ -270,95 +240,43 @@ static inline void handler(const HttpRequest &request, HttpResponse &response, c
 	{
 		std::string filePath = request.getUri();
 		if (filePath.empty())
-		{
-			response.setStatus(404, "Not Found");
-			response.setBody(location, server);
-			response.setHeader("Content-Type", "text/html");
-			response.setHeader("Content-Length", StrUtils::toString(response.getBody().length()));
-			return;
-		}
+			return response.setResponse(404, "Not Found", NULL, NULL, filePath);
 		// Check if there's a redirect configured
 		if (location && location->hasRedirect())
-		{
-			response.setStatus(301, "Moved Permanently");
-			response.setHeader("Location", location->getRedirect().second);
-			response.setHeader("Content-Length", "0");
-			return;
-		}
-
+			return response.setResponse(301, "Moved Permanently", NULL, NULL, location->getRedirect().second);
 		// Get file statistics
 		struct stat fileStat;
 		if (stat(filePath.c_str(), &fileStat) != 0)
-		{
-			Logger::log(Logger::WARNING, "File not found: " + filePath);
-			response.setStatus(404, "Not Found");
-			response.setBody(location, server);
-			response.setHeader("Content-Type", "text/html");
-			response.setHeader("Content-Length", StrUtils::toString(response.getBody().length()));
-			return;
-		}
-
+			return response.setResponse(404, "Not Found", NULL, NULL, filePath);
 		// Check if it's a directory
 		if (S_ISDIR(fileStat.st_mode))
 		{
 			// Ensure trailing slash for directories
 			std::string uri = request.getUri();
 			if (!uri.empty() && uri[uri.length() - 1] != '/')
-			{
-				response.setStatus(301, "Moved Permanently");
-				response.setHeader("Location", uri + "/");
-				response.setHeader("Content-Length", "0");
-				return;
-			}
+				return response.setResponse(301, "Moved Permanently", NULL, NULL, uri + "/");
 
-			// Get index files from location or server config
-			std::vector<std::string> indexes;
+			// If index files are located in the location, try to serve them
 			if (location && location->hasIndexes())
-			{
 				if (GET_UTILS::tryIndexFiles(filePath, location->getIndexes(), response))
-				{
 					return;
-				}
-			}
-			else
-			{
-				indexes = server->getIndexes();
-			}
-
-			// Try to serve index files
-			if (!indexes.empty() && GET_UTILS::tryIndexFiles(filePath, indexes, response))
-			{
-				return;
-			}
 
 			// Check if autoindex is enabled
 			bool autoindex = location->hasAutoIndex();
 
+			// If autoindex is enabled, generate directory listing
 			if (autoindex)
-			{
-				GET_UTILS::generateDirectoryListing(filePath, request.getUri(), response);
-			}
+				return GET_UTILS::generateDirectoryListing(filePath, request.getUri(), response);
 			else
-			{
-				response.setStatus(403, "Forbidden");
-				response.setBody(server->getStatusPath(403));
-				response.setHeader("Content-Type", "text/html");
-				response.setHeader("Content-Length", StrUtils::toString(response.getBody().length()));
-			}
+				return response.setResponse(403, "Forbidden", NULL, NULL, filePath);
 		}
 		else if (S_ISREG(fileStat.st_mode))
 		{
-			// Serve regular file
-			GET_UTILS::serveFile(filePath, response);
+			// If it's a regular file, serve it
+			return GET_UTILS::serveFile(filePath, response);
 		}
-		else
-		{
-			// Not a regular file or directory
-			response.setStatus(403, "Forbidden");
-			response.setBody(server->getStatusPath(403));
-			response.setHeader("Content-Type", "text/html");
-			response.setHeader("Content-Length", StrUtils::toString(response.getBody().length()));
-		}
+		// Not a regular file or directory
+		return response.setResponse(403, "Forbidden", NULL, NULL, filePath);
 
 		// Handle HEAD requests (no body)
 		if (request.getMethod() == "HEAD")
@@ -369,10 +287,7 @@ static inline void handler(const HttpRequest &request, HttpResponse &response, c
 	catch (const std::exception &e)
 	{
 		Logger::log(Logger::ERROR, "Error handling GET request: " + std::string(e.what()));
-		response.setStatus(500, "Internal Server Error");
-		response.setBody(server->getStatusPath(500));
-		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length", StrUtils::toString(response.getBody().length()));
+		return response.setResponse(500, "Internal Server Error", NULL, NULL, request.getUri());
 	}
 }
 } // namespace GET
