@@ -1,4 +1,4 @@
-#include "../../includes/HTTP/HttpResponse.hpp"
+#include "../../includes/HTTP/Response.hpp"
 #include "../../includes/Global/Logger.hpp"
 #include "../../includes/Global/StrUtils.hpp"
 

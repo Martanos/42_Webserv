@@ -256,7 +256,7 @@ void Client::_handleRequest()
 		return;
 	}
 
-	// TODO: Move sanitization to HTTP Parser
+	// TODO: Move sanitization to HTTP Parser ("message should be sanitized at parsing time")
 	// 3. Once location is found sanitize the request
 	_request.sanitizeRequest(_response, _request.getServer(), location);
 	if (_request.getParseState() == HttpRequest::PARSING_ERROR)

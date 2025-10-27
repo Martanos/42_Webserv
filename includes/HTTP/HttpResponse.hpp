@@ -1,32 +1,22 @@
 #ifndef HTTPRESPONSE_HPP
 #define HTTPRESPONSE_HPP
 
-#include "../../includes/Global/Logger.hpp"
-#include "../../includes/Global/StrUtils.hpp"
-#include <iostream>
 #include <map>
-#include <sstream>
 #include <string>
 
-// TODO: Add auto formatting and auto sending for this
+// General response class
 class HttpResponse
 {
 private:
+	// State of the response
 	enum HttpResponseState
 	{
-		RESPONSE_INITIAL = 0,
-		RESPONSE_SENDING = 1,
+		RESPONSE_SENDING = 0,
+		RESPONSE_SENT = 1,
 		RESPONSE_ERROR = 2
 	};
 
-	enum HttpResponseType
-	{
-		NORMAL_RESPONSE = 0,
-		ERROR_RESPONSE = 1,
-		PROTOCOL_LEVEL_ERROR = 0,	// If this occurs send a basic error response then close the connection
-		APPLICATION_LEVEL_ERROR = 1 // If this occurs send a basic error response keep the connection open depending on
-	};
-
+	// Response data
 	int _statusCode;
 	std::string _statusMessage;
 	std::string _version;

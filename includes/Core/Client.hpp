@@ -3,10 +3,6 @@
 #define CLIENT_HPP
 
 #include "../../includes/Core/Server.hpp"
-#include "../../includes/Global/DefaultStatusMap.hpp"
-#include "../../includes/Global/Logger.hpp"
-#include "../../includes/Global/MimeTypeResolver.hpp"
-#include "../../includes/Global/StrUtils.hpp"
 #include "../../includes/HTTP/HttpRequest.hpp"
 #include "../../includes/HTTP/HttpResponse.hpp"
 #include "../../includes/Wrapper/FileDescriptor.hpp"
@@ -14,7 +10,6 @@
 #include <deque>
 #include <fcntl.h>
 #include <netinet/in.h>
-#include <string>
 #include <sys/epoll.h>
 #include <sys/socket.h>
 #include <unistd.h>
