@@ -1,7 +1,7 @@
 #include "../../includes/HTTP/HttpURI.hpp"
 #include "../../includes/Global/Logger.hpp"
 #include "../../includes/Global/StrUtils.hpp"
-#include "../../includes/HTTP/Constants.hpp"
+#include "../../includes/HTTP/HTTP.hpp"
 #include "../../includes/HTTP/HttpResponse.hpp"
 #include <algorithm>
 #include <sstream>

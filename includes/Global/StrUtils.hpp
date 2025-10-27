@@ -32,6 +32,27 @@ std::string toUpperCase(const std::string &str)
 	return result;
 }
 
+std::string trimLeadingSpaces(const std::string &str)
+{
+	size_t start = str.find_first_not_of(" \t\r\n");
+	if (start == std::string::npos)
+		return str;
+	return str.substr(start);
+}
+
+std::string trimTrailingSpaces(const std::string &str)
+{
+	size_t end = str.find_last_not_of(" \t\r\n");
+	if (end == std::string::npos)
+		return str;
+	return str.substr(0, end + 1);
+}
+
+std::string trimSpaces(const std::string &str)
+{
+	return trimLeadingSpaces(str) + trimTrailingSpaces(str);
+}
+
 template <typename T> std::string toString(T value)
 {
 	std::stringstream ss;
@@ -47,6 +68,8 @@ template <typename T> T fromString(const std::string &str)
 	return value;
 }
 
+// Split string into a vector of strings using a delimiter
+// preserves everything except the delimiter
 std::vector<std::string> splitString(const std::string &str, char delimiter)
 {
 	std::vector<std::string> parts;
@@ -93,6 +116,23 @@ int hexCharToInt(char c)
 	if (c >= 'A' && c <= 'F')
 		return c - 'A' + 10;
 	return -1;
+}
+
+// RFC 7230 §3.2.6: Token
+bool isValidTokenCharacter(char c)
+{
+	return std::string("!#$%&'*+-./^_`|~0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ").find(c) !=
+		   std::string::npos;
+}
+
+bool isValidToken(const std::string &str)
+{
+	for (size_t i = 0; i < str.size(); ++i)
+	{
+		if (!isValidPathCharacter(str[i]))
+			return false;
+	}
+	return true;
 }
 
 // ============================================================

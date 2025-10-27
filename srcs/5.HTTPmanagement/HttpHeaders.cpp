@@ -1,11 +1,10 @@
 #include "../../includes/HTTP/HttpHeaders.hpp"
 #include "../../includes/Global/Logger.hpp"
-#include "../../includes/HTTP/Constants.hpp"
+#include "../../includes/HTTP/HTTP.hpp"
 #include "../../includes/HTTP/HttpBody.hpp"
 #include "../../includes/HTTP/HttpResponse.hpp"
 #include <algorithm>
 #include <cctype>
-#include <sstream>
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -14,7 +13,7 @@
 HttpHeaders::HttpHeaders()
 {
 	_headersState = HEADERS_PARSING;
-	_headers = std::map<std::string, std::vector<std::string> >();
+	_headers = std::vector<Header>();
 	_rawHeadersSize = 0;
 }
 
@@ -68,24 +67,24 @@ void HttpHeaders::parseBuffer(std::vector<char> &buffer, HttpResponse &response,
 	}
 
 	// Extract header data from buffer
-	std::string headersData;
-	headersData.assign(buffer.begin(), it);
+	std::string rawHeader;
+	rawHeader.assign(buffer.begin(), it);
 	buffer.erase(buffer.begin(), it + 2);
-	if (headersData.empty())
+	if (rawHeader.empty())
 	{
 		parseAllHeaders(response, body);
 		_headersState = HEADERS_PARSING_COMPLETE;
 		Logger::log(Logger::DEBUG, "Headers parsing complete");
 		return;
 	}
-	else if (headersData.size() + 2 > HTTP::MAX_HEADERS_LINE_SIZE)
+	else if (rawHeader.size() + 2 > HTTP::MAX_HEADERS_LINE_SIZE)
 	{
 		response.setStatus(413, "Request Line Header Too Large");
 		Logger::log(Logger::ERROR, "Header line size limit exceeded");
 		_headersState = HEADERS_PARSING_ERROR;
 		return;
 	}
-	_rawHeadersSize = headersData.size() + 2;
+	_rawHeadersSize = rawHeader.size() + 2;
 	if (_rawHeadersSize > HTTP::MAX_HEADERS_SIZE)
 	{
 		response.setStatus(413, "Request headers total size too large");
@@ -95,102 +94,51 @@ void HttpHeaders::parseBuffer(std::vector<char> &buffer, HttpResponse &response,
 	}
 
 	// Parse headers
-	parseHeaderLine(headersData, response);
+	parseHeaderLine(rawHeader, response);
 }
 
-void HttpHeaders::parseHeaderLine(const std::string &line, HttpResponse &response)
+void HttpHeaders::parseHeaderLine(const std::string &rawHeader, HttpResponse &response)
 {
-	// Find colon separator
-	size_t colonPos = line.find(':');
-	if (colonPos == std::string::npos)
+	try
 	{
-		Logger::log(Logger::WARNING, "Invalid header line (no colon): " + line);
+		Header header(rawHeader);
+		for (std::vector<Header>::iterator it = _headers.begin(); it != _headers.end(); ++it)
+		{
+			if (*it == header)
+			{
+				if (isSingletonHeader(header.getDirective()))
+				{
+					Logger::log(Logger::WARNING, "Singleton header " + header.getDirective() + " found multiple times");
+					_headersState = HEADERS_PARSING_ERROR;
+					response.setStatus(400, "Bad Request");
+					return;
+				}
+				it->merge(header);
+				return;
+			}
+		}
+		_headers.push_back(header); // If the header is not found, add it to the list
+	}
+	catch (const std::exception &e)
+	{
+		Logger::log(Logger::ERROR, "Error parsing header: " + std::string(e.what()));
 		_headersState = HEADERS_PARSING_ERROR;
 		response.setStatus(400, "Bad Request");
-		return;
 	}
-	// Extract and sanitize header name
-	std::string headerName = line.substr(0, colonPos);
-	if (headerName.empty())
-	{
-		Logger::log(Logger::WARNING, "Empty header name");
-		_headersState = HEADERS_PARSING_ERROR;
-		response.setStatus(400, "Bad Request");
-		return;
-	}
-	for (std::string::iterator it = headerName.begin(); it != headerName.end(); ++it)
-	{
-		unsigned char c = static_cast<unsigned char>(*it);
-		bool isValid = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '!' ||
-					   c == '#' || c == '$' || c == '%' || c == '&' || c == '\'' || c == '*' || c == '+' || c == '-' ||
-					   c == '.' || c == '^' || c == '_' || c == '`' || c == '|' || c == '~';
-		if (!isValid)
-		{
-			Logger::log(Logger::WARNING, "Invalid header name (contains non-alphanumeric characters): " + headerName);
-			_headersState = HEADERS_PARSING_ERROR;
-			response.setStatus(400, "Bad Request");
-			return;
-		}
-	}
-
-	std::transform(headerName.begin(), headerName.end(), headerName.begin(), ::tolower);
-
-	// TODO: Divide this into , and ; cases
-	// Extract and sanitize values
-	std::string headerValue = line.substr(colonPos + 1);
-	std::vector<std::string> headerValues;
-	std::stringstream headerValueStream(headerValue);
-	std::string value;
-	while (std::getline(headerValueStream, value, ','))
-	{
-		value = value.substr(value.find_first_not_of(" \t\r\n"),
-							 value.find_last_not_of(" \t\r\n") - value.find_first_not_of(" \t\r\n") + 1);
-		if (!value.empty())
-			headerValues.push_back(value);
-	}
-
-	// Singleton header handling
-	if (isSingletonHeader(headerName) && !headerValues.empty())
-	{
-		if (_headers.find(headerName) != _headers.end())
-		{
-			Logger::error("Duplicate singleton header: " + headerName);
-			_headersState = HEADERS_PARSING_ERROR;
-			response.setStatus(400, "Bad Request");
-			return;
-		}
-		else if (headerValues.size() != 1)
-		{
-			Logger::error("Invalid number of values for singleton header: " + headerName);
-			_headersState = HEADERS_PARSING_ERROR;
-			response.setStatus(400, "Bad Request");
-			return;
-		}
-	}
-
-	// If everything is good, store the header
-	if (_headers.find(headerName) == _headers.end())
-	{
-		_headers[headerName] = headerValues;
-	}
-	else
-	{
-		_headers[headerName].insert(_headers[headerName].end(), headerValues.begin(), headerValues.end());
-	}
-	return;
 }
 
 // Checks all headers for special characters
 void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 {
 	bool hostFound = false;
-	for (std::map<std::string, std::vector<std::string> >::iterator it = _headers.begin(); it != _headers.end(); ++it)
+	for (std::vector<Header>::iterator it = _headers.begin(); it != _headers.end(); ++it)
 	{
-		std::string headerName = it->first;
-		std::vector<std::string> headerValues = it->second;
+		std::string headerName = it->getDirective();
+		std::vector<std::string> headerValues = it->getValues();
 		if (headerName == "content-length")
 		{
-			if (_headers.find("transfer-encoding") != _headers.end())
+			if (std::find_if(_headers.begin(), _headers.end(), [](const Header &header)
+							 { return header.getDirective() == "transfer-encoding"; }) != _headers.end())
 			{
 				Logger::log(Logger::WARNING, "Content-Length and Transfer-Encoding headers cannot be used together");
 				_headersState = HEADERS_PARSING_ERROR;
@@ -211,7 +159,8 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 		}
 		else if (headerName == "transfer-encoding")
 		{
-			if (_headers.find("content-length") != _headers.end())
+			if (std::find_if(_headers.begin(), _headers.end(), [](const Header &header)
+							 { return header.getDirective() == "content-length"; }) != _headers.end())
 			{
 				Logger::log(Logger::WARNING, "Content-Length and Transfer-Encoding headers cannot be used together");
 				_headersState = HEADERS_PARSING_ERROR;
@@ -219,7 +168,7 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 				return;
 			}
 			// As per requirements, only chunked is supported
-			if (headerValues[0].find("chunked") != std::string::npos)
+			if (std::find(headerValues.begin(), headerValues.end(), "chunked") != headerValues.end())
 			{
 				body.setBodyType(HttpBody::BODY_TYPE_CHUNKED);
 			}
@@ -233,7 +182,6 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 		}
 		else if (headerName == "connection")
 		{
-			std::transform(headerValues[0].begin(), headerValues[0].end(), headerValues[0].begin(), ::tolower);
 			if (headerValues[0] == "close")
 			{
 				response.setHeader("Connection", "close");
@@ -254,19 +202,12 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 		{
 			hostFound = true;
 			// Host header is required for HTTP/1.1
-			if (headerValues[0].empty())
+			if (headerValues.empty())
 			{
 				Logger::log(Logger::WARNING, "Empty Host header");
 				_headersState = HEADERS_PARSING_ERROR;
 				response.setStatus(400, "Bad Request");
 				return;
-			}
-		}
-		else if (headerName == "content-disposition" || headerName == "referer" || headerName == "location")
-		{
-			for (std::vector<std::string>::iterator it = headerValues.begin(); it != headerValues.end(); ++it)
-			{
-				*it = HTTP_PARSING_UTILS::percentDecode(*it);
 			}
 		}
 	}
@@ -279,7 +220,7 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 	}
 }
 
-bool HttpHeaders::isSingletonHeader(const std::string &headerName)
+bool HttpHeaders::isSingletonHeader(const std::string &headerName) const
 {
 	std::vector<std::string> singletonHeaders(HTTP::SINGLETON_HEADERS,
 											  HTTP::SINGLETON_HEADERS +
@@ -296,19 +237,21 @@ int HttpHeaders::getHeadersState() const
 	return _headersState;
 }
 
-const std::map<std::string, std::vector<std::string> > &HttpHeaders::getHeaders() const
+const std::vector<Header> &HttpHeaders::getHeaders() const
 {
 	return _headers;
 }
 
-const std::vector<std::string> HttpHeaders::getHeader(const std::string &headerName) const
+const Header *HttpHeaders::getHeader(const std::string &headerName) const
 {
-	std::map<std::string, std::vector<std::string> >::const_iterator it = _headers.find(headerName);
-	if (it != _headers.end())
+	for (std::vector<Header>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
 	{
-		return it->second;
+		if (it->getDirective() == headerName)
+		{
+			return &*it;
+		}
 	}
-	return std::vector<std::string>();
+	return NULL;
 }
 
 size_t HttpHeaders::getHeadersSize() const

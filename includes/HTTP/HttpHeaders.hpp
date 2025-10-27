@@ -1,12 +1,12 @@
 #ifndef HTTPHEADERS_HPP
 #define HTTPHEADERS_HPP
 
+#include "../../includes/HTTP/Header.hpp"
 #include "../../includes/HTTP/HttpBody.hpp"
 #include "../../includes/HTTP/HttpResponse.hpp"
 #include <cstddef>
 #include <cstdlib>
 #include <ctime>
-#include <map>
 #include <string>
 #include <sys/types.h>
 #include <unistd.h>
@@ -24,13 +24,8 @@ public:
 	};
 
 private:
-	struct Header
-	{
-		std::string value;
-	};
-
 	HeadersState _headersState;
-	std::map<std::string, std::vector<std::string> > _headers;
+	std::vector<Header> _headers;
 	size_t _rawHeadersSize;
 
 	// Helper methods
@@ -49,12 +44,12 @@ public:
 
 	// Accessors
 	int getHeadersState() const;
-	const std::map<std::string, std::vector<std::string> > &getHeaders() const;
-	const std::vector<std::string> getHeader(const std::string &headerName) const;
+	const std::vector<Header> &getHeaders() const;
+	const Header *getHeader(const std::string &headerName) const;
 	size_t getHeadersSize() const;
 
 	// Methods
-	bool isSingletonHeader(const std::string &headerName);
+	bool isSingletonHeader(const std::string &headerName) const;
 	void reset();
 };
 

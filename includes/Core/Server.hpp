@@ -9,6 +9,20 @@
 #include <string>
 #include <vector>
 
+// Server Constants
+namespace ServerConstants
+{
+const char *const DEFAULT_HOST = "0.0.0.0";
+const unsigned short DEFAULT_PORT = 80;
+const char *const DEFAULT_ROOT = "www/";
+const char *const DEFAULT_INDEX = "index.html";
+const bool DEFAULT_AUTOINDEX = false;
+const size_t DEFAULT_CLIENT_MAX_BODY_SIZE = 1048576; // 1MB
+const bool DEFAULT_KEEP_ALIVE = true;
+
+const char *const SERVER_VERSION = "42_Webserv/1.0";
+} // namespace ServerConstants
+
 // Server configuration object
 class Server
 {
