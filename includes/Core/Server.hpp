@@ -31,6 +31,9 @@ private:
 	// Flags
 	bool _modified;
 
+	// Configuration pointer
+	void *_config;
+
 public:
 	Server();
 	Server(Server const &src);
@@ -59,6 +62,12 @@ public:
 	const std::map<int, std::string> &getStatusPages() const;
 	const TrieTree<Location> &getLocations() const;
 	const Location *getLocation(const std::string &path) const;
+
+	// Additional accessors for compatibility
+	const std::string getServerName() const;
+	const std::string getHost() const;
+	const std::string getRoot() const;
+	unsigned short getPort() const;
 
 	// Mutators
 	void insertServerName(const std::string &serverName);

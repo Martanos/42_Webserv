@@ -1,14 +1,14 @@
 #ifndef CGIHANDLER_HPP
 #define CGIHANDLER_HPP
 
-#include "CgiEnv.hpp"
-#include "CgiExecutor.hpp"
-#include "CgiResponse.hpp"
-#include "HttpRequest.hpp"
-#include "HttpResponse.hpp"
-#include "Location.hpp"
-#include "Logger.hpp"
-#include "Server.hpp"
+#include "../../includes/CGI/CgiEnv.hpp"
+#include "../../includes/CGI/CgiExecutor.hpp"
+#include "../../includes/CGI/CgiResponse.hpp"
+#include "../../includes/HTTP/HttpRequest.hpp"
+#include "../../includes/HTTP/HttpResponse.hpp"
+#include "../../includes/Core/Location.hpp"
+#include "../../includes/Global/Logger.hpp"
+#include "../../includes/Core/Server.hpp"
 #include <string>
 
 class CgiHandler

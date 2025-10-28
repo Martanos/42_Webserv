@@ -1,5 +1,5 @@
-#include "../../includes/CgiHandler.hpp"
-#include "../../includes/StringUtils.hpp"
+#include "../../includes/CGI/CgiHandler.hpp"
+#include "../../includes/Global/StrUtils.hpp"
 #include <algorithm>
 #include <sys/stat.h>
 
@@ -212,7 +212,7 @@ CgiHandler::ExecutionResult CgiHandler::processResponse(const std::string &outpu
 		response.setStatus(500, "Internal Server Error");
 		response.setBody(server->getStatusPage(500));
 		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
+		response.setHeader("Content-Length", StrUtils::toString(response.getBody().length()));
 
 		return ERROR_RESPONSE_PARSING_FAILED;
 	}

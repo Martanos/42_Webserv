@@ -1,12 +1,12 @@
 #ifndef CGIRESPONSE_HPP
 #define CGIRESPONSE_HPP
 
-#include "HttpResponse.hpp"
-#include "Logger.hpp"
+#include "../../includes/HTTP/HttpResponse.hpp"
+#include "../../includes/Global/Logger.hpp"
 #include <map>
 #include <string>
 #include <vector>
-
+	
 // TODO: Merge this with HttpResponse
 class CgiResponse
 {

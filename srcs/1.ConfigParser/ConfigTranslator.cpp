@@ -34,7 +34,7 @@ void ConfigTranslator::_translate(const AST::ASTNode &ast)
 {
 	for (std::vector<AST::ASTNode *>::const_iterator it = ast.children.begin(); it != ast.children.end(); ++it)
 	{
-		if ((*it)->type == AST::NodeType::SERVER)
+		if ((*it)->type == AST::SERVER)
 		{
 			Server server = _translateServer(**it);
 			if (!server.isModified())
@@ -61,7 +61,7 @@ Server ConfigTranslator::_translateServer(const AST::ASTNode &ast)
 	// Traverse the server block and translate recognizable members
 	for (std::vector<AST::ASTNode *>::const_iterator it = ast.children.begin(); it != ast.children.end(); ++it)
 	{
-		if ((*it)->type == AST::NodeType::DIRECTIVE)
+		if ((*it)->type == AST::DIRECTIVE)
 		{
 			if ((*it)->value == "server_name")
 				_translateServerName(**it, server);
@@ -87,7 +87,7 @@ Server ConfigTranslator::_translateServer(const AST::ASTNode &ast)
 									" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
 								__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		}
-		else if ((*it)->type == AST::NodeType::LOCATION)
+		else if ((*it)->type == AST::LOCATION)
 		{
 			Location location((*it)->value);
 			if (location.hasModified())
@@ -118,7 +118,7 @@ void ConfigTranslator::_translateServerName(const AST::ASTNode &directive, Serve
 	{
 		try
 		{
-			if ((*it)->type == AST::NodeType::ARG)
+			if ((*it)->type == AST::ARG)
 			{
 				if ((*it)->value.empty())
 					Logger::warning("Empty server name" + StrUtils::toString<int>((*it)->line) +
@@ -174,7 +174,7 @@ void ConfigTranslator::_translateListen(const AST::ASTNode &directive, Server &s
 							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 			return;
 		}
-		else if ((*it)->type == AST::NodeType::ARG)
+		else if ((*it)->type == AST::ARG)
 		{
 			SocketAddress socket((*it)->value);
 			server.insertSocketAddress(socket);
@@ -213,7 +213,7 @@ void ConfigTranslator::_translateServerRoot(const AST::ASTNode &directive, Serve
 							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 			return;
 		}
-		if ((*it)->type == AST::NodeType::ARG)
+		if ((*it)->type == AST::ARG)
 		{
 			std::string error = StrUtils::validateDirectoryPath((*it)->value, "server root");
 			if (!error.empty())
@@ -258,7 +258,7 @@ void ConfigTranslator::_translateServerIndex(const AST::ASTNode &directive, Serv
 		}
 		while (++it != directive.children.end())
 		{
-			if ((*it)->type == AST::NodeType::ARG)
+			if ((*it)->type == AST::ARG)
 			{
 				if (server.hasIndex((*it)->value))
 				{
@@ -300,7 +300,7 @@ void ConfigTranslator::_translateServerAutoindex(const AST::ASTNode &directive, 
 							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 			return;
 		}
-		if ((*it)->type == AST::NodeType::ARG)
+		if ((*it)->type == AST::ARG)
 		{
 			if ((*it)->value == "on" || (*it)->value == "off")
 				server.setAutoindex((*it)->value == "on");
@@ -349,7 +349,7 @@ void ConfigTranslator::_translateServerClientMaxBodySize(const AST::ASTNode &dir
 							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 			return;
 		}
-		else if ((*it)->type == AST::NodeType::ARG)
+		else if ((*it)->type == AST::ARG)
 		{
 			char *end;
 			double size = strtod((*it)->value.c_str(), &end);
@@ -398,7 +398,7 @@ void ConfigTranslator::_translateServerClientMaxHeadersSize(const AST::ASTNode &
 							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 			return;
 		}
-		else if ((*it)->type == AST::NodeType::ARG)
+		else if ((*it)->type == AST::ARG)
 		{
 			char *end;
 			double size = strtod((*it)->value.c_str(), &end);
@@ -440,7 +440,7 @@ void ConfigTranslator::_translateServerClientMaxUriSize(const AST::ASTNode &dire
 							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 			return;
 		}
-		else if ((*it)->type == AST::NodeType::ARG)
+		else if ((*it)->type == AST::ARG)
 		{
 			char *end;
 			double size = strtod((*it)->value.c_str(), &end);
@@ -485,7 +485,7 @@ void ConfigTranslator::_translateServerStatusPage(const AST::ASTNode &directive,
 		// Collect status page codes
 		while (++it != directive.children.end() - 1)
 		{
-			if ((*it)->type == AST::NodeType::ARG)
+			if ((*it)->type == AST::ARG)
 			{
 				char *end;
 				double code = strtod((*it)->value.c_str(), &end);
@@ -511,7 +511,7 @@ void ConfigTranslator::_translateServerStatusPage(const AST::ASTNode &directive,
 							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 			return;
 		}
-		else if ((*it)->type == AST::NodeType::ARG)
+		else if ((*it)->type == AST::ARG)
 		{
 			if ((*it)->value.empty())
 			{
@@ -565,7 +565,7 @@ void ConfigTranslator::_translateLocation(const AST::ASTNode &location_node, Loc
 		for (std::vector<AST::ASTNode *>::const_iterator it = location_node.children.begin();
 			 it != location_node.children.end(); ++it)
 		{
-			if ((*it)->type == AST::NodeType::DIRECTIVE)
+			if ((*it)->type == AST::DIRECTIVE)
 			{
 				if ((*it)->value == "root")
 					_translateLocationRoot(**it, location);
@@ -616,7 +616,7 @@ void ConfigTranslator::_translateLocationRoot(const AST::ASTNode &directive, Loc
 							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 			return;
 		}
-		if ((*it)->type == AST::NodeType::ARG)
+		if ((*it)->type == AST::ARG)
 		{
 			std::string error = StrUtils::validateDirectoryPath((*it)->value, "location root");
 			if (!error.empty())
@@ -700,7 +700,7 @@ void ConfigTranslator::_translateLocationRedirect(const AST::ASTNode &directive,
 		long long code = 0;
 		std::string path = "";
 		// Sanitize and verify return code
-		if ((*it)->type == AST::NodeType::ARG)
+		if ((*it)->type == AST::ARG)
 		{
 			errno = 0;
 			char *end;
@@ -731,7 +731,7 @@ void ConfigTranslator::_translateLocationRedirect(const AST::ASTNode &directive,
 							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 			return;
 		}
-		if ((*it)->type == AST::NodeType::ARG)
+		if ((*it)->type == AST::ARG)
 		{
 			path = (*it)->value;
 		}
@@ -772,7 +772,7 @@ void ConfigTranslator::_translateLocationAutoindex(const AST::ASTNode &directive
 							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 			return;
 		}
-		if ((*it)->type == AST::NodeType::ARG)
+		if ((*it)->type == AST::ARG)
 		{
 			if ((*it)->value == "on" || (*it)->value == "off")
 				location.setAutoIndex((*it)->value == "on" ? true : false);
@@ -818,7 +818,7 @@ void ConfigTranslator::_translateLocationIndex(const AST::ASTNode &directive, Lo
 		}
 		while (++it != directive.children.end())
 		{
-			if ((*it)->type == AST::NodeType::ARG)
+			if ((*it)->type == AST::ARG)
 			{
 				if ((*it)->value.empty())
 				{
@@ -865,7 +865,7 @@ void ConfigTranslator::_translateLocationCgiPath(const AST::ASTNode &directive, 
 							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 			return;
 		}
-		if ((*it)->type == AST::NodeType::ARG)
+		if ((*it)->type == AST::ARG)
 		{
 			if ((*it)->value.empty())
 			{

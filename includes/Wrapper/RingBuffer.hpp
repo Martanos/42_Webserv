@@ -2,7 +2,7 @@
 #define RINGBUFFER_HPP
 
 #include "FileDescriptor.hpp"
-#include "Logger.hpp"
+#include "../../includes/Global/Logger.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <cstring>

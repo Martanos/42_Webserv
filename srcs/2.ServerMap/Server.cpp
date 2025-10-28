@@ -163,16 +163,12 @@ const std::string &Server::getRootPath() const
 
 const TrieTree<std::string> &Server::getIndexes() const
 {
-	if (_config)
-		return _config->getIndexes();
-]	return defaultIndexes;
+	return _indexes;
 }
 
 double Server::getClientMaxBodySize() const
 {
-	if (_config)
-		return _config->getClientMaxBodySize();
-	return SERVER::DEFAULT_CLIENT_MAX_BODY_SIZE;
+	return _clientMaxBodySize;
 }
 
 double Server::getClientMaxHeadersSize() const
@@ -194,10 +190,7 @@ const std::string &Server::getStatusPath(int status) const
 
 const std::map<int, std::string> &Server::getStatusPages() const
 {
-	if (_config)
-		return _config->getStatusPages();
-	static const std::map<int, std::string> emptyMap;
-	return emptyMap;
+	return _statusPages;
 }
 
 // Returns longest prefix match location null if no match found

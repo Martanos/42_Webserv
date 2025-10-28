@@ -4,7 +4,7 @@
 #include "../../includes/ConfigParser/ServerMap.hpp"
 #include "../../includes/Core/Client.hpp"
 #include "../../includes/Core/EpollManager.hpp"
-#include "../../includes/Core/Logger.hpp"
+#include "../../includes/Global/Logger.hpp"
 #include "../../includes/Wrapper/FileDescriptor.hpp"
 #include <map>
 #include <sys/epoll.h>

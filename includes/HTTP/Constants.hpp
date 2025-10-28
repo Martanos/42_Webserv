@@ -19,7 +19,16 @@ const char *const SINGLETON_HEADERS[] = {
 	"host",			 "content-length",		"content-type", "content-location", "date",		   "etag",
 	"expires",		 "last-modified",		"location",		"server",			"user-agent",  "referer",
 	"authorization", "proxy-authorization", "expect",		"upgrade",			"retry-after", "content-range"};
-static const std::vector<std::string> SUPPORTED_METHODS = {"GET", "POST", "DELETE"};
+static const std::vector<std::string> &SUPPORTED_METHODS()
+{
+	static std::vector<std::string> methods;
+	if (methods.empty()) {
+		methods.push_back("GET");
+		methods.push_back("POST");
+		methods.push_back("DELETE");
+	}
+	return methods;
+}
 static const std::string HTTP_VERSION = "HTTP/1.1";
 static const std::string TEMP_FILE_TEMPLATE = "/tmp/webserv-";
 static const ssize_t MAX_URI_LINE_SIZE = 16384;		 // 16KB
@@ -36,9 +45,10 @@ static const bool DEFAULT_KEEP_ALIVE = true;
 
 bool isSupportedMethod(const std::string &method)
 {
-	for (size_t i = 0; i < sizeof(HTTP::SUPPORTED_METHODS) / sizeof(HTTP::SUPPORTED_METHODS[0]); ++i)
+	const std::vector<std::string> &methods = SUPPORTED_METHODS();
+	for (size_t i = 0; i < methods.size(); ++i)
 	{
-		if (SUPPORTED_METHODS[i] == method)
+		if (methods[i] == method)
 			return true;
 	}
 	return false;
@@ -63,6 +73,7 @@ const char *const SERVER_VERSION = "42_Webserv/1.0";
 namespace FILE_UTILS
 {
 
+/*
 static bool isDirectoryEmpty(const std::string &path)
 {
 	DIR *dir = opendir(path.c_str());
@@ -86,8 +97,10 @@ static bool isDirectoryEmpty(const std::string &path)
 	closedir(dir);
 	return true; // Only "." and ".." found
 }
+*/
 
-// TODO: Move to FileDescriptor / FileManager
+/*
+ // TODO: Move to FileDescriptor / FileManager
 // Read file using FileDescriptor
 static std::string readFileWithFd(const std::string &filePath)
 {
@@ -128,8 +141,10 @@ static std::string readFileWithFd(const std::string &filePath)
 	content.resize(totalRead);
 	return content;
 }
+*/
 
-// TODO: Move to FileDescriptor / FileManager
+/*
+ // TODO: Move to FileDescriptor / FileManager
 // Write file using FileDescriptor
 static bool writeFileWithFd(const std::string &filePath, const std::string &content)
 {
@@ -156,6 +171,7 @@ static bool writeFileWithFd(const std::string &filePath, const std::string &cont
 
 	return true;
 }
+*/
 
 } // namespace FILE_UTILS
 

@@ -1,5 +1,5 @@
-#include "../../includes/RingBuffer.hpp"
-#include "../../includes/Logger.hpp"
+#include "Wrapper/RingBuffer.hpp"
+#include "Global/Logger.hpp"
 #include <algorithm>
 #include <cstring>
 #include <fstream>

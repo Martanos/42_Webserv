@@ -1,9 +1,9 @@
-#include "../../includes/CgiEnv.hpp"
-#include "../../includes/HttpRequest.hpp"
-#include "../../includes/Location.hpp"
-#include "../../includes/Logger.hpp"
-#include "../../includes/Server.hpp"
-#include "../../includes/StringUtils.hpp"
+#include "../../includes/CGI/CgiEnv.hpp"
+#include "../../includes/HTTP/HttpRequest.hpp"
+#include "../../includes/Core/Location.hpp"
+#include "../../includes/Global/Logger.hpp"
+#include "../../includes/Core/Server.hpp"
+#include "../../includes/Global/StrUtils.hpp"
 #include <cstdlib>
 #include <sstream>
 
@@ -84,7 +84,7 @@ void CGIenv::copyDataFromServer(const Server *server, const Location *location)
 
 	// Get port from server configuration
 	unsigned short port = server->getPort();
-	setEnv("SERVER_PORT", StringUtils::toString(port));
+	setEnv("SERVER_PORT", StrUtils::toString(port));
 
 	// Server host information
 	const std::string &host = server->getHost();
@@ -104,11 +104,7 @@ void CGIenv::copyDataFromServer(const Server *server, const Location *location)
 		setEnv("DOCUMENT_ROOT", "/var/www/html"); // Default document root
 
 	// Add custom CGI parameters from location configuration
-	const std::map<std::string, std::string> &cgiParams = location->getCgiParams();
-	for (std::map<std::string, std::string>::const_iterator it = cgiParams.begin(); it != cgiParams.end(); ++it)
-	{
-		setEnv(it->first, it->second);
-	}
+	// TODO: implement getCgiParams in Location class
 
 	// Add additional server-specific environment variables
 	setEnv("SERVER_SOFTWARE", "webserv/1.0");
@@ -116,7 +112,7 @@ void CGIenv::copyDataFromServer(const Server *server, const Location *location)
 
 	// Set client max body size if available
 	double maxBodySize = server->getClientMaxBodySize();
-	setEnv("SERVER_MAX_BODY_SIZE", StringUtils::toString(static_cast<long>(maxBodySize)));
+	setEnv("SERVER_MAX_BODY_SIZE", StrUtils::toString(static_cast<long>(maxBodySize)));
 }
 
 void CGIenv::setupFromRequest(const HttpRequest &request, const Server *server, const Location *location,
@@ -177,7 +173,7 @@ void CGIenv::setupFromRequest(const HttpRequest &request, const Server *server, 
 			setEnv("CONTENT_TYPE", contentType[0]);
 		}
 
-		setEnv("CONTENT_LENGTH", StringUtils::toString(request.getBodyData().length()));
+		setEnv("CONTENT_LENGTH", StrUtils::toString(request.getBodyData().length()));
 	}
 	else
 	{

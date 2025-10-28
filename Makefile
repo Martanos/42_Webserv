@@ -3,10 +3,10 @@
 #                                                         :::      ::::::::    #
 #    Makefile                                           :+:      :+:    :+:    #
 #                                                     +:+ +:+         +:+      #
-#    By: malee <malee@student.42.fr>                +#+  +:+       +#+         #
+#    By: seayeo <seayeo@42.sg>                      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2025/07/24 16:54:44 by malee             #+#    #+#              #
-#    Updated: 2025/10/27 13:05:47 by malee            ###   ########.fr        #
+#    Updated: 2025/10/27 18:45:44 by seayeo           ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -22,40 +22,40 @@ OBJ_DIR = obj/srcs
 # Source files
 SRC_FILES = main.cpp \
 			1.ConfigParser/ConfigParser.cpp \
-			1.ConfigParser/ServerConfig.cpp \
-			1.ConfigParser/LocationConfig.cpp \
+			1.ConfigParser/ConfigFileReader.cpp \
+			1.ConfigParser/ConfigTokeniser.cpp \
+			1.ConfigParser/ConfigTranslator.cpp \
 			2.ServerMap/ServerMap.cpp \
 			2.ServerMap/Server.cpp \
 			2.ServerMap/Location.cpp \
 			3.ServerManager/ServerManager.cpp \
 			3.ServerManager/EpollManager.cpp \
-			3.ServerManager/ListeningSocket.cpp \
-			4.Client/Client.cpp \
 			5.HTTPmanagement/HttpRequest.cpp \
 			5.HTTPmanagement/HttpResponse.cpp \
-			5.HTTPmanagement/HttpHeaders.cpp \
 			5.HTTPmanagement/HttpBody.cpp \
 			5.HTTPmanagement/HttpURI.cpp \
-			MethodHandlers/IMethodHandler.cpp \
-			MethodHandlers/GetMethodHandler.cpp \
 			MethodHandlers/PostMethodHandler.cpp \
-			MethodHandlers/DeleteMethodHandler.cpp \
-			MethodHandlers/MethodHandlerFactory.cpp \
 			Wrappers/FileDescriptor.cpp \
 			Wrappers/SocketAddress.cpp \
 			Wrappers/AddrInfo.cpp \
 			Wrappers/FileManager.cpp \
 			Wrappers/Logger.cpp \
 			Wrappers/PerformanceMonitor.cpp \
+			Wrappers/RingBuffer.cpp \
 			cgiexec/CgiEnv.cpp \
 			cgiexec/CgiExecutor.cpp \
 			cgiexec/CgiHandler.cpp \
 			cgiexec/CgiResponse.cpp
 
+# 				4.Client/Client.cpp \
+# 			5.HTTPmanagement/HttpHeaders.cpp \
+
 # Object files with proper path
 OBJ = $(addprefix $(OBJ_DIR)/, $(SRC_FILES:.cpp=.o))
 # Dependency files
 DEPS = $(OBJ:.o=.d)
+# Subdirectories in obj
+SUBDIRS = $(sort $(dir $(OBJ)))
 # Color codes
 GREEN = \033[0;32m
 YELLOW = \033[0;33m
@@ -65,6 +65,7 @@ all: $(OBJ_DIR) $(NAME)
 # Rule to create obj directory structure
 $(OBJ_DIR):
 	@mkdir -p $(OBJ_DIR)
+	@mkdir -p $(SUBDIRS)
 # Modified object file rule
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	@mkdir -p $(dir $@)
@@ -76,8 +77,8 @@ $(NAME): $(OBJ)
 	@echo "$(GREEN)Done!$(RESET)"
 clean:
 	@echo "$(RED)Deleting object files...$(RESET)"
-	@if [ -d obj ]; then \
-		rm -rf obj; \
+	@if [ -d $(OBJ_DIR) ]; then \
+		rm -rf $(OBJ_DIR); \
 		echo "$(GREEN)Object files deleted!$(RESET)"; \
 	else \
 		echo "$(YELLOW)No object files to delete!$(RESET)"; \

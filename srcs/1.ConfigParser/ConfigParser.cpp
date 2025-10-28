@@ -53,7 +53,7 @@ bool ConfigParser::accept(Token::TokenType type, Token::Token *out)
 void ConfigParser::parseServerBlock(AST::ASTNode &cfg)
 {
 	Token::Token open = expect(Token::TOKEN_OPEN_BRACE, "'{' after server");
-	AST::ASTNode srv(AST::NodeType::SERVER);
+        AST::ASTNode srv(AST::SERVER);
 	srv.line = open.line;
 	srv.column = open.column;
 
@@ -88,7 +88,7 @@ void ConfigParser::parseServerBlock(AST::ASTNode &cfg)
 AST::ASTNode ConfigParser::parseDirective()
 {
 	Token::Token name = expect(Token::TOKEN_IDENTIFIER, "directive name");
-	AST::ASTNode d(AST::NodeType::DIRECTIVE);
+        AST::ASTNode d(AST::DIRECTIVE);
 	d.value = name.lexeme;
 	d.line = name.line;
 	d.column = name.column;
@@ -107,7 +107,7 @@ AST::ASTNode ConfigParser::parseDirective()
 		else if (t.type == Token::TOKEN_IDENTIFIER || t.type == Token::TOKEN_NUMBER || t.type == Token::TOKEN_STRING)
 		{
 			Token::Token arg = _tok->nextToken();
-			AST::ASTNode directiveArg(AST::NodeType::ARG, arg.lexeme);
+			AST::ASTNode directiveArg(AST::ARG, arg.lexeme);
 			directiveArg.position = position;
 			d.addChild(&directiveArg);
 			continue;
@@ -122,7 +122,7 @@ AST::ASTNode ConfigParser::parseDirective()
 AST::ASTNode ConfigParser::parseLocation()
 {
 	Token::Token pathTok = expect(Token::TOKEN_IDENTIFIER, "location path");
-	AST::ASTNode loc(AST::NodeType::LOCATION);
+	AST::ASTNode loc(AST::LOCATION);
 	loc.value = pathTok.lexeme;
 	loc.line = pathTok.line;
 	loc.column = pathTok.column;
@@ -153,7 +153,7 @@ AST::ASTNode ConfigParser::parseLocation()
 */
 AST::ASTNode ConfigParser::parse()
 {
-	AST::ASTNode cfg(AST::NodeType::CONFIG);
+	AST::ASTNode cfg(AST::CONFIG);
 	while (true)
 	{
 		Token::Token t = _tok->peek(1);
@@ -190,22 +190,22 @@ void ConfigParser::printASTRecursive(const AST::ASTNode &node, int depth) const
 	// Print node type and value
 	switch (node.type)
 	{
-	case AST::NodeType::CONFIG:
+	case AST::CONFIG:
 		std::cout << "CONFIG";
 		break;
-	case AST::NodeType::SERVER:
+	case AST::SERVER:
 		std::cout << "SERVER";
 		break;
-	case AST::NodeType::DIRECTIVE:
+	case AST::DIRECTIVE:
 		std::cout << "DIRECTIVE: " << node.value;
 		break;
-	case AST::NodeType::LOCATION:
+	case AST::LOCATION:
 		std::cout << "LOCATION: " << node.value;
 		break;
-	case AST::NodeType::ARG:
+	case AST::ARG:
 		std::cout << "ARG: " << node.value;
 		break;
-	case AST::NodeType::ERROR:
+	case AST::ERROR:
 		std::cout << "ERROR: " << node.message;
 		break;
 	default:

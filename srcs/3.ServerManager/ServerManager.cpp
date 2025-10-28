@@ -1,7 +1,6 @@
 #include "../../includes/Core/ServerManager.hpp"
 #include "../../includes/Global/PerformanceMonitor.hpp"
 #include "../../includes/Global/StrUtils.hpp"
-#include "../../includes/PerformanceMonitor.hpp"
 #include <signal.h>
 
 // Static member definition
@@ -50,7 +49,7 @@ void ServerManager::_handleEventLoop(int ready_events, std::vector<epoll_event> 
 		{
 			try
 			{
-				const ListeningSocket &listeningSocket = ;
+				const ListeningSocket &listeningSocket = _serverMap.getListeningSocket(fd);
 				SocketAddress localAddr = listeningSocket.getAddress();
 				SocketAddress remoteAddr;
 				FileDescriptor clientFd;
@@ -115,12 +114,13 @@ void ServerManager::_handleEventLoop(int ready_events, std::vector<epoll_event> 
 					}
 					case Client::CLIENT_WAITING_FOR_REQUEST:
 					{
-						switch (_clients[foundFd].getServer()->getKeepAlive())
+						if  (_clients[foundFd].getServer()->isKeepAlive())
 						{
-						case true:
 							epollEvents = EPOLLIN | EPOLLET;
 							break;
-						case false:
+						}
+						else
+						{
 							epollEvents = EPOLLHUP | EPOLLRDHUP | EPOLLERR;
 							break;
 						}
@@ -137,7 +137,7 @@ void ServerManager::_handleEventLoop(int ready_events, std::vector<epoll_event> 
 				_clients.erase(foundFd);
 				_epollManager.removeFd(foundFd);
 				Logger::log(Logger::ERROR, "ServerManager: Error handling client event: " + std::string(e.what()),
-							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+							__FILE__, __LINE__, "");
 			}
 		}
 	}

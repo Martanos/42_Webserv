@@ -1,8 +1,6 @@
 #ifndef CGIENV_HPP
 #define CGIENV_HPP
 
-#include "ServerConfig.hpp"
-
 #include <cstring>
 #include <iostream>
 #include <map>

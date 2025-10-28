@@ -2,7 +2,7 @@
 #ifndef POSTMETHODHANDLER_HPP
 #define POSTMETHODHANDLER_HPP
 
-#include "CgiHandler.hpp"
+#include "CGI/CgiHandler.hpp"
 #include "FileDescriptor.hpp"
 #include "IMethodHandler.hpp"
 #include <string>

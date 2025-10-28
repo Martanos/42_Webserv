@@ -36,7 +36,7 @@ public:
 	std::vector<Server> &getServers(const ListeningSocket &key);
 
 	// Mutators
-	const void insertServer(const Server &server);
+        void insertServer(const Server &server);
 
 	// Listening sockets
 	const ListeningSocket &getListeningSocket(int &fd) const;

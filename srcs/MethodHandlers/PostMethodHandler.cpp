@@ -1,5 +1,5 @@
-#include "../../includes/PostMethodHandler.hpp"
-#include "../../includes/PerformanceMonitor.hpp"
+#include "Core/PostMethodHandler.hpp"
+#include "PerformanceMonitor.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------

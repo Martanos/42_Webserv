@@ -1,4 +1,4 @@
-#include "../../includes/AddrInfo.hpp"
+#include "Wrapper/AddrInfo.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------

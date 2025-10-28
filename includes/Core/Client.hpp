@@ -66,6 +66,8 @@ private:
 	// Method handlers
 
 	// TODO: Utility methods
+	void _flushResponseQueue();
+	void _sendResponse();
 
 public:
 	// Orchestrator methods
@@ -92,6 +94,7 @@ public:
 	const std::vector<Server> &getPotentialServers() const;
 	void setPotentialServers(
 		const std::vector<Server> &potentialServers); // For server manager to set potential servers
+	const Server *getServer() const;
 	bool isTimedOut() const;
 };
 
