@@ -1,9 +1,156 @@
-#include "../../includes/SocketAddress.hpp"
-#include "../../includes/IPAddressParser.hpp"
-#include "../../includes/Logger.hpp"
+#include "../../includes/Wrapper/SocketAddress.hpp"
+#include "../../includes/Global/IPAddressParser.hpp"
+#include "../../includes/Global/Logger.hpp"
+#include "../../includes/Global/StrUtils.hpp"
 #include <cstddef>
 #include <sstream>
 
+/*
+** ------------------------------- CONSTRUCTOR --------------------------------
+*/
+
+SocketAddress::SocketAddress() : _addrLen(0), _family(AF_UNSPEC), _host("localhost"), _port(80)
+{
+	std::memset(&_storage, 0, sizeof(_storage));
+}
+
+SocketAddress::SocketAddress(const std::string &host, const unsigned short &port) : _addrLen(0), _family(AF_UNSPEC)
+{
+	*this = SocketAddress(host, StrUtils::toString(port));
+}
+
+SocketAddress::SocketAddress(const std::string &host, const std::string &port) : _addrLen(0), _family(AF_UNSPEC)
+{
+	std::memset(&_storage, 0, sizeof(_storage));
+
+	// Sanitize host
+	if (!host.empty())
+	{
+		if (host[0] == '[')
+		{
+			size_t bracket_pos = host.find(']');
+			if (bracket_pos != std::string::npos)
+				_host = host.substr(1, bracket_pos - 1);
+			else
+				throw std::runtime_error("Malformed IPv6 address: " + host);
+		}
+		else
+		{
+			_host = host;
+		}
+	}
+	else
+	{
+		_host = "0.0.0.0";
+	}
+
+	// Sanitize and validate port
+	if (!port.empty())
+	{
+		errno = 0;
+		char *endptr;
+		long long converted_port = std::strtoll(port.c_str(), &endptr, 10);
+		if (*endptr != '\0' || errno != 0 || converted_port <= 0 || converted_port > 65535)
+			throw std::runtime_error("Invalid port: " + port);
+		_port = static_cast<unsigned short>(converted_port);
+	}
+	else
+	{
+		_port = 80;
+	}
+
+	if (_host == "0.0.0.0")
+	{
+		struct sockaddr_in *addr4 = _getSockAddrIn();
+		addr4->sin_family = AF_INET;
+		addr4->sin_port = htons(_port);
+		addr4->sin_addr.s_addr = INADDR_ANY;
+		_family = AF_INET;
+		_addrLen = sizeof(struct sockaddr_in);
+		return;
+	}
+
+	if (_host == "::")
+	{
+		struct sockaddr_in6 *addr6 = _getSockAddrIn6();
+		addr6->sin6_family = AF_INET6;
+		addr6->sin6_port = htons(_port);
+		addr6->sin6_addr = in6addr_any;
+		_family = AF_INET6;
+		_addrLen = sizeof(struct sockaddr_in6);
+		return;
+	}
+
+	// Use getaddrinfo for specific addresses and hostname resolution
+	struct addrinfo hints, *result = NULL;
+	std::memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_NUMERICHOST | AI_NUMERICSERV; // Try numeric first
+
+	int status = getaddrinfo(_host.c_str(), port.c_str(), &hints, &result);
+	if (status != 0)
+	{
+		// If numeric parsing failed, try hostname resolution
+		hints.ai_flags = 0;
+		status = getaddrinfo(_host.c_str(), port.c_str(), &hints, &result);
+
+		if (status != 0)
+		{
+			std::stringstream ss;
+			ss << "getaddrinfo failed for host '" << _host << "': " << gai_strerror(status);
+			Logger::log(Logger::ERROR, ss.str());
+			throw std::runtime_error(ss.str());
+		}
+	}
+
+	// Find preferred address (IPv4 preferred for compatibility)
+	struct addrinfo *preferred = result;
+	for (struct addrinfo *rp = result; rp != NULL; rp = rp->ai_next)
+	{
+		if (rp->ai_family == AF_INET)
+		{
+			preferred = rp;
+			break;
+		}
+	}
+
+	if (preferred->ai_addrlen <= sizeof(_storage))
+	{
+		std::memcpy(&_storage, preferred->ai_addr, preferred->ai_addrlen);
+		_addrLen = preferred->ai_addrlen;
+		_family = preferred->ai_family;
+		_updateCachedValues();
+	}
+	else
+	{
+		freeaddrinfo(result);
+		throw std::runtime_error("Address too large for storage");
+	}
+
+	freeaddrinfo(result);
+}
+
+SocketAddress::SocketAddress(const std::string &host_port) : _addrLen(0), _family(AF_UNSPEC)
+{
+	size_t colon_pos = host_port.rfind(':');
+	if (colon_pos == std::string::npos)
+	{
+		// If no colon, treat as port number
+		*this = SocketAddress("0.0.0.0", host_port);
+	}
+	else
+	{
+		*this = SocketAddress(host_port.substr(0, colon_pos), host_port.substr(colon_pos + 1));
+	}
+}
+
+// Copy constructor
+SocketAddress::SocketAddress(const SocketAddress &src)
+	: _addrLen(src._addrLen), _family(src._family), _host(src._host), _port(src._port)
+{
+	std::memcpy(&_storage, &src._storage, sizeof(_storage));
+}
 /*
 ** ------------------------------- PRIVATE HELPERS ---------------------------
 */
@@ -57,130 +204,6 @@ struct sockaddr_in6 *SocketAddress::_getSockAddrIn6()
 }
 
 /*
-** ------------------------------- CONSTRUCTOR --------------------------------
-*/
-
-SocketAddress::SocketAddress() : _addrLen(sizeof(struct sockaddr_in)), _family(AF_INET), _host(""), _port(0)
-{
-	std::memset(&_storage, 0, sizeof(_storage));
-	struct sockaddr_in *addr4 = _getSockAddrIn();
-	addr4->sin_family = AF_INET;
-	addr4->sin_addr.s_addr = INADDR_ANY;
-	addr4->sin_port = 0;
-}
-
-// COMPATIBILITY: Keep old constructor signature (const int port, const std::string ip)
-SocketAddress::SocketAddress(const int port, const std::string ip)
-	: _addrLen(0), _family(AF_UNSPEC), _host(ip), _port(port)
-{
-	*this = SocketAddress(ip, static_cast<unsigned short>(port));
-}
-
-SocketAddress::SocketAddress(const std::string &host, unsigned short port)
-	: _addrLen(0), _family(AF_UNSPEC), _host(host), _port(port)
-{
-	std::memset(&_storage, 0, sizeof(_storage));
-
-	// Handle special cases first (faster path)
-	if (host == "0.0.0.0" || host.empty())
-	{
-		struct sockaddr_in *addr4 = _getSockAddrIn();
-		addr4->sin_family = AF_INET;
-		addr4->sin_port = htons(port);
-		addr4->sin_addr.s_addr = INADDR_ANY;
-		_family = AF_INET;
-		_addrLen = sizeof(struct sockaddr_in);
-		_updateCachedValues();
-		return;
-	}
-
-	if (host == "::")
-	{
-		struct sockaddr_in6 *addr6 = _getSockAddrIn6();
-		addr6->sin6_family = AF_INET6;
-		addr6->sin6_port = htons(port);
-		addr6->sin6_addr = in6addr_any;
-		_family = AF_INET6;
-		_addrLen = sizeof(struct sockaddr_in6);
-		_updateCachedValues();
-		return;
-	}
-
-	// Use getaddrinfo for hostname resolution and validation
-	struct addrinfo hints, *result = NULL;
-	std::memset(&hints, 0, sizeof(hints));
-	hints.ai_family = AF_UNSPEC; // Allow both IPv4 and IPv6
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags = AI_NUMERICHOST | AI_NUMERICSERV; // Try numeric first
-
-	std::ostringstream portStr;
-	portStr << port;
-
-	int status = getaddrinfo(host.c_str(), portStr.str().c_str(), &hints, &result);
-	if (status != 0)
-	{
-		// If numeric parsing failed, try hostname resolution
-		hints.ai_flags = 0;
-		status = getaddrinfo(host.c_str(), portStr.str().c_str(), &hints, &result);
-
-		if (status != 0)
-		{
-			std::stringstream ss;
-			ss << "getaddrinfo failed for host '" << host << "': " << gai_strerror(status);
-			Logger::log(Logger::ERROR, ss.str());
-			throw std::runtime_error(ss.str());
-		}
-	}
-
-	// Find preferred address (IPv4 preferred for compatibility)
-	struct addrinfo *preferred = result;
-	for (struct addrinfo *rp = result; rp != NULL; rp = rp->ai_next)
-	{
-		if (rp->ai_family == AF_INET)
-		{
-			preferred = rp;
-			break; // Prefer IPv4
-		}
-	}
-
-	// Copy the address to our storage
-	try
-	{
-		if (preferred->ai_addrlen <= sizeof(_storage))
-		{
-			std::memcpy(&_storage, preferred->ai_addr, preferred->ai_addrlen);
-			_addrLen = preferred->ai_addrlen;
-			_family = preferred->ai_family;
-			_updateCachedValues();
-		}
-		else
-		{
-			freeaddrinfo(result);
-			std::stringstream ss;
-			ss << "Address too large for storage: " << preferred->ai_addrlen;
-			Logger::log(Logger::ERROR, ss.str());
-			throw std::runtime_error("Address too large for storage");
-		}
-		freeaddrinfo(result);
-	}
-	catch (...)
-	{
-		freeaddrinfo(result);
-		std::stringstream ss;
-		ss << "Failed to copy address to storage: " << strerror(errno);
-		Logger::log(Logger::ERROR, ss.str());
-		throw;
-	}
-}
-
-// Copy constructor
-SocketAddress::SocketAddress(const SocketAddress &src)
-	: _addrLen(src._addrLen), _family(src._family), _host(src._host), _port(src._port)
-{
-	std::memcpy(&_storage, &src._storage, sizeof(_storage));
-}
-
-/*
 ** -------------------------------- DESTRUCTOR --------------------------------
 */
 
@@ -207,7 +230,7 @@ SocketAddress &SocketAddress::operator=(const SocketAddress &rhs)
 
 bool SocketAddress::operator==(const SocketAddress &rhs) const
 {
-	return _family == rhs._family && _addrLen == rhs._addrLen && std::memcmp(&_storage, &rhs._storage, _addrLen) == 0;
+	return _host == rhs._host && _port == rhs._port;
 }
 
 bool SocketAddress::operator!=(const SocketAddress &rhs) const
@@ -217,11 +240,7 @@ bool SocketAddress::operator!=(const SocketAddress &rhs) const
 
 bool SocketAddress::operator<(const SocketAddress &rhs) const
 {
-	if (_family != rhs._family)
-		return _family < rhs._family;
-	if (_addrLen != rhs._addrLen)
-		return _addrLen < rhs._addrLen;
-	return std::memcmp(&_storage, &rhs._storage, _addrLen) < 0;
+	return _host == rhs._host && _port < rhs._port;
 }
 
 bool SocketAddress::operator>(const SocketAddress &rhs) const
@@ -278,6 +297,11 @@ struct sockaddr_storage *SocketAddress::getSockAddr()
 	return &_storage;
 }
 
+const struct sockaddr_storage *SocketAddress::getSockAddr() const
+{
+	return &_storage;
+}
+
 std::string SocketAddress::getHostString() const
 {
 	if (isIPv4())
@@ -298,7 +322,6 @@ std::string SocketAddress::getPortString() const
 	return ss.str();
 }
 
-// COMPATIBILITY: Keep original method name with capital V
 const struct sockaddr_in &SocketAddress::getIPV4() const
 {
 	if (isIPv4())
@@ -312,7 +335,6 @@ const struct sockaddr_in &SocketAddress::getIPV4() const
 	}
 }
 
-// COMPATIBILITY: Keep original method name with capital V
 const struct sockaddr_in6 &SocketAddress::getIPV6() const
 {
 	if (isIPv6())
@@ -324,12 +346,6 @@ const struct sockaddr_in6 &SocketAddress::getIPV6() const
 		Logger::log(Logger::ERROR, ss.str());
 		throw std::runtime_error(ss.str());
 	}
-}
-
-// COMPATIBILITY: Keep original get() method
-const struct sockaddr_in &SocketAddress::get() const
-{
-	return getIPV4();
 }
 
 int SocketAddress::getFamily() const
@@ -353,141 +369,14 @@ socklen_t SocketAddress::getAddrLen() const
 }
 
 // COMPATIBILITY: Keep original getSize() method
-socklen_t &SocketAddress::getSize()
+socklen_t SocketAddress::getSize() const
 {
 	return _addrLen;
-}
-
-/*
-** --------------------------------- SETTERS (DEPRECATED) ---------------------
-*/
-
-void SocketAddress::setFamily(int family)
-{
-	_family = family;
-	_getSockAddr()->sa_family = family;
-}
-
-void SocketAddress::setPort(int port)
-{
-	_port = port;
-	if (_family == AF_INET)
-	{
-		_getSockAddrIn()->sin_port = htons(port);
-	}
-	else if (_family == AF_INET6)
-	{
-		_getSockAddrIn6()->sin6_port = htons(port);
-	}
-}
-
-void SocketAddress::setHost(const std::string &host)
-{
-	_host = host;
 }
 
 void SocketAddress::setAddrLen(socklen_t addrLen)
 {
 	_addrLen = addrLen;
-}
-
-/*
-** ------------------------------- STATIC METHODS ----------------------------
-*/
-
-SocketAddress SocketAddress::createIPv4(const std::string &host, unsigned short port)
-{
-	SocketAddress addr;
-	struct sockaddr_in *addr4 = addr._getSockAddrIn();
-
-	addr4->sin_family = AF_INET;
-	addr4->sin_port = htons(port);
-
-	if (host == "0.0.0.0" || host.empty())
-	{
-		addr4->sin_addr.s_addr = INADDR_ANY;
-	}
-	else
-	{
-		uint32_t ipAddr;
-		if (!IPAddressParser::parseIPv4(host, ipAddr))
-		{
-			std::stringstream ss;
-			ss << "Invalid IPv4 address: " << host;
-			Logger::log(Logger::ERROR, ss.str());
-			throw std::runtime_error(ss.str());
-		}
-		addr4->sin_addr.s_addr = ipAddr;
-	}
-
-	addr._family = AF_INET;
-	addr._addrLen = sizeof(struct sockaddr_in);
-	addr._host = host;
-	addr._updateCachedValues();
-
-	return addr;
-}
-
-SocketAddress SocketAddress::createIPv6(const std::string &host, unsigned short port)
-{
-	SocketAddress addr;
-	struct sockaddr_in6 *addr6 = addr._getSockAddrIn6();
-
-	addr6->sin6_family = AF_INET6;
-	addr6->sin6_port = htons(port);
-
-	if (host == "::" || host.empty())
-	{
-		addr6->sin6_addr = in6addr_any;
-	}
-	else
-	{
-		if (!IPAddressParser::parseIPv6(host, addr6->sin6_addr))
-		{
-			throw std::runtime_error("Invalid IPv6 address: " + host);
-		}
-	}
-
-	addr._family = AF_INET6;
-	addr._addrLen = sizeof(struct sockaddr_in6);
-	addr._host = host;
-	addr._updateCachedValues();
-
-	return addr;
-}
-
-SocketAddress SocketAddress::createAuto(const std::string &host, unsigned short port)
-{
-	if (IPAddressParser::looksLikeIPv4(host))
-	{
-		return createIPv4(host, port);
-	}
-	else if (IPAddressParser::looksLikeIPv6(host))
-	{
-		return createIPv6(host, port);
-	}
-	else
-	{
-		// For hostname resolution, use the main constructor
-		return SocketAddress(host, port);
-	}
-}
-
-SocketAddress SocketAddress::createFromStorage(const struct sockaddr_storage &storage, socklen_t addrLen)
-{
-	SocketAddress addr;
-	if (addrLen <= sizeof(addr._storage))
-	{
-		std::memcpy(&addr._storage, &storage, addrLen);
-		addr._addrLen = addrLen;
-		addr._family = addr._getSockAddr()->sa_family;
-		addr._updateCachedValues();
-	}
-	else
-	{
-		throw std::runtime_error("Address length exceeds storage capacity");
-	}
-	return addr;
 }
 
 /*

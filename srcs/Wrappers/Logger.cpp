@@ -1,5 +1,5 @@
-#include "../../includes/Logger.hpp"
-#include "../../includes/StringUtils.hpp"
+#include "../../includes/Global/Logger.hpp"
+#include "../../includes/Global/StrUtils.hpp"
 #include <iomanip>
 #include <iostream>
 
@@ -109,7 +109,8 @@ void Logger::log(LogLevel level, const std::stringstream &ss)
 	log(level, ss.str());
 }
 
-void Logger::log(LogLevel level, const std::string &message, const std::string &file, int line)
+void Logger::log(LogLevel level, const std::string &message, const std::string &file, int line,
+				 const std::string &function)
 {
 	// Extract just the filename from the full path
 	std::string filename = file;
@@ -121,7 +122,8 @@ void Logger::log(LogLevel level, const std::string &message, const std::string &
 
 	std::string timestamp = _getCurrentTime();
 	std::string levelStr = _getLevelString(level);
-	std::string logEntry = "[" + timestamp + "] " + levelStr + " [" + filename + ":" + StringUtils::toString(line) + "] " + message;
+	std::string logEntry = "[" + timestamp + "] " + levelStr + " [" + filename + ":" + StrUtils::toString<int>(line) +
+						   "] " + function + " " + message;
 
 	// Log to session file
 	if (_sessionInitialized && _logFile.is_open())
@@ -159,29 +161,29 @@ void Logger::critical(const std::string &message)
 	log(CRITICAL, message);
 }
 
-void Logger::debug(const std::string &message, const std::string &file, int line)
+void Logger::debug(const std::string &message, const std::string &file, int line, const std::string &function)
 {
-	log(DEBUG, message, file, line);
+	log(DEBUG, message, file, line, function);
 }
 
-void Logger::info(const std::string &message, const std::string &file, int line)
+void Logger::info(const std::string &message, const std::string &file, int line, const std::string &function)
 {
-	log(INFO, message, file, line);
+	log(INFO, message, file, line, function);
 }
 
-void Logger::warning(const std::string &message, const std::string &file, int line)
+void Logger::warning(const std::string &message, const std::string &file, int line, const std::string &function)
 {
-	log(WARNING, message, file, line);
+	log(WARNING, message, file, line, function);
 }
 
-void Logger::error(const std::string &message, const std::string &file, int line)
+void Logger::error(const std::string &message, const std::string &file, int line, const std::string &function)
 {
-	log(ERROR, message, file, line);
+	log(ERROR, message, file, line, function);
 }
 
-void Logger::critical(const std::string &message, const std::string &file, int line)
+void Logger::critical(const std::string &message, const std::string &file, int line, const std::string &function)
 {
-	log(CRITICAL, message, file, line);
+	log(CRITICAL, message, file, line, function);
 }
 
 void Logger::logRequest(const std::string &method, const std::string &uri, const std::string &clientIP, int statusCode)
@@ -202,7 +204,7 @@ void Logger::logErrno(LogLevel level, const std::string &message, const std::str
 {
 	std::stringstream ss;
 	ss << message << ": " << std::strerror(errno);
-	log(level, ss.str(), file, line);
+	log(level, ss.str(), file, line, __FUNCTION__);
 }
 
 void Logger::logServerStart(const std::string &host, int port)

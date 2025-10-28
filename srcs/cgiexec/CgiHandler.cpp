@@ -1,5 +1,5 @@
-#include "../../includes/CgiHandler.hpp"
-#include "../../includes/StringUtils.hpp"
+#include "../../includes/CGI/CgiHandler.hpp"
+#include "../../includes/Global/StrUtils.hpp"
 #include <algorithm>
 #include <sys/stat.h>
 
@@ -115,7 +115,7 @@ std::string CgiHandler::resolveCgiScriptPath(const std::string &uri, const Serve
 	std::string locationPath = location->getPath();
 	std::string root = location->getRoot();
 	if (root.empty())
-		root = server->getRoot();
+		root = server->getRootPath();
 
 	// Remove location path from URI to get the script relative path
 	std::string scriptRelativePath;
@@ -173,7 +173,7 @@ CgiHandler::ExecutionResult CgiHandler::executeCgiScript(const std::string &scri
 
 	// Execute the script
 	CgiExecutor::ExecutionResult execResult =
-		_executor.execute(scriptPath, interpreter, envArray, request.getBody(), output, error);
+		_executor.execute(scriptPath, interpreter, envArray, request.getBodyData(), output, error);
 
 	// Clean up environment array
 	_cgiEnv.freeEnvArray(envArray);
@@ -193,9 +193,10 @@ CgiHandler::ExecutionResult CgiHandler::executeCgiScript(const std::string &scri
 	}
 }
 
-CgiHandler::ExecutionResult CgiHandler::processResponse(const std::string &output, const std::string &error,
+CgiHandler::ExecutionResult CgiHandler::processResponse(const std::string &output, const std::string &error, 
 														HttpResponse &response, const Server *server)
 {
+	(void)server;
 	// Log any error output from CGI script
 	if (!error.empty())
 	{
@@ -210,9 +211,9 @@ CgiHandler::ExecutionResult CgiHandler::processResponse(const std::string &outpu
 
 		// Return 500 error
 		response.setStatus(500, "Internal Server Error");
-		response.setBody(server->getStatusPage(500));
-		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
+		response.setBody("Internal Server Error");
+		response.setHeader(Header("Content-Type: text/html"));
+		response.setHeader(Header("Content-Length: " + StrUtils::toString(response.getBody().length())));
 
 		return ERROR_RESPONSE_PARSING_FAILED;
 	}

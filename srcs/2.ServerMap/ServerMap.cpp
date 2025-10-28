@@ -1,29 +1,19 @@
-#include "../../includes/ServerMap.hpp"
-#include "../../includes/StringUtils.hpp"
-#include <memory>
+#include "../../includes/ConfigParser/ServerMap.hpp"
+#include "../../includes/Global/Logger.hpp"
+#include "../../includes/Global/StrUtils.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-ServerMap::ServerMap()
+ServerMap::ServerMap(std::vector<Server> &servers)
 {
-	_serverMap = std::map<ListeningSocket, std::vector<Server> >();
+	_servers = servers;
+	_buildServerMap();
 }
 
-ServerMap::ServerMap(const ServerMap &src)
-	: _serverConfigs(src._serverConfigs), _serverMap(src._serverMap)
+ServerMap::ServerMap(const ServerMap &src) : _serverMap(src._serverMap)
 {
-}
-
-ServerMap::ServerMap(const std::vector<ServerConfig> &serverConfigs)
-{
-	Logger::info("ServerMap: Creating ServerMap from " + StringUtils::toString(serverConfigs.size()) +
-				 " server configurations");
-	_serverConfigs = serverConfigs;
-	std::vector<Server> servers = _spawnServers(_serverConfigs);
-	_populateServerMap(servers);
-	Logger::debug("ServerMap: ServerMap created successfully");
 }
 
 /*
@@ -42,128 +32,39 @@ ServerMap &ServerMap::operator=(ServerMap const &rhs)
 {
 	if (this != &rhs)
 	{
-		_serverConfigs = rhs._serverConfigs;
+		_servers = rhs._servers;
 		_serverMap = rhs._serverMap;
 	}
 	return *this;
 }
 
-/*
-** --------------------------------- UTILITY METHODS
-*----------------------------------
-*/
+/* --------------------------------- Private Utilities --------------------------------- */
 
-void ServerMap::_convertAndAddLocationsToServer(Server &server, const ServerConfig &serverConfig)
+void ServerMap::_buildServerMap()
 {
-	const std::vector<Location> &locations = serverConfig.getLocations();
-
-	for (std::vector<Location>::const_iterator it = locations.begin(); it != locations.end(); ++it)
+	for (std::vector<Server>::iterator server_it = _servers.begin(); server_it != _servers.end(); ++server_it)
 	{
-		server.addLocation(*it);
-	}
-}
-
-// Responsible for spawning the servers from the server configs server class
-// will take care of spawning the locations
-std::vector<Server> ServerMap::_spawnServers(std::vector<ServerConfig> &serverConfigs)
-{
-	std::vector<Server> servers;
-	// Small optimisation for memory space
-	servers.reserve(serverConfigs.size() * 2);
-	// Iterate through each server config
-	for (std::vector<ServerConfig>::iterator it = serverConfigs.begin(); it != serverConfigs.end(); ++it)
-	{
-		// Iterate through each server name
-		for (std::vector<std::string>::const_iterator serverName = it->getServerNames().begin();
-			 serverName != it->getServerNames().end(); ++serverName)
+		for (std::vector<SocketAddress>::const_iterator socketAddress_it = server_it->getSocketAddresses().begin();
+			 socketAddress_it != server_it->getSocketAddresses().end(); ++socketAddress_it)
 		{
-			// Iterate through each host + port pair
-			for (std::vector<std::pair<std::string, unsigned short> >::const_iterator host_port =
-					 it->getHosts_ports().begin();
-				 host_port != it->getHosts_ports().end(); ++host_port)
+			bool found = false;
+			for (std::map<ListeningSocket, std::vector<Server> >::iterator listening_socket_it = _serverMap.begin();
+				 listening_socket_it != _serverMap.end(); ++listening_socket_it)
 			{
-				// Spawn a server
-				Server server(*serverName, host_port->first, host_port->second, &(*it));
-				// Add locations to the server
-				_convertAndAddLocationsToServer(server, *it);
-				servers.push_back(server);
-				ListeningSocket listeningSocket(host_port->first, host_port->second);
-				if (listeningSocket.getFd() != -1)
+				if (listening_socket_it->first.getAddress() == *socketAddress_it)
 				{
-					_serverMap.insert(std::make_pair(listeningSocket, std::vector<Server>()));
+					listening_socket_it->second.push_back(*server_it);
+					found = true;
+					break;
 				}
+			}
+			if (!found)
+			{
+				_serverMap.insert(
+					std::make_pair(ListeningSocket(*socketAddress_it), std::vector<Server>(1, *server_it)));
 			}
 		}
 	}
-	return servers;
-}
-
-void ServerMap::_populateServerMap(std::vector<Server> &servers)
-{
-	// Iterate through each server
-	for (std::vector<Server>::iterator server_object_it = servers.begin(); server_object_it != servers.end();
-		 ++server_object_it)
-	{
-		// Attempt to match the server object o a key in the server map
-		for (std::map<ListeningSocket, std::vector<Server> >::iterator it = _serverMap.begin(); it != _serverMap.end();
-			 ++it)
-		{
-			// If the server object matches the key
-			if (it->first.getAddress().getHost() == server_object_it->getHost() &&
-				it->first.getAddress().getPort() == server_object_it->getPort())
-			{
-				// Check that the vector does not contain a similar server
-				// object
-				for (std::vector<Server>::iterator server = it->second.begin(); server != it->second.end(); ++server)
-				{
-					// If it does then ignore the current server object and
-					// continue to the next server object
-					if (server->getServerName() == server_object_it->getServerName())
-					{
-						std::stringstream ss;
-						ss << "ServerMap: Server " << server_object_it->getServerName()
-						   << " already exists in server map, ignoring this "
-							  "server object: "
-						   << *server_object_it;
-						Logger::log(Logger::ERROR, ss.str());
-						break;
-					}
-				}
-				// Add the server object to the server map
-				it->second.push_back(*server_object_it);
-			}
-		}
-	}
-}
-
-/*
-** --------------------------------- ACCESSORS
-*----------------------------------
-*/
-
-std::vector<Server> &ServerMap::getServers(const ListeningSocket &key)
-{
-	for (std::map<ListeningSocket, std::vector<Server> >::iterator it = _serverMap.begin(); it != _serverMap.end();
-		 ++it)
-	{
-		if (it->first == key)
-			return it->second;
-	}
-	std::stringstream ss;
-	ss << "[" << __FILE__ << ":" << __LINE__ << "] ServerMap: Server not found for key: " << key;
-	Logger::log(Logger::ERROR, ss.str());
-	throw std::out_of_range(ss.str());
-}
-
-const Server &ServerMap::getServer(const ListeningSocket &key, const std::string &serverName)
-{
-	std::vector<Server> servers = getServers(key);
-	for (std::vector<Server>::const_iterator server = servers.begin(); server != servers.end(); ++server)
-	{
-		if (server->getServerName() == serverName)
-			return *server;
-	}
-	throw std::out_of_range("ServerMap: Server not found");
 }
 
 bool ServerMap::hasFd(int &fd) const
@@ -205,10 +106,36 @@ void ServerMap::printServerMap() const
 		ss << "Servers:" << std::endl;
 		for (std::vector<Server>::const_iterator server = it->second.begin(); server != it->second.end(); ++server)
 		{
-			ss << " " << server->getServerName() << std::endl;
+		ss << " Server Name(s):";
+		if (!server->getServerNames().isEmpty())
+		{
+			for (TrieTree<std::string>::const_iterator serverName = server->getServerNames().begin();
+				 serverName != server->getServerNames().end(); ++serverName)
+			{
+				ss << " " << *serverName << std::endl;
+			}
+		}
+		else
+		{
+			ss << " (none)" << std::endl;
+		}
 		}
 	}
 	Logger::debug(ss.str());
+}
+
+const std::vector<Server> &ServerMap::getServersForFd(int fd) const
+{
+	for (std::map<ListeningSocket, std::vector<Server> >::const_iterator it = _serverMap.begin();
+		 it != _serverMap.end(); ++it)
+	{
+		if (it->first.getFd().getFd() == fd)
+		{
+			return it->second;
+		}
+	}
+	static std::vector<Server> empty;
+	return empty;
 }
 
 /* ************************************************************************** */

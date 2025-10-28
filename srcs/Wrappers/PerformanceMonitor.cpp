@@ -1,4 +1,6 @@
-#include "../../includes/PerformanceMonitor.hpp"
+#include "../../includes/Global/PerformanceMonitor.hpp"
+#include "../../includes/Global/Logger.hpp"
+#include "../../includes/Global/StrUtils.hpp"
 #include <algorithm>
 #include <iomanip>
 #include <sstream>
@@ -18,7 +20,7 @@ PerformanceMonitor::PerformanceMonitor()
 	gettimeofday(&_lastUpdateTime, NULL);
 	_initialMemoryUsage = _getCurrentMemoryUsage();
 	
-	Logger::info("PerformanceMonitor: Performance monitoring initialized", __FILE__, __LINE__);
+	Logger::info("PerformanceMonitor: Performance monitoring initialized", __FILE__, __LINE__, __FUNCTION__);
 }
 
 PerformanceMonitor::PerformanceMonitor(const PerformanceMonitor &src)
@@ -29,7 +31,7 @@ PerformanceMonitor::PerformanceMonitor(const PerformanceMonitor &src)
 
 PerformanceMonitor::~PerformanceMonitor()
 {
-	Logger::info("PerformanceMonitor: Performance monitoring shutdown", __FILE__, __LINE__);
+	Logger::info("PerformanceMonitor: Performance monitoring shutdown", __FILE__, __LINE__, __FUNCTION__);
 }
 
 PerformanceMonitor &PerformanceMonitor::operator=(const PerformanceMonitor &rhs)
@@ -191,7 +193,7 @@ void PerformanceMonitor::recordConnection()
 	_sessionMetrics.activeConnections++;
 	
 	Logger::debug("PerformanceMonitor: Connection recorded. Active: " + 
-				  StringUtils::toString(_currentMetrics.activeConnections), __FILE__, __LINE__);
+				  StrUtils::toString(_currentMetrics.activeConnections), __FILE__, __LINE__, __FUNCTION__);
 }
 
 void PerformanceMonitor::recordDisconnection()
@@ -203,7 +205,7 @@ void PerformanceMonitor::recordDisconnection()
 	}
 	
 	Logger::debug("PerformanceMonitor: Disconnection recorded. Active: " + 
-				  StringUtils::toString(_currentMetrics.activeConnections), __FILE__, __LINE__);
+				  StrUtils::toString(_currentMetrics.activeConnections), __FILE__, __LINE__, __FUNCTION__);
 }
 
 void PerformanceMonitor::recordRequest(bool success)
@@ -315,7 +317,7 @@ void PerformanceMonitor::resetSessionMetrics()
 	_fileReadTimes.clear();
 	gettimeofday(&_sessionStartTime, NULL);
 	
-	Logger::info("PerformanceMonitor: Session metrics reset", __FILE__, __LINE__);
+	Logger::info("PerformanceMonitor: Session metrics reset", __FILE__, __LINE__, __FUNCTION__);
 }
 
 /*
@@ -397,16 +399,16 @@ double PerformanceMonitor::_getCurrentTime() const
 
 void PerformanceMonitor::logPerformanceReport()
 {
-	Logger::info("=== PERFORMANCE REPORT ===", __FILE__, __LINE__);
-	Logger::info(generatePerformanceReport(), __FILE__, __LINE__);
-	Logger::info("=== END PERFORMANCE REPORT ===", __FILE__, __LINE__);
+	Logger::info("=== PERFORMANCE REPORT ===", __FILE__, __LINE__, __FUNCTION__);
+	Logger::info(generatePerformanceReport(), __FILE__, __LINE__, __FUNCTION__);
+	Logger::info("=== END PERFORMANCE REPORT ===", __FILE__, __LINE__, __FUNCTION__);
 }
 
 void PerformanceMonitor::logPerformanceSummary()
 {
-	Logger::info("=== PERFORMANCE SUMMARY ===", __FILE__, __LINE__);
-	Logger::info(generatePerformanceSummary(), __FILE__, __LINE__);
-	Logger::info("=== END PERFORMANCE SUMMARY ===", __FILE__, __LINE__);
+	Logger::info("=== PERFORMANCE SUMMARY ===", __FILE__, __LINE__, __FUNCTION__);
+	Logger::info(generatePerformanceSummary(), __FILE__, __LINE__, __FUNCTION__);
+	Logger::info("=== END PERFORMANCE SUMMARY ===", __FILE__, __LINE__, __FUNCTION__);
 }
 
 std::string PerformanceMonitor::generatePerformanceReport() const
@@ -481,12 +483,12 @@ void PerformanceMonitor::logSystemStatus()
 {
 	updateSystemMetrics();
 	
-	Logger::info("System Status:", __FILE__, __LINE__);
-	Logger::info("  Memory Usage: " + StringUtils::toString(_currentMetrics.currentMemoryUsage / 1024) + " KB", __FILE__, __LINE__);
-	Logger::info("  Peak Memory: " + StringUtils::toString(_currentMetrics.peakMemoryUsage / 1024) + " KB", __FILE__, __LINE__);
-	Logger::info("  File Descriptors: " + StringUtils::toString(_currentMetrics.fileDescriptorsUsed) + "/" + 
-				 StringUtils::toString(_currentMetrics.maxFileDescriptors), __FILE__, __LINE__);
-	Logger::info("  Active Connections: " + StringUtils::toString(_currentMetrics.activeConnections), __FILE__, __LINE__);
+	Logger::info("System Status:", __FILE__, __LINE__, __FUNCTION__);
+	Logger::info("  Memory Usage: " + StrUtils::toString(_currentMetrics.currentMemoryUsage / 1024) + " KB", __FILE__, __LINE__, __FUNCTION__);
+	Logger::info("  Peak Memory: " + StrUtils::toString(_currentMetrics.peakMemoryUsage / 1024) + " KB", __FILE__, __LINE__, __FUNCTION__);
+	Logger::info("  File Descriptors: " + StrUtils::toString(_currentMetrics.fileDescriptorsUsed) + "/" + 
+				 StrUtils::toString(_currentMetrics.maxFileDescriptors), __FILE__, __LINE__, __FUNCTION__);
+	Logger::info("  Active Connections: " + StrUtils::toString(_currentMetrics.activeConnections), __FILE__, __LINE__, __FUNCTION__);
 }
 
 /*
@@ -498,9 +500,9 @@ void PerformanceMonitor::setPerformanceThresholds(double maxRequestTime, double 
 	// This would be implemented to set thresholds and check them
 	// For now, we'll just log the thresholds
 	Logger::info("PerformanceMonitor: Thresholds set - Max Request Time: " + 
-				 StringUtils::toString(maxRequestTime) + " ms, Max CGI Time: " + 
-				 StringUtils::toString(maxCGITime) + " ms, Max Memory: " + 
-				 StringUtils::toString(maxMemoryUsage / 1024) + " KB", __FILE__, __LINE__);
+				 StrUtils::toString(maxRequestTime) + " ms, Max CGI Time: " + 
+				 StrUtils::toString(maxCGITime) + " ms, Max Memory: " + 
+				 StrUtils::toString(maxMemoryUsage / 1024) + " KB", __FILE__, __LINE__, __FUNCTION__);
 }
 
 bool PerformanceMonitor::checkPerformanceThresholds() const

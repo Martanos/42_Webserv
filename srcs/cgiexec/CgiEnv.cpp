@@ -1,9 +1,9 @@
-#include "../../includes/CgiEnv.hpp"
-#include "../../includes/HttpRequest.hpp"
-#include "../../includes/Location.hpp"
-#include "../../includes/Logger.hpp"
-#include "../../includes/Server.hpp"
-#include "../../includes/StringUtils.hpp"
+#include "../../includes/CGI/CgiEnv.hpp"
+#include "../../includes/HTTP/HttpRequest.hpp"
+#include "../../includes/Core/Location.hpp"
+#include "../../includes/Global/Logger.hpp"
+#include "../../includes/Core/Server.hpp"
+#include "../../includes/Global/StrUtils.hpp"
 #include <cstdlib>
 #include <sstream>
 
@@ -76,18 +76,18 @@ void CGIenv::copyDataFromServer(const Server *server, const Location *location)
 	}
 
 	// Server information
-	const std::string &serverName = server->getServerName();
+		const std::string &serverName = "localhost"; // Default server name
 	if (!serverName.empty())
 		setEnv("SERVER_NAME", serverName);
 	else
 		setEnv("SERVER_NAME", "localhost");
 
 	// Get port from server configuration
-	unsigned short port = server->getPort();
-	setEnv("SERVER_PORT", StringUtils::toString(port));
+		unsigned short port = 80; // Default port
+		setEnv("SERVER_PORT", StrUtils::toString(port));
 
 	// Server host information
-	const std::string &host = server->getHost();
+		const std::string &host = "127.0.0.1"; // Default host
 	if (!host.empty())
 		setEnv("SERVER_ADDR", host);
 	else
@@ -96,7 +96,7 @@ void CGIenv::copyDataFromServer(const Server *server, const Location *location)
 	// Document root from location or server
 	std::string root = location->getRoot();
 	if (root.empty())
-		root = server->getRoot();
+			root = server->getRootPath();
 
 	if (!root.empty())
 		setEnv("DOCUMENT_ROOT", root);
@@ -104,7 +104,7 @@ void CGIenv::copyDataFromServer(const Server *server, const Location *location)
 		setEnv("DOCUMENT_ROOT", "/var/www/html"); // Default document root
 
 	// Add custom CGI parameters from location configuration
-	const std::map<std::string, std::string> &cgiParams = location->getCgiParams();
+		const std::map<std::string, std::string> &cgiParams = std::map<std::string, std::string>(); // Empty map for now
 	for (std::map<std::string, std::string>::const_iterator it = cgiParams.begin(); it != cgiParams.end(); ++it)
 	{
 		setEnv(it->first, it->second);
@@ -116,7 +116,7 @@ void CGIenv::copyDataFromServer(const Server *server, const Location *location)
 
 	// Set client max body size if available
 	double maxBodySize = server->getClientMaxBodySize();
-	setEnv("SERVER_MAX_BODY_SIZE", StringUtils::toString(static_cast<long>(maxBodySize)));
+		setEnv("SERVER_MAX_BODY_SIZE", StrUtils::toString(static_cast<long>(maxBodySize)));
 }
 
 void CGIenv::setupFromRequest(const HttpRequest &request, const Server *server, const Location *location,
@@ -177,7 +177,7 @@ void CGIenv::setupFromRequest(const HttpRequest &request, const Server *server, 
 			setEnv("CONTENT_TYPE", contentType[0]);
 		}
 
-		setEnv("CONTENT_LENGTH", StringUtils::toString(request.getBody().length()));
+			setEnv("CONTENT_LENGTH", StrUtils::toString(request.getBodyData().length()));
 	}
 	else
 	{

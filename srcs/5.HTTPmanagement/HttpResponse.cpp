@@ -1,6 +1,10 @@
-#include "../../includes/HttpResponse.hpp"
-#include "../../includes/StringUtils.hpp"
-
+#include "../../includes/HTTP/HttpResponse.hpp"
+#include "../../includes/Core/Location.hpp"
+#include "../../includes/Core/Server.hpp"
+#include "../../includes/Global/DefaultStatusMap.hpp"
+#include "../../includes/Global/FileUtils.hpp"
+#include "../../includes/Global/Logger.hpp"
+#include "../../includes/Global/StrUtils.hpp"
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
@@ -36,20 +40,48 @@ HttpResponse &HttpResponse::operator=(HttpResponse const &rhs)
 		_version = rhs._version;
 		_headers = rhs._headers;
 		_body = rhs._body;
+		_streamBody = rhs._streamBody;
+		_bodyFileDescriptor = rhs._bodyFileDescriptor;
 		_bytesSent = rhs._bytesSent;
 		_rawResponse = rhs._rawResponse;
+		_httpResponseState = rhs._httpResponseState;
 	}
 	return *this;
 }
 
 /*
-** --------------------------------- METHODS ----------------------------------
+** --------------------------------- PRIVATE METHODS ----------------------------------
 */
 
-bool HttpResponse::isEmpty() const
+void HttpResponse::_getDateHeader()
 {
-	return _body.empty();
+	std::time_t now = std::time(0);
+	char buf[80];
+	std::strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&now));
+	insertHeader(Header("date: " + std::string(buf) + " GMT"));
 }
+
+void HttpResponse::_setServerHeader()
+{
+	insertHeader(Header("server: " + HTTP_RESPONSE_DEFAULT::SERVER));
+}
+
+void HttpResponse::_setContentLengthHeader()
+{
+	if (!_body.empty())
+	{
+		insertHeader(Header("content-length: " + StrUtils::toString(_body.length())));
+	}
+}
+
+void HttpResponse::_setVersionHeader()
+{
+	_version = HTTP_RESPONSE_DEFAULT::VERSION;
+}
+
+/*
+** --------------------------------- METHODS ----------------------------------
+*/
 
 void HttpResponse::setStatus(int code, const std::string &message)
 {
@@ -57,15 +89,98 @@ void HttpResponse::setStatus(int code, const std::string &message)
 	_statusMessage = message;
 }
 
-void HttpResponse::setHeader(const std::string &name, const std::string &value)
+// Replaces a header if it exists else inserts it
+void HttpResponse::setHeader(const Header &header)
 {
-	_headers[name] = value;
+	for (std::vector<Header>::iterator it = _headers.begin(); it != _headers.end(); ++it)
+	{
+		if (*it == header)
+		{
+			*it = header;
+			return;
+		}
+	}
+	_headers.push_back(header);
+}
+// Inserts/mergers a header if it exists
+void HttpResponse::insertHeader(const Header &header)
+{
+	for (std::vector<Header>::iterator it = _headers.begin(); it != _headers.end(); ++it)
+	{
+		if (*it == header)
+		{
+			it->merge(header);
+			return;
+		}
+	}
+	_headers.push_back(header);
 }
 
 void HttpResponse::setBody(const std::string &body)
 {
 	_body = body;
-	Logger::debug("HttpResponse: Set body with " + StringUtils::toString(body.length()) + " bytes");
+	_streamBody = false;
+	setHeader(Header("content-type: text/html"));
+	setHeader(Header("content-length: " + StrUtils::toString(body.length())));
+}
+
+// Used when location and server have not been identified
+void HttpResponse::setResponse(int statusCode, const std::string &statusMessage)
+{
+	setStatus(statusCode, statusMessage);
+	_body = DefaultStatusMap::getStatusBody(statusCode);
+}
+
+// Used when access to body is not known yet
+void HttpResponse::setResponse(int statusCode, const std::string &statusMessage, const Server *server,
+							   const Location *location, const std::string &filePath)
+{
+	setStatus(statusCode, statusMessage);
+	if (location && location->hasStatusPage(_statusCode))
+	{
+		std::string statusPagePath = filePath + location->getStatusPages().find(_statusCode)->second;
+		statusPagePath = FileUtils::normalizePath(statusPagePath);
+		if (FileUtils::isFileReadable(statusPagePath))
+		{
+			_bodyFileDescriptor = FileDescriptor::createFromOpen(statusPagePath.c_str(), O_RDONLY);
+			_streamBody = true;
+		}
+		else
+			_body = DefaultStatusMap::getStatusBody(_statusCode);
+	}
+	else if (server && server->hasStatusPage(_statusCode))
+	{
+		std::string statusPagePath = filePath + server->getStatusPages().find(_statusCode)->second;
+		statusPagePath = FileUtils::normalizePath(statusPagePath);
+		if (FileUtils::isFileReadable(statusPagePath))
+		{
+			_bodyFileDescriptor = FileDescriptor::createFromOpen(statusPagePath.c_str(), O_RDONLY);
+			_streamBody = true;
+		}
+		else
+			_body = DefaultStatusMap::getStatusBody(_statusCode);
+	}
+	else
+		_body = DefaultStatusMap::getStatusBody(_statusCode);
+}
+
+// Used when the body is already known
+void HttpResponse::setResponse(int statusCode, const std::string &statusMessage, const std::string &body,
+							   const std::string &contentType)
+{
+	setStatus(statusCode, statusMessage);
+	_body = body;
+	_streamBody = false;
+	setHeader(Header("content-type: " + contentType));
+	setHeader(Header("content-length: " + StrUtils::toString(body.length())));
+}
+
+// Used when a redirect is needed
+void HttpResponse::setRedirectResponse(const std::string &redirectPath)
+{
+	setStatus(301, "Moved Permanently");
+	setHeader(Header("location: " + redirectPath));
+	setResponse(301, "Moved Permanently", "", "text/html");
 }
 
 // Formats the response into a HTTP 1.1 compliant format
@@ -74,19 +189,23 @@ std::string HttpResponse::toString() const
 	std::stringstream response;
 
 	// Status line
-	response << "HTTP/1.1 " << _statusCode << " " << _statusMessage << "\r\n";
+	response << _version << " " << _statusCode << " " << _statusMessage << "\r\n";
 
 	// Headers
-	for (std::map<std::string, std::string>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
+	for (std::vector<Header>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
 	{
-		response << it->first << ": " << it->second << "\r\n";
+		response << *it << "\r\n";
 	}
 
 	// Empty line between headers and body
 	response << "\r\n";
 
 	// Body (if any)
-	if (!_body.empty())
+	if (_streamBody)
+	{
+		response << _bodyFileDescriptor.readFile();
+	}
+	else
 	{
 		response << _body;
 	}
@@ -96,13 +215,18 @@ std::string HttpResponse::toString() const
 
 void HttpResponse::reset()
 {
-	_statusCode = 0;
-	_statusMessage = "";
-	_version = "";
+	_statusCode = HTTP_RESPONSE_DEFAULT::DEFAULT_STATUS_CODE;
+	_statusMessage = HTTP_RESPONSE_DEFAULT::DEFAULT_STATUS_MESSAGE;
 	_headers.clear();
 	_body = "";
+	_streamBody = false;
+	_bodyFileDescriptor = FileDescriptor();
 	_bytesSent = 0;
 	_rawResponse = "";
+	_httpResponseState = RESPONSE_SENDING_URI;
+	_getDateHeader();
+	_setServerHeader();
+	_setVersionHeader();
 }
 
 /*
@@ -121,10 +245,17 @@ std::string HttpResponse::getStatusMessage() const
 
 std::string HttpResponse::getVersion() const
 {
-	return _version;
+	for (std::vector<Header>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
+	{
+		if (it->getDirective() == "version")
+		{
+			return it->getValues()[0];
+		}
+	}
+	return HTTP_RESPONSE_DEFAULT::VERSION;
 }
 
-std::map<std::string, std::string> HttpResponse::getHeaders() const
+std::vector<Header> HttpResponse::getHeaders() const
 {
 	return _headers;
 }
@@ -163,7 +294,7 @@ void HttpResponse::setVersion(const std::string &version)
 	_version = version;
 }
 
-void HttpResponse::setHeaders(const std::map<std::string, std::string> &headers)
+void HttpResponse::setHeaders(const std::vector<Header> &headers)
 {
 	_headers = headers;
 }
@@ -178,57 +309,48 @@ void HttpResponse::setRawResponse(const std::string &rawResponse)
 	_rawResponse = rawResponse;
 }
 
-void HttpResponse::setAutoFields()
+void HttpResponse::setLastModifiedHeader()
 {
-	// Set default version if not set
-	if (_version.empty())
+	std::time_t lastModified = std::time(0);
+	char buffer[100];
+	struct tm *tm = std::gmtime(&lastModified);
+	strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", tm);
+	setHeader(Header("last-modified: " + std::string(buffer) + " GMT"));
+}
+
+void HttpResponse::setBody(const Location *location, const Server *server)
+{
+	(void)location;
+	(void)server;
+	// Generate a simple error page based on status code
+	std::string errorPage = "<html><head><title>" + StrUtils::toString(_statusCode) + " " + _statusMessage + "</title></head>";
+	errorPage += "<body><h1>" + StrUtils::toString(_statusCode) + " " + _statusMessage + "</h1>";
+	errorPage += "<p>Error occurred while processing your request.</p></body></html>";
+	_body = errorPage;
+}
+
+void HttpResponse::sendResponse(const FileDescriptor &clientFd)
+{
+	// Generate the raw response
+	_rawResponse = _version + " " + StrUtils::toString(_statusCode) + " " + _statusMessage + "\r\n";
+	
+	// Add headers
+	for (std::vector<Header>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
 	{
-		_version = "HTTP/1.1";
+		_rawResponse += it->getDirective() + ": " + it->getValues()[0] + "\r\n";
 	}
 	
-	// Set default status message if not set
-	if (_statusMessage.empty())
-	{
-		switch (_statusCode)
-		{
-		case 200: _statusMessage = "OK"; break;
-		case 201: _statusMessage = "Created"; break;
-		case 204: _statusMessage = "No Content"; break;
-		case 301: _statusMessage = "Moved Permanently"; break;
-		case 302: _statusMessage = "Found"; break;
-		case 400: _statusMessage = "Bad Request"; break;
-		case 401: _statusMessage = "Unauthorized"; break;
-		case 403: _statusMessage = "Forbidden"; break;
-		case 404: _statusMessage = "Not Found"; break;
-		case 405: _statusMessage = "Method Not Allowed"; break;
-		case 413: _statusMessage = "Payload Too Large"; break;
-		case 414: _statusMessage = "URI Too Long"; break;
-		case 500: _statusMessage = "Internal Server Error"; break;
-		case 501: _statusMessage = "Not Implemented"; break;
-		case 503: _statusMessage = "Service Unavailable"; break;
-		default: _statusMessage = "Unknown"; break;
-		}
-	}
+	// Add empty line before body
+	_rawResponse += "\r\n";
 	
-	// Set Content-Length if body exists and not already set
-	if (!_body.empty() && _headers.find("content-length") == _headers.end())
-	{
-		_headers["content-length"] = StringUtils::toString(_body.length());
-	}
+	// Add body
+	_rawResponse += _body;
 	
-	// Set Date header if not already set
-	if (_headers.find("date") == _headers.end())
+	// Send the response
+	ssize_t bytesSent = send(clientFd.getFd(), _rawResponse.c_str(), _rawResponse.length(), 0);
+	if (bytesSent > 0)
 	{
-		std::time_t now = std::time(0);
-		char buf[80];
-		std::strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&now));
-		_headers["date"] = std::string(buf);
-	}
-	
-	// Set Server header if not already set
-	if (_headers.find("server") == _headers.end())
-	{
-		_headers["server"] = "42_Webserv/1.0";
+		_bytesSent = static_cast<size_t>(bytesSent);
 	}
 }
 

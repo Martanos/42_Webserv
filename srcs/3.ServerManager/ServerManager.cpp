@@ -1,6 +1,7 @@
-#include "../../includes/ServerManager.hpp"
-#include "../../includes/PerformanceMonitor.hpp"
-#include "../../includes/StringUtils.hpp"
+#include "../../includes/Core/ServerManager.hpp"
+#include "../../includes/Global/PerformanceMonitor.hpp"
+#include "../../includes/Global/StrUtils.hpp"
+#include <signal.h>
 
 // Static member definition
 bool ServerManager::serverRunning = true;
@@ -9,17 +10,10 @@ bool ServerManager::serverRunning = true;
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-ServerManager::ServerManager()
+ServerManager::ServerManager(ServerMap &serverMap) : _serverMap(serverMap)
 {
 	_epollManager = EpollManager();
-	_serverMap = ServerMap();
 	_clients = std::map<FileDescriptor, Client>();
-}
-
-ServerManager::ServerManager(const ServerManager &src)
-{
-	(void)src;
-	throw std::runtime_error("ServerManager: Copy constructor called");
 }
 
 /*
@@ -31,238 +25,219 @@ ServerManager::~ServerManager()
 }
 
 /*
-** --------------------------------- OVERLOAD ---------------------------------
-*/
-
-ServerManager &ServerManager::operator=(ServerManager const &rhs)
-{
-	(void)rhs;
-	throw std::runtime_error("ServerManager: Assignment operator called");
-}
-
-/*
 ** --------------------------------- METHODS ----------------------------------
 */
 
 void ServerManager::_addServerFdsToEpoll(ServerMap &serverMap)
 {
+	Logger::debug("ServerManager: Adding server FDs to epoll, serverMap size: " + StrUtils::toString(serverMap.getServerMap().size()));
+	
 	for (std::map<ListeningSocket, std::vector<Server> >::const_iterator it = serverMap.getServerMap().begin();
 		 it != serverMap.getServerMap().end(); ++it)
 	{
+		Logger::debug("ServerManager: Adding server fd: " + StrUtils::toString(it->first.getFd().getFd()) + " to epoll");
 		_epollManager.addFd(it->first.getFd());
 	}
-	Logger::info("ServerManager: Added " + StringUtils::toString(serverMap.getServerMap().size()) +
-				 " server file descriptors to epoll");
+	Logger::debug("ServerManager: Added " + StrUtils::toString(serverMap.getServerMap().size()) +
+					" server file descriptors to epoll");
 }
 
-void ServerManager::_handleEpollEvents(int ready_events, std::vector<epoll_event> &events)
+void ServerManager::_handleEventLoop(int ready_events, std::vector<epoll_event> &events)
 {
+	Logger::debug("ServerManager: Handling " + StrUtils::toString(ready_events) + " events");
+	
 	for (int i = 0; i < ready_events; ++i)
 	{
 		int fd = events[i].data.fd;
+		Logger::debug("ServerManager: Processing event for fd: " + StrUtils::toString(fd) + ", events: " + StrUtils::toString(events[i].events));
 
 		if (_serverMap.hasFd(fd))
 		{
-			try
-			{
-				const ListeningSocket &listeningSocket = _serverMap.getListeningSocket(fd);
-				SocketAddress localAddr = listeningSocket.getAddress();
-				SocketAddress remoteAddr;
-				FileDescriptor clientFd;
-				listeningSocket.accept(remoteAddr, clientFd);
-				if (clientFd.getFd() != -1)
-				{
-					Client newClient(clientFd, localAddr, remoteAddr);
-					newClient.setPotentialServers(_serverMap.getServers(listeningSocket));
-					_clients.insert(std::make_pair(clientFd, newClient));
-					_epollManager.addFd(clientFd, EPOLLIN | EPOLLET);
-					Logger::logClientConnect(remoteAddr.getHost(), remoteAddr.getPort());
-					Logger::debug("ServerManager: Client " + StringUtils::toString(clientFd.getFd()) +
-								  " added to epoll");
-
-					// Record connection for performance monitoring
-					PERF_RECORD_CONNECTION();
-				}
-			}
-			catch (const std::exception &e)
-			{
-				Logger::log(Logger::ERROR, "ServerManager: Error accepting client: " + std::string(e.what()));
-			}
+			// Handle new connection
+			Logger::debug("ServerManager: This is a server fd, handling new connection");
+			Logger::debug("ServerManager: Server fd: " + StrUtils::toString(fd) + ", events: " + StrUtils::toString(events[i].events));
+			_handleNewConnection(fd);
+		}
+		else if (_isClientFd(fd))
+		{
+			// Handle existing client
+			Logger::debug("ServerManager: This is a client fd, handling client event");
+			_handleClientEvent(fd, events[i]);
 		}
 		else
 		{
-			FileDescriptor foundFd;
-			for (std::map<FileDescriptor, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
-			{
-				if (it->first.getFd() == fd)
-				{
-					foundFd = it->first;
-					break;
-				}
-			}
-			if (!foundFd.isValid())
-			{
-				continue;
-			}
-			try
-			{
-				Client::State oldState = _clients[foundFd].getCurrentState();
-				_clients[foundFd].handleEvent(events[i]);
-				Client::State newState = _clients[foundFd].getCurrentState();
-
-				// Update epoll events based on state change
-				if (oldState != newState)
-				{
-					uint32_t epollEvents = 0;
-					switch (newState)
-					{
-					case Client::CLIENT_READING_REQUEST:
-					case Client::CLIENT_READING_FILE:
-						epollEvents = EPOLLIN | EPOLLET;
-						break;
-					case Client::CLIENT_SENDING_RESPONSE:
-						epollEvents = EPOLLOUT | EPOLLET;
-						break;
-					case Client::CLIENT_WAITING_FOR_REQUEST:
-						epollEvents = EPOLLIN | EPOLLET;
-						break;
-					default:
-						epollEvents = EPOLLIN | EPOLLET;
-						break;
-					}
-					_epollManager.modifyFd(foundFd, epollEvents);
-				}
-
-				// Check for connection cleanup
-				if (newState == Client::CLIENT_WAITING_FOR_REQUEST && !_clients[foundFd].getServer()->getKeepAlive())
-				{
-					_clients.erase(foundFd);
-					_epollManager.removeFd(foundFd);
-					std::stringstream ss;
-					ss << "Client disconnected: " << fd;
-					Logger::log(Logger::INFO, ss.str());
-				}
-				else if (newState == Client::CLIENT_CLOSING || newState == Client::CLIENT_DISCONNECTED)
-				{
-					// Client is closing or already disconnected, clean up
-					_clients.erase(foundFd);
-					_epollManager.removeFd(foundFd);
-					std::stringstream ss;
-					ss << "Client disconnected (state: " << newState << "): " << fd;
-					Logger::log(Logger::INFO, ss.str());
-
-					// Record disconnection for performance monitoring
-					PERF_RECORD_DISCONNECTION();
-				}
-			}
-			catch (const std::exception &e)
-			{
-				_clients.erase(foundFd);
-				_epollManager.removeFd(foundFd);
-				std::stringstream ss;
-				ss << "Client " << fd << " disconnected: " << e.what();
-				Logger::log(Logger::INFO, ss.str());
-
-				// Record disconnection and error for performance monitoring
-				PERF_RECORD_DISCONNECTION();
-				PERF_RECORD_ERROR();
-			}
+			Logger::debug("ServerManager: Unknown fd: " + StrUtils::toString(fd));
 		}
 	}
+}
+
+void ServerManager::_handleNewConnection(int serverFd)
+{
+	Logger::debug("ServerManager: Handling new connection on server fd: " + StrUtils::toString(serverFd));
+	
+	// Accept new connection
+	struct sockaddr_in clientAddr;
+	socklen_t clientAddrLen = sizeof(clientAddr);
+	int clientFd = accept(serverFd, (struct sockaddr*)&clientAddr, &clientAddrLen);
+	Logger::debug("ServerManager: Accepted client fd: " + StrUtils::toString(clientFd));
+
+	if (clientFd == -1)
+	{
+		Logger::error("ServerManager: Failed to accept connection");
+		return;
+	}
+
+	// Set socket to non-blocking
+	int flags = fcntl(clientFd, F_GETFL, 0);
+	if (flags == -1 || fcntl(clientFd, F_SETFL, flags | O_NONBLOCK) == -1)
+	{
+		Logger::error("ServerManager: Failed to set socket to non-blocking");
+		close(clientFd);
+		return;
+	}
+
+	// Create client object
+	SocketAddress localAddr;
+	SocketAddress remoteAddr;
+	FileDescriptor clientFdObj = FileDescriptor::createFromDup(clientFd);
+	Client client(clientFdObj, localAddr, remoteAddr);
+
+	// Set potential servers for this client
+	const std::vector<Server> &potentialServers = _serverMap.getServersForFd(serverFd);
+	client.setPotentialServers(potentialServers);
+
+	// Add client to epoll
+	_epollManager.addFd(clientFdObj);
+	_clients[clientFdObj] = client;
+
+	Logger::debug("ServerManager: New client connected, fd: " + StrUtils::toString(clientFd));
+}
+
+void ServerManager::_handleClientEvent(int clientFd, epoll_event event)
+{
+	std::map<FileDescriptor, Client>::iterator it = _clients.begin();
+	for (; it != _clients.end(); ++it)
+	{
+		if (it->first == clientFd)
+		{
+			break;
+		}
+	}
+	
+	if (it == _clients.end())
+		return;
+
+	Client &client = it->second;
+
+	// Check if client is disconnected
+	if (client.getCurrentState() == Client::CLIENT_DISCONNECTED)
+	{
+		_epollManager.removeFd(it->first);
+		_clients.erase(it);
+		Logger::debug("ServerManager: Client disconnected, fd: " + StrUtils::toString(clientFd));
+		return;
+	}
+
+	if (event.events & EPOLLIN)
+	{
+		// Client has data to read
+		client.handleEvent(event);
+	}
+	else if (event.events & EPOLLOUT)
+	{
+		// Client is ready to receive data
+		client.handleEvent(event);
+	}
+	else if (event.events & (EPOLLERR | EPOLLHUP))
+	{
+		// Client disconnected or error occurred
+		_epollManager.removeFd(it->first);
+		_clients.erase(it);
+		Logger::debug("ServerManager: Client disconnected, fd: " + StrUtils::toString(clientFd));
+		return;
+	}
+
+	// Check client state after handling event
+	if (client.getCurrentState() == Client::CLIENT_DISCONNECTED)
+	{
+		_epollManager.removeFd(it->first);
+		_clients.erase(it);
+		Logger::debug("ServerManager: Client disconnected after event, fd: " + StrUtils::toString(clientFd));
+	}
+	else if (client.getCurrentState() == Client::CLIENT_PROCESSING_RESPONSES)
+	{
+		// Client has response ready, modify epoll to watch for write events
+		Logger::debug("ServerManager: Client has response ready, modifying epoll for EPOLLOUT");
+		_epollManager.modifyFd(it->first, EPOLLOUT);
+	}
+}
+
+bool ServerManager::_isClientFd(int fd) const
+{
+	for (std::map<FileDescriptor, Client>::const_iterator it = _clients.begin(); it != _clients.end(); ++it)
+	{
+		if (it->first == fd)
+		{
+			return true;
+		}
+	}
+	return false;
 }
 
 void ServerManager::_checkClientTimeouts()
 {
-	std::vector<FileDescriptor> clientsToRemove;
-
-	if (_clients.empty())
-		return;
+	std::vector<FileDescriptor> timedOutClients;
 
 	for (std::map<FileDescriptor, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 	{
 		if (it->second.isTimedOut())
 		{
-			clientsToRemove.push_back(it->first);
+			timedOutClients.push_back(it->first);
 		}
 	}
 
-	// Remove timed out clients
-	for (std::vector<FileDescriptor>::iterator it = clientsToRemove.begin(); it != clientsToRemove.end(); ++it)
+	for (std::vector<FileDescriptor>::iterator it = timedOutClients.begin(); it != timedOutClients.end(); ++it)
 	{
-		Logger::log(Logger::INFO, "Client " + StringUtils::toString(it->getFd()) + " timed out, disconnecting");
-		_clients.erase(*it);
 		_epollManager.removeFd(*it);
-
-		// Record timeout and disconnection for performance monitoring
-		PERF_RECORD_TIMEOUT();
-		PERF_RECORD_DISCONNECTION();
+		_clients.erase(*it);
+		Logger::debug("ServerManager: Client timed out, fd: " + StrUtils::toString(it->getFd()));
 	}
 }
 
-void ServerManager::run(std::vector<ServerConfig> &serverConfigs)
+void ServerManager::run()
 {
-	Logger::log(Logger::INFO, "Starting ServerManager with " + StringUtils::toString(serverConfigs.size()) +
-								  " server configurations");
+	Logger::info("ServerManager: Starting server manager");
 
-	// Spawn server map based on server configs
-	_serverMap = ServerMap(serverConfigs);
-
-	if (_serverMap.getServerMap().empty())
-	{
-		Logger::log(Logger::ERROR, "No valid server configurations found");
-		return;
-	}
-	_serverMap.printServerMap();
-
-	_epollManager = EpollManager();
-
-	// Add server fds to epoll
+	// Add server file descriptors to epoll
 	_addServerFdsToEpoll(_serverMap);
 
-	// Spawn a buffer for epoll events
-	std::vector<epoll_event> events;
-
-	// Add a signal handler for SIGINT and SIGTERM
+	// Set up signal handlers
 	signal(SIGINT, _handleSignal);
 	signal(SIGTERM, _handleSignal);
 
-	Logger::log(Logger::INFO, "ServerManager initialized successfully, entering main event loop");
-
-	// main polling loop
-	while (isServerRunning())
+	// Main event loop
+	while (serverRunning)
 	{
+		Logger::debug("ServerManager: Waiting for events...");
+		std::vector<epoll_event> events(100); // Max 100 events per iteration
 		int ready_events = _epollManager.wait(events, 1000); // 1 second timeout
-		if (ready_events == -1)
+		Logger::debug("ServerManager: Got " + StrUtils::toString(ready_events) + " events");
+		if (ready_events > 0)
 		{
-			Logger::logErrno(Logger::ERROR, "Epoll wait failed", __FILE__, __LINE__);
-			break;
+			Logger::debug("ServerManager: Events received! Processing...");
 		}
-		else if (ready_events == 0)
+
+		if (ready_events > 0)
 		{
-			// Timeout - check for client timeouts
-			_checkClientTimeouts();
-			continue;
+			_handleEventLoop(ready_events, events);
 		}
-		else
-		{
-			// Record epoll events for performance monitoring
-			PERF_RECORD_EPOLL_EVENT();
-			_handleEpollEvents(ready_events, events);
-		}
+
+		// Check for timed out clients
+		_checkClientTimeouts();
 	}
 
-	Logger::log(Logger::INFO, "ServerManager shutting down");
+	Logger::info("ServerManager: Server manager stopped");
 }
-
-void ServerManager::_handleSignal(int signal)
-{
-	setServerRunning(false);
-	Logger::log(Logger::INFO, "Signal received: " + StringUtils::toString(signal));
-}
-
-/*
-** --------------------------------- ACCESSOR ---------------------------------
-*/
 
 bool ServerManager::isServerRunning()
 {
@@ -274,4 +249,9 @@ void ServerManager::setServerRunning(bool shouldRun)
 	serverRunning = shouldRun;
 }
 
-/* ************************************************************************** */
+void ServerManager::_handleSignal(int signal)
+{
+	(void)signal;
+	Logger::info("ServerManager: Received signal, shutting down gracefully");
+	serverRunning = false;
+}

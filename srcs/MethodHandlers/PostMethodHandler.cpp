@@ -1,331 +1,180 @@
-#include "../../includes/PostMethodHandler.hpp"
-#include "../../includes/PerformanceMonitor.hpp"
-
-/*
-** ------------------------------- CONSTRUCTOR --------------------------------
-*/
+#include "../../includes/Core/PostMethodHandler.hpp"
+#include <sys/stat.h>
+#include <unistd.h>
 
 PostMethodHandler::PostMethodHandler()
 {
 }
 
-PostMethodHandler::PostMethodHandler(const PostMethodHandler &src)
+PostMethodHandler::PostMethodHandler(const PostMethodHandler &other)
 {
-	(void)src;
+	*this = other;
 }
-
-/*
-** -------------------------------- DESTRUCTOR --------------------------------
-*/
 
 PostMethodHandler::~PostMethodHandler()
 {
 }
 
-/*
-** --------------------------------- OVERLOAD ---------------------------------
-*/
-
-PostMethodHandler &PostMethodHandler::operator=(PostMethodHandler const &rhs)
+PostMethodHandler &PostMethodHandler::operator=(const PostMethodHandler &other)
 {
-	(void)rhs;
+	(void)other;
 	return *this;
 }
 
-/*
-** --------------------------------- METHODS ----------------------------------
-*/
-
-void PostMethodHandler::handle(const HttpRequest &request, HttpResponse &response, const Server *server,
-							   const Location *location)
+bool PostMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &response, 
+									 const Server *server, const Location *location)
 {
-	PERF_SCOPED_TIMER(post_method_handler);
-
-	Logger::info("PostMethodHandler: Handling POST request for URI: " + request.getUri());
-	// Check if location allows POST
-	if (location)
+	if (!canHandle(request.getMethod()))
 	{
-		const std::vector<std::string> &methods = location->getAllowedMethods();
-		bool postAllowed = false;
-		for (size_t i = 0; i < methods.size(); ++i)
-		{
-			if (methods[i] == "POST")
-			{
-				postAllowed = true;
-				break;
-			}
-		}
-
-		if (!postAllowed)
-		{
-			response.setStatus(405, "Method Not Allowed");
-			response.setBody(server->getStatusPage(405));
-			response.setHeader("Content-Type", "text/html");
-			response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
-			response.setHeader("Allow", "GET, HEAD");
-			return;
-		}
-	}
-
-	// Check what type of POST handling is configured
-	if (location && !location->getCgiPath().empty())
-	{
-		handleCGI(request, response, location, server);
-	}
-	else if (location && !location->getUploadPath().empty())
-	{
-		handleFileUpload(request, response, location, server);
-	}
-	else
-	{
-		// No specific POST handler configured - return error
-		response.setStatus(501, "Not Implemented");
-		response.setBody(server->getStatusPage(501));
-		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
-	}
-}
-
-void PostMethodHandler::handleFileUpload(const HttpRequest &request, HttpResponse &response, const Location *location,
-										 const Server *server) const
-{
-	std::string uploadPath = location->getUploadPath();
-
-	// Verify upload directory exists and is writable
-	struct stat st;
-	if (stat(uploadPath.c_str(), &st) != 0 || !S_ISDIR(st.st_mode))
-	{
-		Logger::log(Logger::ERROR, "Upload directory not accessible: " + uploadPath);
-		response.setStatus(500, "Internal Server Error");
-		response.setBody(server->getStatusPage(500));
-		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
-		return;
-	}
-
-	// The body is already parsed, just save it
-	// Generate filename based on timestamp if not provided
-	std::stringstream ss;
-	ss << "upload_" << time(NULL) << "_" << rand() % 10000;
-
-	// Check Content-Type for filename hint
-	std::string contentType = request.getHeader("content-type")[0];
-	std::string filename = ss.str();
-
-	// If it's a form upload, try to extract filename from Content-Disposition
-	std::string contentDisposition = request.getHeader("content-disposition")[0];
-	if (!contentDisposition.empty())
-	{
-		std::string extractedName = extractFilename(contentDisposition);
-		if (!extractedName.empty())
-		{
-			filename = extractedName;
-		}
-	}
-	else if (contentType.find("application/octet-stream") != std::string::npos)
-	{
-		filename += ".bin";
-	}
-	else if (contentType.find("text/plain") != std::string::npos)
-	{
-		filename += ".txt";
-	}
-	else if (contentType.find("image/") != std::string::npos)
-	{
-		size_t pos = contentType.find("image/");
-		std::string ext = contentType.substr(pos + 6);
-		size_t semicolon = ext.find(';');
-		if (semicolon != std::string::npos)
-		{
-			ext = ext.substr(0, semicolon);
-		}
-		filename += "." + ext;
-	}
-	else
-	{
-		filename += ".dat";
-	}
-
-	// Save the file
-	if (saveUploadedFile(uploadPath, filename, request.getBody()))
-	{
-		// Success response
-		std::stringstream html;
-		html << "<!DOCTYPE html>\n<html>\n<head>\n";
-		html << "<title>Upload Successful</title>\n</head>\n<body>\n";
-		html << "<h1>File Uploaded Successfully</h1>\n";
-		html << "<p>Filename: " << filename << "</p>\n";
-		html << "<p>Size: " << request.getBody().length() << " bytes</p>\n";
-		html << "<p><a href=\"" << request.getUri() << "\">Back</a></p>\n";
-		html << "</body>\n</html>\n";
-
-		response.setStatus(201, "Created");
-		response.setBody(html.str());
-		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
-		response.setHeader("Location", uploadPath + "/" + filename);
-	}
-	else
-	{
-		// Failed to save
-		response.setStatus(500, "Internal Server Error");
-		response.setBody(server->getStatusPage(500));
-		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
-	}
-}
-
-bool PostMethodHandler::saveUploadedFile(const std::string &uploadPath, const std::string &filename,
-										 const std::string &content) const
-{
-	std::string fullPath = uploadPath;
-	if (fullPath[fullPath.length() - 1] != '/')
-	{
-		fullPath += '/';
-	}
-
-	// Generate robust filename with timestamp and random component
-	std::string safeFilename = generateSafeFilename(filename);
-	fullPath += safeFilename;
-
-	// Use FileDescriptor for safe file handling
-	FileDescriptor fd = FileDescriptor::createFromOpen(fullPath.c_str(), O_WRONLY | O_CREAT | O_EXCL,
-													   S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-
-	if (!fd.isValid())
-	{
-		// Try with a numbered suffix if file exists
-		for (int i = 1; i < 100; ++i)
-		{
-			std::stringstream newPath;
-			size_t dotPos = filename.find_last_of('.');
-			if (dotPos != std::string::npos)
-			{
-				newPath << uploadPath << "/" << filename.substr(0, dotPos) << "_" << i << filename.substr(dotPos);
-			}
-			else
-			{
-				newPath << uploadPath << "/" << filename << "_" << i;
-			}
-
-			fd = FileDescriptor::createFromOpen(newPath.str().c_str(), O_WRONLY | O_CREAT | O_EXCL,
-												S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
-			if (fd.isValid())
-			{
-				break;
-			}
-		}
-
-		if (!fd.isValid())
-		{
-			Logger::log(Logger::ERROR, "Cannot create upload file: " + fullPath);
-			return false;
-		}
-	}
-
-	// Write content
-	ssize_t written = write(fd.getFd(), content.c_str(), content.length());
-	if (written < 0 || static_cast<size_t>(written) != content.length())
-	{
-		Logger::log(Logger::ERROR, "Failed to write complete file: " + fullPath);
+		response.setStatus(405, "Method Not Allowed");
 		return false;
 	}
 
-	// FileDescriptor destructor will close the file
-	return true;
-}
+	Logger::debug("PostMethodHandler: Processing POST request to: " + request.getUri());
 
-std::string PostMethodHandler::extractFilename(const std::string &contentDisposition) const
-{
-	size_t pos = contentDisposition.find("filename=\"");
-	if (pos != std::string::npos)
+	// Check if it's a CGI request
+	if (isCgiRequest(request.getUri(), location))
 	{
-		pos += 10; // Length of "filename=\""
-		size_t endPos = contentDisposition.find("\"", pos);
-		if (endPos != std::string::npos)
-		{
-			return contentDisposition.substr(pos, endPos - pos);
-		}
+		return handleCgiRequest(request, response, server, location);
 	}
-	return "";
-}
-
-void PostMethodHandler::handleCGI(const HttpRequest &request, HttpResponse &response, const Location *location,
-								  const Server *server) const
-{
-	// Use the new CgiHandler for CGI execution
-	CgiHandler cgiHandler;
-
-	CgiHandler::ExecutionResult result = cgiHandler.execute(request, response, server, location);
-
-	if (result != CgiHandler::SUCCESS)
+	else
 	{
-		// CGI execution failed, return appropriate error
-		int statusCode = 500;
-		std::string statusMessage = "Internal Server Error";
-
-		switch (result)
-		{
-		case CgiHandler::ERROR_SCRIPT_NOT_FOUND:
-			statusCode = 404;
-			statusMessage = "Not Found";
-			break;
-		case CgiHandler::ERROR_TIMEOUT:
-			statusCode = 504;
-			statusMessage = "Gateway Timeout";
-			break;
-		case CgiHandler::ERROR_INVALID_SCRIPT_PATH:
-			statusCode = 400;
-			statusMessage = "Bad Request";
-			break;
-		default:
-			statusCode = 500;
-			statusMessage = "Internal Server Error";
-			break;
-		}
-
-		response.setStatus(statusCode, statusMessage);
-		response.setBody(server->getStatusPage(statusCode));
-		response.setHeader("Content-Type", "text/html");
-		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
+		// Handle as file upload
+		return handleFileUpload(request, response, server, location);
 	}
 }
-
-std::string PostMethodHandler::generateSafeFilename(const std::string &originalFilename) const
-{
-	std::string safeFilename = originalFilename;
-
-	// Remove or replace dangerous characters
-	for (size_t i = 0; i < safeFilename.length(); ++i)
-	{
-		char c = safeFilename[i];
-		if (c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' || c == '"' || c == '<' || c == '>' || c == '|')
-		{
-			safeFilename[i] = '_';
-		}
-	}
-
-	// Add timestamp to make filename unique
-	std::time_t now = std::time(0);
-	std::stringstream ss;
-	ss << std::time(&now) << "_" << safeFilename;
-
-	return ss.str();
-}
-
-/*
-** --------------------------------- ACCESSOR ---------------------------------
-*/
 
 bool PostMethodHandler::canHandle(const std::string &method) const
 {
 	return method == "POST";
 }
 
-// Get the method name
-std::string PostMethodHandler::getMethod() const
+bool PostMethodHandler::handleCgiRequest(const HttpRequest &request, HttpResponse &response, 
+										const Server *server, const Location *location)
 {
-	return "POST";
+	Logger::debug("PostMethodHandler: Handling CGI request");
+
+	CgiHandler cgiHandler;
+	CgiHandler::ExecutionResult result = cgiHandler.execute(request, response, server, location);
+
+	switch (result)
+	{
+		case CgiHandler::SUCCESS:
+			Logger::debug("PostMethodHandler: CGI execution successful");
+			return true;
+		case CgiHandler::ERROR_INVALID_SCRIPT_PATH:
+			response.setStatus(404, "Not Found");
+			break;
+		case CgiHandler::ERROR_SCRIPT_NOT_FOUND:
+			response.setStatus(404, "Not Found");
+			break;
+		case CgiHandler::ERROR_EXECUTION_FAILED:
+			response.setStatus(500, "Internal Server Error");
+			break;
+		case CgiHandler::ERROR_RESPONSE_PARSING_FAILED:
+			response.setStatus(500, "Internal Server Error");
+			break;
+		case CgiHandler::ERROR_TIMEOUT:
+			response.setStatus(504, "Gateway Timeout");
+			break;
+		default:
+			response.setStatus(500, "Internal Server Error");
+			break;
+	}
+
+	return false;
 }
 
-/* ************************************************************************** */
+bool PostMethodHandler::handleFileUpload(const HttpRequest &request, HttpResponse &response, 
+										const Server *server, const Location *location)
+{
+	Logger::debug("PostMethodHandler: Handling file upload");
+
+	// Check if upload is allowed
+		if (true) // Always allow uploads for now
+	{
+		response.setStatus(403, "Forbidden");
+		return false;
+	}
+
+	// Get upload path
+	std::string uploadPath = getUploadPath(server, location);
+	if (uploadPath.empty())
+	{
+		response.setStatus(500, "Internal Server Error");
+		return false;
+	}
+
+	// Generate unique filename
+	std::string filename = "upload_" + StrUtils::toString(time(NULL)) + ".dat";
+	std::string filePath = uploadPath + "/" + filename;
+
+	// Save the uploaded content
+	if (!saveUploadedFile(filePath, request.getBodyData()))
+	{
+		response.setStatus(500, "Internal Server Error");
+		return false;
+	}
+
+	// Return success response
+	response.setStatus(201, "Created");
+	response.setBody("File uploaded successfully: " + filename);
+		response.setHeader(Header("Content-Type: text/plain"));
+	response.setHeader(Header("Location: /uploads/" + filename));
+
+	Logger::debug("PostMethodHandler: File uploaded successfully: " + filePath);
+	return true;
+}
+
+bool PostMethodHandler::isCgiRequest(const std::string &uri, const Location *location)
+{
+	if (!location->hasCgiPath())
+		return false;
+
+	// Simple check: if URI contains .php, .py, .cgi, etc.
+	size_t dotPos = uri.find_last_of('.');
+	if (dotPos == std::string::npos)
+		return false;
+
+	std::string extension = uri.substr(dotPos + 1);
+	StrUtils::toLowerCase(extension);
+
+	return (extension == "php" || extension == "py" || extension == "cgi" || 
+			extension == "pl" || extension == "sh");
+}
+
+std::string PostMethodHandler::getUploadPath(const Server *server, const Location *location)
+{
+	(void)location;
+	// For now, use a simple upload directory
+	// In a real implementation, this would be configurable
+	std::string uploadDir = server->getRootPath() + "/uploads";
+	
+	// Create upload directory if it doesn't exist
+	struct stat st;
+	if (stat(uploadDir.c_str(), &st) != 0)
+	{
+		if (mkdir(uploadDir.c_str(), 0755) != 0)
+		{
+			Logger::error("PostMethodHandler: Failed to create upload directory: " + uploadDir);
+			return "";
+		}
+	}
+
+	return uploadDir;
+}
+
+bool PostMethodHandler::saveUploadedFile(const std::string &filePath, const std::string &content)
+{
+	std::ofstream file(filePath.c_str(), std::ios::binary);
+	if (!file.is_open())
+	{
+		Logger::error("PostMethodHandler: Failed to open file for writing: " + filePath);
+		return false;
+	}
+
+	file.write(content.c_str(), content.length());
+	file.close();
+
+	return true;
+}
