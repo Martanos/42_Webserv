@@ -60,7 +60,7 @@ public:
 	void setCgiPath(const std::string &cgiPath);
 };
 
-void operator<<(std::ostream &o, Location const &i);
+std::ostream &operator<<(std::ostream &o, Location const &i);
 
 #endif /* ******************************************************** LOCATION_H                                          \
 		*/
