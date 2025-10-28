@@ -131,6 +131,7 @@ void HttpResponse::setResponse(int statusCode, const std::string &statusMessage)
 	_body = DefaultStatusMap::getStatusBody(statusCode);
 }
 
+// Used when access to body is not known yet
 void HttpResponse::setResponse(int statusCode, const std::string &statusMessage, const Server *server,
 							   const Location *location, const std::string &filePath)
 {
@@ -161,6 +162,25 @@ void HttpResponse::setResponse(int statusCode, const std::string &statusMessage,
 	}
 	else
 		_body = DefaultStatusMap::getStatusBody(_statusCode);
+}
+
+// Used when the body is already known
+void HttpResponse::setResponse(int statusCode, const std::string &statusMessage, const std::string &body,
+							   const std::string &contentType)
+{
+	setStatus(statusCode, statusMessage);
+	_body = body;
+	_streamBody = false;
+	setHeader(Header("content-type: " + contentType));
+	setHeader(Header("content-length: " + StrUtils::toString(body.length())));
+}
+
+// Used when a redirect is needed
+void HttpResponse::setRedirectResponse(const std::string &redirectPath)
+{
+	setStatus(301, "Moved Permanently");
+	setHeader(Header("location: " + redirectPath));
+	setResponse(301, "Moved Permanently", "", "text/html");
 }
 
 // Formats the response into a HTTP 1.1 compliant format

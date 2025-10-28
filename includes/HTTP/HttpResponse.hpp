@@ -94,6 +94,9 @@ public:
 	void setResponse(int statusCode, const std::string &statusMessage, const Server *server, const Location *location,
 					 const std::string &filePath);
 	void setResponse(int statusCode, const std::string &statusMessage);
+	void setResponse(int statusCode, const std::string &statusMessage, const std::string &body,
+					 const std::string &contentType);
+	void setRedirectResponse(const std::string &redirectPath);
 	std::string toString() const;
 	void sendResponse(const FileDescriptor &clientSocketFd);
 	void reset();

@@ -19,7 +19,7 @@ int main(int argc, char **argv)
 	PerformanceMonitor &perfMonitor = PerformanceMonitor::getInstance();
 	perfMonitor.setPerformanceThresholds(1000.0, 5000.0, 100 * 1024 * 1024); // 1s, 5s, 100MB
 	Logger::log(Logger::INFO, "PerformanceMonitor: Performance monitoring initialized", __FILE__, __LINE__,
-				_PRETTY_FUNCTION_);
+				__PRETTY_FUNCTION__);
 
 	if (argc != 2)
 	{
