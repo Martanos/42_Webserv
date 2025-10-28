@@ -1,101 +1,88 @@
-#include "../../includes/Core/MethodHandlerFactory.hpp"
-#include <vector>
+#include "../../includes/MethodHandlerFactory.hpp"
 
-// Static member definitions
-std::map<std::string, MethodHandlerFactory::HandlerCreator> MethodHandlerFactory::_handlerCreators;
-bool MethodHandlerFactory::_initialized = false;
+/*
+** ------------------------------- CONSTRUCTOR --------------------------------
+*/
 
 MethodHandlerFactory::MethodHandlerFactory()
 {
-	// Private constructor
+	// Initialize handlers
+	_handlers["GET"] = new GetMethodHandler();
+	_handlers["HEAD"] = _handlers["GET"]; // HEAD uses same handler as GET
+	_handlers["POST"] = new PostMethodHandler();
+	_handlers["DELETE"] = new DeleteMethodHandler();
+
+	Logger::log(Logger::INFO, "MethodHandlerFactory initialized with GET, "
+							  "HEAD, POST, DELETE handlers");
 }
 
-MethodHandlerFactory::MethodHandlerFactory(const MethodHandlerFactory &other)
+MethodHandlerFactory::MethodHandlerFactory(const MethodHandlerFactory &src)
 {
-	(void)other;
-	// Private constructor
+	(void)src;
 }
 
-MethodHandlerFactory &MethodHandlerFactory::operator=(const MethodHandlerFactory &other)
-{
-	(void)other;
-	return *this;
-}
+/*
+** -------------------------------- DESTRUCTOR --------------------------------
+*/
 
 MethodHandlerFactory::~MethodHandlerFactory()
 {
-	// Private destructor
+	delete _handlers["GET"];
+	delete _handlers["POST"];
+	delete _handlers["DELETE"];
+	_handlers.clear();
 }
 
-IMethodHandler* MethodHandlerFactory::createHandler(const std::string &method)
+/*
+** --------------------------------- OVERLOAD ---------------------------------
+*/
+
+MethodHandlerFactory &MethodHandlerFactory::operator=(MethodHandlerFactory const &rhs)
 {
-	if (!_initialized)
-	{
-		initializeCreators();
-	}
+	(void)rhs;
+	return *this;
+}
 
-	std::map<std::string, HandlerCreator>::iterator it = _handlerCreators.find(method);
-	if (it != _handlerCreators.end())
-	{
-		return it->second();
-	}
+/*
+** --------------------------------- METHODS ----------------------------------
+*/
 
-	Logger::warning("MethodHandlerFactory: Unsupported method: " + method);
+MethodHandlerFactory &MethodHandlerFactory::getInstance()
+{
+	static MethodHandlerFactory instance;
+	return instance;
+}
+
+IMethodHandler *MethodHandlerFactory::getHandler(const std::string &method) const
+{
+	std::map<std::string, IMethodHandler *>::const_iterator it = _handlers.find(method);
+	if (it != _handlers.end())
+	{
+		return it->second;
+	}
 	return NULL;
 }
 
-bool MethodHandlerFactory::isMethodSupported(const std::string &method)
+bool MethodHandlerFactory::isMethodSupported(const std::string &method) const
 {
-	if (!_initialized)
-	{
-		initializeCreators();
-	}
-
-	return _handlerCreators.find(method) != _handlerCreators.end();
+	return _handlers.find(method) != _handlers.end();
 }
 
-std::vector<std::string> MethodHandlerFactory::getSupportedMethods()
+std::vector<std::string> MethodHandlerFactory::getSupportedMethods() const
 {
-	if (!_initialized)
-	{
-		initializeCreators();
-	}
-
 	std::vector<std::string> methods;
-	for (std::map<std::string, HandlerCreator>::const_iterator it = _handlerCreators.begin(); 
-		 it != _handlerCreators.end(); ++it)
+	for (std::map<std::string, IMethodHandler *>::const_iterator it = _handlers.begin(); it != _handlers.end(); ++it)
 	{
-		methods.push_back(it->first);
+		if (it->first != "HEAD")
+		{ // Don't duplicate HEAD as it's handled by GET
+			methods.push_back(it->first);
+		}
 	}
 	return methods;
 }
 
-void MethodHandlerFactory::initializeCreators()
-{
-	if (_initialized)
-		return;
+/*
+** --------------------------------- ACCESSOR ---------------------------------
+*/
 
-	_handlerCreators["GET"] = &createGetHandler;
-	_handlerCreators["POST"] = &createPostHandler;
-	_handlerCreators["DELETE"] = &createDeleteHandler;
-
-	_initialized = true;
-	Logger::debug("MethodHandlerFactory: Initialized with " + 
-				  StrUtils::toString(_handlerCreators.size()) + " method handlers");
-}
-
-// Helper functions for creating specific handlers
-IMethodHandler* MethodHandlerFactory::createGetHandler()
-{
-	return new GetMethodHandler();
-}
-
-IMethodHandler* MethodHandlerFactory::createPostHandler()
-{
-	return new PostMethodHandler();
-}
-
-IMethodHandler* MethodHandlerFactory::createDeleteHandler()
-{
-	return new DeleteMethodHandler();
-}
+/* ************************************************************************** */

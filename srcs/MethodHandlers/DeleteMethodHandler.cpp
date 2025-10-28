@@ -1,124 +1,200 @@
-#include "../../includes/Core/DeleteMethodHandler.hpp"
+#include "../../includes/DeleteMethodHandler.hpp"
+#include "../../includes/PerformanceMonitor.hpp"
+
+/*
+** ------------------------------- CONSTRUCTOR --------------------------------
+*/
 
 DeleteMethodHandler::DeleteMethodHandler()
 {
 }
 
-DeleteMethodHandler::DeleteMethodHandler(const DeleteMethodHandler &other)
+DeleteMethodHandler::DeleteMethodHandler(const DeleteMethodHandler &src)
 {
-	*this = other;
+	(void)src;
 }
+
+/*
+** -------------------------------- DESTRUCTOR --------------------------------
+*/
 
 DeleteMethodHandler::~DeleteMethodHandler()
 {
 }
 
-DeleteMethodHandler &DeleteMethodHandler::operator=(const DeleteMethodHandler &other)
+/*
+** --------------------------------- OVERLOAD ---------------------------------
+*/
+
+DeleteMethodHandler &DeleteMethodHandler::operator=(DeleteMethodHandler const &rhs)
 {
-	(void)other;
+	(void)rhs;
 	return *this;
 }
 
-bool DeleteMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &response, 
-									   const Server *server, const Location *location)
+/*
+** --------------------------------- METHODS ----------------------------------
+*/
+
+void DeleteMethodHandler::handle(const HttpRequest &request, HttpResponse &response, const Server *server,
+								 const Location *location)
 {
-	if (!canHandle(request.getMethod()))
+	PERF_SCOPED_TIMER(delete_method_handler);
+	
+	Logger::info("DeleteMethodHandler: Handling DELETE request for URI: " + request.getUri());
+	// Check if DELETE is allowed at this location
+	if (location)
 	{
+		const std::vector<std::string> &methods = location->getAllowedMethods();
+		bool deleteAllowed = false;
+		for (size_t i = 0; i < methods.size(); ++i)
+		{
+			if (methods[i] == "DELETE")
+			{
+				deleteAllowed = true;
+				break;
+			}
+		}
+
+		if (!deleteAllowed)
+		{
+			response.setStatus(405, "Method Not Allowed");
+			response.setBody(server->getStatusPage(405));
+			response.setHeader("Content-Type", "text/html");
+			response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
+			response.setHeader("Allow", "GET, HEAD, POST");
+			return;
+		}
+	}
+	else
+	{
+		// No location config, DELETE not allowed by default
 		response.setStatus(405, "Method Not Allowed");
-		return false;
+		response.setBody(server->getStatusPage(405));
+		response.setHeader("Content-Type", "text/html");
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
+		return;
 	}
 
-	Logger::debug("DeleteMethodHandler: Processing DELETE request to: " + request.getUri());
-
-	// Get the file path
-	std::string filePath = getFilePath(request.getUri(), server, location);
-	if (filePath.empty())
-	{
-		response.setStatus(400, "Bad Request");
-		return false;
-	}
-
-	// Check if it's safe to delete
-	if (!isSafeToDelete(filePath, server, location))
-	{
-		response.setStatus(403, "Forbidden");
-		return false;
-	}
+	// Resolve the file path
+	std::string filePath = IMethodHandler::resolveFilePath(request.getUri(), server, location);
 
 	// Check if file exists
-	struct stat st;
-	if (stat(filePath.c_str(), &st) != 0)
+	struct stat fileStat;
+	if (stat(filePath.c_str(), &fileStat) != 0)
 	{
 		response.setStatus(404, "Not Found");
-		return false;
+		response.setBody(server->getStatusPage(404));
+		response.setHeader("Content-Type", "text/html");
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
+		return;
 	}
 
-	// Check if it's a regular file
-	if (!S_ISREG(st.st_mode))
+	// Don't allow deletion of directories
+	if (S_ISDIR(fileStat.st_mode))
 	{
 		response.setStatus(403, "Forbidden");
+		response.setBody(server->getStatusPage(403));
+		response.setHeader("Content-Type", "text/html");
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
+		return;
+	}
+
+	// Check if deletion is allowed for this specific path
+	if (!isDeletionAllowed(filePath, location))
+	{
+		response.setStatus(403, "Forbidden");
+		response.setBody(server->getStatusPage(403));
+		response.setHeader("Content-Type", "text/html");
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
+		return;
+	}
+
+	// Attempt to delete the file
+	if (deleteFile(filePath))
+	{
+		// Successful deletion
+		std::stringstream html;
+		html << "<!DOCTYPE html>\n<html>\n<head>\n";
+		html << "<title>File Deleted</title>\n</head>\n<body>\n";
+		html << "<h1>File Deleted Successfully</h1>\n";
+		html << "<p>The requested resource has been deleted.</p>\n";
+		html << "<p><a href=\"/\">Return to Home</a></p>\n";
+		html << "</body>\n</html>\n";
+
+		response.setStatus(200, "OK");
+		response.setBody(html.str());
+		response.setHeader("Content-Type", "text/html");
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
+	}
+	else
+	{
+		// Failed to delete
+		response.setStatus(500, "Internal Server Error");
+		response.setBody(server->getStatusPage(500));
+		response.setHeader("Content-Type", "text/html");
+		response.setHeader("Content-Length", StringUtils::toString(response.getBody().length()));
+	}
+}
+
+bool DeleteMethodHandler::isDeletionAllowed(const std::string &filePath, const Location *location) const
+{
+	// Only allow deletion in upload directories
+	if (!location || location->getUploadPath().empty())
+	{
 		return false;
 	}
 
-	// Delete the file
-	return deleteFile(filePath, response);
+	// Check if the file is within the upload path
+	std::string uploadPath = location->getUploadPath();
+
+	// Resolve real paths to prevent directory traversal attacks
+	char resolvedFile[PATH_MAX];
+	char resolvedUpload[PATH_MAX];
+
+	if (realpath(filePath.c_str(), resolvedFile) == NULL)
+	{
+		return false;
+	}
+
+	if (realpath(uploadPath.c_str(), resolvedUpload) == NULL)
+	{
+		return false;
+	}
+
+	// Check if file is within upload directory
+	std::string fileStr(resolvedFile);
+	std::string uploadStr(resolvedUpload);
+
+	return fileStr.find(uploadStr) == 0;
 }
+
+bool DeleteMethodHandler::deleteFile(const std::string &filePath) const
+{
+	if (unlink(filePath.c_str()) == 0)
+	{
+		Logger::log(Logger::INFO, "File deleted: " + filePath);
+		return true;
+	}
+	else
+	{
+		Logger::log(Logger::ERROR, "Failed to delete file: " + filePath);
+		return false;
+	}
+}
+
+/*
+** --------------------------------- ACCESSOR ---------------------------------
+*/
 
 bool DeleteMethodHandler::canHandle(const std::string &method) const
 {
 	return method == "DELETE";
 }
 
-bool DeleteMethodHandler::deleteFile(const std::string &filePath, HttpResponse &response)
+std::string DeleteMethodHandler::getMethod() const
 {
-	if (unlink(filePath.c_str()) != 0)
-	{
-		Logger::error("DeleteMethodHandler: Failed to delete file: " + filePath);
-		response.setStatus(500, "Internal Server Error");
-		return false;
-	}
-
-	Logger::debug("DeleteMethodHandler: Successfully deleted file: " + filePath);
-	response.setStatus(200, "OK");
-	response.setBody("File deleted successfully");
-	response.setHeader(Header("Content-Type: text/plain"));
-	return true;
+	return "DELETE";
 }
 
-bool DeleteMethodHandler::isSafeToDelete(const std::string &filePath, const Server *server, const Location *location)
-{
-	// Check if the file is within the server's root directory
-	std::string rootPath = location->hasRoot() ? location->getRoot() : server->getRootPath();
-	
-	// Ensure the file path starts with the root path
-	if (filePath.find(rootPath) != 0)
-	{
-		Logger::warning("DeleteMethodHandler: Attempted to delete file outside root: " + filePath);
-		return false;
-	}
-
-	// Check for path traversal attempts
-	if (filePath.find("..") != std::string::npos)
-	{
-		Logger::warning("DeleteMethodHandler: Path traversal attempt detected: " + filePath);
-		return false;
-	}
-
-	return true;
-}
-
-std::string DeleteMethodHandler::getFilePath(const std::string &uri, const Server *server, const Location *location)
-{
-	std::string rootPath = location->hasRoot() ? location->getRoot() : server->getRootPath();
-	
-	// Sanitize the URI to prevent path traversal
-	std::string sanitizedUri = StrUtils::sanitizeUriPath(uri);
-	
-	// Combine root path with sanitized URI
-	std::string filePath = rootPath + sanitizedUri;
-	
-	// Normalize the path
-	filePath = StrUtils::normalizeSlashes(filePath);
-	
-	return filePath;
-}
+/* ************************************************************************** */

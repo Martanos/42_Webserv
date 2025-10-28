@@ -1,0 +1,74 @@
+[2025-10-16 11:17:22] [INFO]     === WebServ Session Started ===
+[2025-10-16 11:17:22] [INFO]     Session ID: webserv_20251016_111722_32344
+[2025-10-16 11:17:22] [INFO]     Log Directory: logs
+[2025-10-16 11:17:22] [INFO]     Process ID: 32344
+[2025-10-16 11:17:22] [INFO]     [PerformanceMonitor.cpp:21] PerformanceMonitor: Performance monitoring initialized
+[2025-10-16 11:17:22] [INFO]     [PerformanceMonitor.cpp:503] PerformanceMonitor: Thresholds set - Max Request Time: 1000 ms, Max CGI Time: 5000 ms, Max Memory: 102400 KB
+[2025-10-16 11:17:22] [INFO]     [main.cpp:28] PerformanceMonitor: Performance monitoring initialized
+[2025-10-16 11:17:22] [INFO]     Starting WebServ with config file: test.conf
+[2025-10-16 11:17:22] [DEBUG]    ConfigParser: Starting to parse configuration file: test.conf
+[2025-10-16 11:17:22] [DEBUG]    ConfigParser: Configuration file loaded successfully
+[2025-10-16 11:17:22] [DEBUG]    ConfigParser: Found http block
+[2025-10-16 11:17:22] [DEBUG]    ConfigParser: Found server block
+[2025-10-16 11:17:22] [DEBUG]    ConfigParser: Starting to parse server block at line 2
+[2025-10-16 11:17:22] [DEBUG]    ServerConfig: Processing listen directive: listen 8080;
+[2025-10-16 11:17:22] [DEBUG]    ConfigParser: Successfully parsed server block with 1 listen directives
+[2025-10-16 11:17:22] [DEBUG]    ConfigParser: Found server block
+[2025-10-16 11:17:22] [DEBUG]    ConfigParser: Starting to parse server block at line 16
+[2025-10-16 11:17:22] [DEBUG]    ServerConfig: Processing listen directive: listen 8081;
+[2025-10-16 11:17:22] [DEBUG]    ConfigParser: Successfully parsed server block with 1 listen directives
+[2025-10-16 11:17:22] [DEBUG]    ConfigParser: Successfully parsed 2 server configurations
+[2025-10-16 11:17:22] [INFO]     Parsed 2 server configurations
+[2025-10-16 11:17:22] [INFO]     EpollManager: Epoll instance created successfully with fd 4
+[2025-10-16 11:17:22] [INFO]     EpollManager: Epoll instance created successfully with fd 5
+[2025-10-16 11:17:22] [INFO]     Starting server manager...
+[2025-10-16 11:17:22] [INFO]     Starting ServerManager with 2 server configurations
+[2025-10-16 11:17:22] [INFO]     ServerMap: Creating ServerMap from 2 server configurations
+[2025-10-16 11:17:22] [DEBUG]    ServerMap: ServerMap created successfully
+[2025-10-16 11:17:22] [DEBUG]    ServerMap: Listening socket: fd: FileDescriptor: 4 isOpen: 1, host: 0.0.0.0, port: 8080 memory address: 0x624320151590
+Servers:
+ localhost
+ServerMap: Listening socket: fd: FileDescriptor: 6 isOpen: 1, host: 0.0.0.0, port: 8081 memory address: 0x624320151750
+Servers:
+ localhost
+
+[2025-10-16 11:17:22] [INFO]     EpollManager: Epoll instance created successfully with fd 7
+[2025-10-16 11:17:22] [INFO]     ServerManager: Added 2 server file descriptors to epoll
+[2025-10-16 11:17:22] [INFO]     ServerManager initialized successfully, entering main event loop
+[2025-10-16 11:17:28] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 11:17:28] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 11:17:28] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 11:17:28] [INFO]     Client connected from :0
+[2025-10-16 11:17:28] [DEBUG]    ServerManager: Client 5 added to epoll
+[2025-10-16 11:17:28] [DEBUG]    [PerformanceMonitor.cpp:194] PerformanceMonitor: Connection recorded. Active: 1
+[2025-10-16 11:17:28] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 11:17:28] [DEBUG]    Client: Handling event for client 5 in state 0
+[2025-10-16 11:17:28] [DEBUG]    Client: Starting to read request from client 5
+[2025-10-16 11:17:28] [DEBUG]    Client: Reading request from client 5
+[2025-10-16 11:17:28] [DEBUG]    Client: Received 678 bytes from client 5
+[2025-10-16 11:17:28] [DEBUG]    Client: Temp buffer: GET / HTTP/1.1
+Host: localhost:8080
+Connection: keep-alive
+sec-ch-ua: "Microsoft Edge";v="141", "Not?A_Brand";v="8", "Chromium";v="141"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "Windows"
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Sec-Fetch-Site: none
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9
+
+
+[2025-10-16 11:17:28] [DEBUG]    HttpRequest: Moved 678 bytes into _rawBuffer; now has 678
+[2025-10-16 11:17:28] [DEBUG]    HttpURI: Parsed request line: GET / HTTP/1.1
+[2025-10-16 11:17:28] [DEBUG]    HttpURI: Request line OK (GET / HTTP/1.1)
+[2025-10-16 11:17:28] [DEBUG]    HttpURI: Remaining readable in main buffer after URI parse = 662
+[2025-10-16 11:17:28] [DEBUG]    HttpRequest: Request line parsing complete
+[2025-10-16 11:17:28] [DEBUG]    HttpRequest: Header parseBuffer() returned = 1
+[2025-10-16 11:17:28] [DEBUG]    HttpRequest: Headers parsing complete
+[2025-10-16 11:17:28] [DEBUG]    HttpRequest: Body parsing complete
+[2025-10-16 11:17:28] [DEBUG]    HttpRequest::parseBuffer finished with state = 3

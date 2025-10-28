@@ -1,0 +1,1812 @@
+[2025-10-16 17:45:40] [INFO]     === WebServ Session Started ===
+[2025-10-16 17:45:40] [INFO]     Session ID: webserv_20251016_174540_79210
+[2025-10-16 17:45:40] [INFO]     Log Directory: logs
+[2025-10-16 17:45:40] [INFO]     Process ID: 79210
+[2025-10-16 17:45:40] [INFO]     [PerformanceMonitor.cpp:21] PerformanceMonitor: Performance monitoring initialized
+[2025-10-16 17:45:40] [INFO]     [PerformanceMonitor.cpp:503] PerformanceMonitor: Thresholds set - Max Request Time: 1000 ms, Max CGI Time: 5000 ms, Max Memory: 102400 KB
+[2025-10-16 17:45:40] [INFO]     [main.cpp:28] PerformanceMonitor: Performance monitoring initialized
+[2025-10-16 17:45:40] [INFO]     Starting WebServ with config file: test.conf
+[2025-10-16 17:45:40] [DEBUG]    ConfigParser: Starting to parse configuration file: test.conf
+[2025-10-16 17:45:40] [DEBUG]    ConfigParser: Configuration file loaded successfully
+[2025-10-16 17:45:40] [DEBUG]    ConfigParser: Found http block
+[2025-10-16 17:45:40] [DEBUG]    ConfigParser: Found server block
+[2025-10-16 17:45:40] [DEBUG]    ConfigParser: Starting to parse server block at line 2
+[2025-10-16 17:45:40] [DEBUG]    ServerConfig: Processing listen directive: listen 8080;
+[2025-10-16 17:45:40] [DEBUG]    ConfigParser: Successfully parsed server block with 1 listen directives
+[2025-10-16 17:45:40] [DEBUG]    ConfigParser: Found server block
+[2025-10-16 17:45:40] [DEBUG]    ConfigParser: Starting to parse server block at line 16
+[2025-10-16 17:45:40] [DEBUG]    ServerConfig: Processing listen directive: listen 8081;
+[2025-10-16 17:45:40] [DEBUG]    ConfigParser: Successfully parsed server block with 1 listen directives
+[2025-10-16 17:45:40] [DEBUG]    ConfigParser: Successfully parsed 2 server configurations
+[2025-10-16 17:45:40] [INFO]     Parsed 2 server configurations
+[2025-10-16 17:45:40] [INFO]     EpollManager: Epoll instance created successfully with fd 4
+[2025-10-16 17:45:40] [INFO]     EpollManager: Epoll instance created successfully with fd 5
+[2025-10-16 17:45:40] [INFO]     Starting server manager...
+[2025-10-16 17:45:40] [INFO]     Starting ServerManager with 2 server configurations
+[2025-10-16 17:45:40] [INFO]     ServerMap: Creating ServerMap from 2 server configurations
+[2025-10-16 17:45:40] [DEBUG]    ServerMap: ServerMap created successfully
+[2025-10-16 17:45:40] [DEBUG]    ServerMap: Listening socket: fd: FileDescriptor: 4 isOpen: 1, host: 0.0.0.0, port: 8080 memory address: 0x5b0f52aac1d0
+Servers:
+ localhost
+ServerMap: Listening socket: fd: FileDescriptor: 6 isOpen: 1, host: 0.0.0.0, port: 8081 memory address: 0x5b0f52aac390
+Servers:
+ localhost
+
+[2025-10-16 17:45:40] [INFO]     EpollManager: Epoll instance created successfully with fd 7
+[2025-10-16 17:45:40] [INFO]     ServerManager: Added 2 server file descriptors to epoll
+[2025-10-16 17:45:40] [INFO]     ServerManager initialized successfully, entering main event loop
+[2025-10-16 17:45:47] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 17:45:47] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 17:45:47] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 17:45:47] [INFO]     Client connected from :0
+[2025-10-16 17:45:47] [DEBUG]    ServerManager: Client 5 added to epoll
+[2025-10-16 17:45:47] [DEBUG]    [PerformanceMonitor.cpp:194] PerformanceMonitor: Connection recorded. Active: 1
+[2025-10-16 17:45:47] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 17:45:47] [DEBUG]    Client: Handling event for client 5 in state 0
+[2025-10-16 17:45:47] [DEBUG]    Client: Starting to read request from client 5
+[2025-10-16 17:45:47] [DEBUG]    Client: Reading request from client 5
+[2025-10-16 17:45:47] [DEBUG]    Client: Received 78 bytes from client 5
+[2025-10-16 17:45:47] [DEBUG]    Client: Temp buffer: GET / HTTP/1.1
+Host: localhost:8080
+User-Agent: curl/7.81.0
+Accept: */*
+
+
+[2025-10-16 17:45:47] [DEBUG]    HttpRequest: Moved 78 bytes into _rawBuffer; now has 78
+[2025-10-16 17:45:47] [DEBUG]    HttpURI: Parsed request line: GET / HTTP/1.1
+[2025-10-16 17:45:47] [DEBUG]    HttpURI: Request line OK (GET / HTTP/1.1)
+[2025-10-16 17:45:47] [DEBUG]    HttpURI: Remaining readable in main buffer after URI parse = 62
+[2025-10-16 17:45:47] [DEBUG]    HttpRequest: Request line parsing complete
+[2025-10-16 17:45:47] [DEBUG]    HttpRequest: Header parseBuffer() returned = 1
+[2025-10-16 17:45:47] [DEBUG]    HttpRequest: Headers parsing complete
+[2025-10-16 17:45:47] [DEBUG]    HttpRequest: Body parsing complete
+[2025-10-16 17:45:47] [DEBUG]    HttpRequest::parseBuffer finished with state = 3
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 100 with message Continue and body false
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 101 with message Switching Protocols and body false
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 102 with message Processing and body false
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 103 with message Early Hints and body false
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 200 with message OK and body false
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 201 with message Created and body false
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 202 with message Accepted and body false
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 203 with message Non-Authoritative Information and body false
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 204 with message No Content and body false
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 205 with message Reset Content and body false
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 206 with message Partial Content and body false
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 300 with message Multiple Choices and body false
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 301 with message Moved Permanently and body false
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 302 with message Found and body false
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 303 with message See Other and body false
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 304 with message Not Modified and body false
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 305 with message Use Proxy and body false
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 307 with message Temporary Redirect and body false
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 308 with message Permanent Redirect and body false
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 400 with message Bad Request and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 401 with message Unauthorized and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 402 with message Payment Required and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 403 with message Forbidden and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 404 with message Not Found and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 405 with message Method Not Allowed and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 406 with message Not Acceptable and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 407 with message Proxy Authentication Required and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 408 with message Request Timeout and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 409 with message Conflict and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 410 with message Gone and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 411 with message Length Required and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 412 with message Precondition Failed and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 413 with message Payload Too Large and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 414 with message URI Too Long and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 415 with message Unsupported Media Type and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 416 with message Range Not Satisfiable and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 417 with message Expectation Failed and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 418 with message I'm a teapot and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 421 with message Misdirected Request and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 500 with message Internal Server Error and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 501 with message Not Implemented and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 502 with message Bad Gateway and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 503 with message Service Unavailable and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 504 with message Gateway Timeout and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 505 with message HTTP Version Not Supported and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Generated status info for 506 with message Variant Also Negotiates and body true
+[2025-10-16 17:45:47] [DEBUG]    StatusMap: Initialized default status map
+[2025-10-16 17:45:47] [DEBUG]    HttpResponse: Set body with 381 bytes
+[2025-10-16 17:45:47] [INFO]     Routing GET request for /
+[2025-10-16 17:45:47] [DEBUG]    Matched location: /
+[2025-10-16 17:45:47] [INFO]     MethodHandlerFactory initialized with GET, HEAD, POST, DELETE handlers
+[2025-10-16 17:45:47] [INFO]     GetMethodHandler: Handling GET request for URI: /
+[2025-10-16 17:45:47] [DEBUG]    GetMethodHandler: Resolved file path: ./www/
+[2025-10-16 17:45:47] [DEBUG]    HttpResponse: Set body with 144 bytes
+[2025-10-16 17:45:47] [WARNING]  User mime types file not defined using system mime types
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/A2L with extension: a2l
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/AML with extension: aml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/andrew-inset with extension: ez
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/annodex with extension: anx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/ATF with extension: atf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/ATFX with extension: atfx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/atom+xml with extension: atom
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/atomcat+xml with extension: atomcat
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/atomdeleted+xml with extension: atomdeleted
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/atomserv+xml with extension: atomsrv
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/atomsvc+xml with extension: atomsvc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/atsc-dwd+xml with extension: dwd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/atsc-held+xml with extension: held
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/atsc-rsat+xml with extension: rsat
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/ATXML with extension: atxml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/auth-policy+xml with extension: apxml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/bacnet-xdd+zip with extension: xdd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/bbolin with extension: lin
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/calendar+xml with extension: xcs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/cbor with extension: cbor
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/cccex with extension: c3ex
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/ccmp+xml with extension: ccmp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/ccxml+xml with extension: ccxml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/CDFX+XML with extension: cdfx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/cdmi-capability with extension: cdmia
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/cdmi-container with extension: cdmic
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/cdmi-domain with extension: cdmid
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/cdmi-object with extension: cdmio
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/cdmi-queue with extension: cdmiq
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/CEA with extension: cea
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/cellml+xml with extension: cellml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/cellml+xml with extension: cml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/clr with extension: 1clr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/clue_info+xml with extension: clue
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/cms with extension: cmsc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/cpl+xml with extension: cpl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/csrattrs with extension: csrattrs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/cu-seeme with extension: cu
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/dash+xml with extension: mpd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/dashdelta with extension: mpdd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/davmount+xml with extension: davmount
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/DCD with extension: dcd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/dicom with extension: dcm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/DII with extension: dii
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/DIT with extension: dit
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/dskpp+xml with extension: xmls
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/dsptype with extension: tsp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/dssc+der with extension: dssc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/dssc+xml with extension: xdssc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/dvcs with extension: dvc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/efi with extension: efi
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/emma+xml with extension: emma
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/emotionml+xml with extension: emotionml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/epub+zip with extension: epub
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/exi with extension: exi
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/express with extension: exp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/fastinfoset with extension: finf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/fdt+xml with extension: fdt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/font-tdpfr with extension: pfr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/futuresplash with extension: spl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/geo+json with extension: geojson
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/geopackage+sqlite3 with extension: gpkg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/gltf-buffer with extension: glbin
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/gltf-buffer with extension: glbuf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/gml+xml with extension: gml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/gzip with extension: gz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/hta with extension: hta
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/hyperstudio with extension: stk
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/inkml+xml with extension: ink
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/inkml+xml with extension: inkml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/ipfix with extension: ipfix
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/its+xml with extension: its
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/java-archive with extension: jar
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/java-serialized-object with extension: ser
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/java-vm with extension: class
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/jrd+json with extension: jrd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/json with extension: json
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/json-patch+json with extension: json-patch
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/ld+json with extension: jsonld
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/lgr+xml with extension: lgr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/link-format with extension: wlnk
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/lost+xml with extension: lostxml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/lostsync+xml with extension: lostsyncxml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/lpf+zip with extension: lpf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/LXF with extension: lxf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/m3g with extension: m3g
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/mac-binhex40 with extension: hqx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/mac-compactpro with extension: cpt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/mads+xml with extension: mads
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/manifest+json with extension: webmanifest
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/marc with extension: mrc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/marcxml+xml with extension: mrcx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/mathematica with extension: ma
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/mathematica with extension: mb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/mathml+xml with extension: mml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/mbox with extension: mbox
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/metalink4+xml with extension: meta4
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/mets+xml with extension: mets
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/MF4 with extension: mf4
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/mmt-aei+xml with extension: maei
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/mmt-usd+xml with extension: musd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/mods+xml with extension: mods
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/mp21 with extension: m21
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/mp21 with extension: mp21
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/msaccess with extension: mdb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/msword with extension: doc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/mxf with extension: mxf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/n-quads with extension: nq
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/n-triples with extension: nt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/ocsp-request with extension: orq
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/ocsp-response with extension: ors
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/octet-stream with extension: bin
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/octet-stream with extension: deploy
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/octet-stream with extension: msu
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/octet-stream with extension: msp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/ODA with extension: oda
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/ODX with extension: odx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/oebps-package+xml with extension: opf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/ogg with extension: ogx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/onenote with extension: one
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/onenote with extension: onetoc2
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/onenote with extension: onetmp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/onenote with extension: onepkg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/oxps with extension: oxps
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/p21 with extension: p21
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/p21 with extension: stpnc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/p21 with extension: 210
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/p21 with extension: ifc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/p2p-overlay+xml with extension: relo
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/pdf with extension: pdf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/PDX with extension: pdx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/pem-certificate-chain with extension: pem
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/pgp-encrypted with extension: pgp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/pgp-keys with extension: asc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/pgp-keys with extension: key
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/pgp-signature with extension: sig
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/pics-rules with extension: prf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/pkcs10 with extension: p10
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/pkcs12 with extension: p12
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/pkcs12 with extension: pfx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/pkcs7-mime with extension: p7m
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/pkcs7-mime with extension: p7c
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/pkcs7-mime with extension: p7z
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/pkcs7-signature with extension: p7s
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/pkcs8 with extension: p8
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/pkcs8-encrypted with extension: p8e
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/pkix-attr-cert with extension: ac
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/pkix-cert with extension: cer
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/pkix-crl with extension: crl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/pkix-pkipath with extension: pkipath
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/pkixcmp with extension: pki
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/postscript with extension: ps
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/postscript with extension: ai
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/postscript with extension: eps
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/postscript with extension: epsi
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/postscript with extension: epsf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/postscript with extension: eps2
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/postscript with extension: eps3
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/provenance+xml with extension: provx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/prs.cww with extension: cw
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/prs.cww with extension: cww
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/prs.hpub+zip with extension: hpub
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/prs.nprend with extension: rnd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/prs.nprend with extension: rct
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/prs.rdf-xml-crypt with extension: rdf-crypt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/prs.xsf+xml with extension: xsf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/pskc+xml with extension: pskcxml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/rdf+xml with extension: rdf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/reginfo+xml with extension: rif
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/relax-ng-compact-syntax with extension: rnc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/resource-lists+xml with extension: rl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/resource-lists-diff+xml with extension: rld
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/rfc+xml with extension: rfcxml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/rls-services+xml with extension: rs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/route-apd+xml with extension: rapd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/route-s-tsid+xml with extension: sls
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/route-usd+xml with extension: rusd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/rpki-ghostbusters with extension: gbr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/rpki-manifest with extension: mft
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/rpki-roa with extension: roa
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/rtf with extension: rtf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/sarif+json with extension: sarif
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/sarif+json with extension: sarif.json
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/sarif-external-properties+json with extension: sarif-external-properties
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/sarif-external-properties+json with extension: sarif-external-properties.json
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/scim+json with extension: scim
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/scvp-cv-request with extension: scq
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/scvp-cv-response with extension: scs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/scvp-vp-request with extension: spq
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/scvp-vp-response with extension: spp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/sdp with extension: sdp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/senml+cbor with extension: senmlc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/senml+json with extension: senml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/senml+xml with extension: senmlx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/senml-etch+cbor with extension: senml-etchc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/senml-etch+json with extension: senml-etchj
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/senml-exi with extension: senmle
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/sensml+cbor with extension: sensmlc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/sensml+json with extension: sensml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/sensml+xml with extension: sensmlx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/sensml-exi with extension: sensmle
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/sgml-open-catalog with extension: soc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/shf+xml with extension: shf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/sieve with extension: siv
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/sieve with extension: sieve
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/simple-filter+xml with extension: cl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/smil+xml with extension: smil
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/smil+xml with extension: smi
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/smil+xml with extension: sml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/sparql-query with extension: rq
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/sparql-results+xml with extension: srx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/spdx+json with extension: spdx.json
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/sql with extension: sql
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/srgs with extension: gram
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/srgs+xml with extension: grxml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/sru+xml with extension: sru
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/ssml+xml with extension: ssml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/stix+json with extension: stix
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/swid+xml with extension: swidtag
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/tamp-apex-update with extension: tau
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/tamp-apex-update-confirm with extension: auc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/tamp-community-update with extension: tcu
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/tamp-community-update-confirm with extension: cuc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/tamp-error with extension: ter
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/tamp-sequence-adjust with extension: tsa
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/tamp-sequence-adjust-confirm with extension: sac
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/tamp-update with extension: tur
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/tamp-update-confirm with extension: tuc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/td+json with extension: jsontd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/tei+xml with extension: tei
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/tei+xml with extension: teiCorpus
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/tei+xml with extension: odd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/thraud+xml with extension: tfi
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/timestamp-query with extension: tsq
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/timestamp-reply with extension: tsr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/timestamped-data with extension: tsd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/trig with extension: trig
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/ttml+xml with extension: ttml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/urc-grpsheet+xml with extension: gsheet
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/urc-ressheet+xml with extension: rsheet
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/urc-targetdesc+xml with extension: td
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/urc-uisocketdesc+xml with extension: uis
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.1000minds.decision-model+xml with extension: 1km
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.3gpp.pic-bw-large with extension: plb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.3gpp.pic-bw-small with extension: psb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.3gpp.pic-bw-var with extension: pvb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.3gpp2.sms with extension: sms
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.3gpp2.tcap with extension: tcap
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.3lightssoftware.imagescal with extension: imgcal
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.3M.Post-it-Notes with extension: pwn
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.accpac.simply.aso with extension: aso
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.accpac.simply.imp with extension: imp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.acucobol with extension: acu
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.acucorp with extension: atc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.acucorp with extension: acutc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.adobe.flash.movie with extension: swf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.adobe.formscentral.fcdt with extension: fcdt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.adobe.fxp with extension: fxp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.adobe.fxp with extension: fxpl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.adobe.xdp+xml with extension: xdp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.adobe.xfdf with extension: xfdf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.afpc.modca with extension: list3820
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.afpc.modca with extension: listafp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.afpc.modca with extension: afp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.afpc.modca with extension: pseg3820
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.afpc.modca-overlay with extension: ovl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.afpc.modca-pagesegment with extension: psg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.age with extension: age
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ahead.space with extension: ahead
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.airzip.filesecure.azf with extension: azf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.airzip.filesecure.azs with extension: azs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.amazon.mobi8-ebook with extension: azw3
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.americandynamics.acc with extension: acc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.amiga.ami with extension: ami
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.android.ota with extension: ota
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.android.package-archive with extension: apk
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.anki with extension: apkg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.anser-web-certificate-issue-initiation with extension: cii
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.anser-web-funds-transfer-initiation with extension: fti
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.apache.arrow.file with extension: arrow
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.apache.arrow.stream with extension: arrows
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.apple.installer+xml with extension: dist
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.apple.installer+xml with extension: distz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.apple.installer+xml with extension: pkg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.apple.installer+xml with extension: mpkg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.apple.keynote with extension: keynote
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.apple.mpegurl with extension: m3u8
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.apple.numbers with extension: numbers
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.apple.pages with extension: pages
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.aristanetworks.swi with extension: swi
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.artisan+json with extension: artisan
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.astraea-software.iota with extension: iota
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.audiograph with extension: aep
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.autopackage with extension: package
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.balsamiq.bmml+xml with extension: bmml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.balsamiq.bmpr with extension: bmpr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.banana-accounting with extension: ac2
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.blueice.multipass with extension: mpm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.bluetooth.ep.oob with extension: ep
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.bluetooth.le.oob with extension: le
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.bmi with extension: bmi
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.businessobjects with extension: rep
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.cendio.thinlinc.clientconf with extension: tlclient
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.chemdraw+xml with extension: cdxml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.chess-pgn with extension: pgn
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.chipnuts.karaoke-mmd with extension: mmd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.cinderella with extension: cdy
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.citationstyles.style+xml with extension: csl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.claymore with extension: cla
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.cloanto.rp9 with extension: rp9
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.clonk.c4group with extension: c4g
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.clonk.c4group with extension: c4d
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.clonk.c4group with extension: c4f
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.clonk.c4group with extension: c4p
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.clonk.c4group with extension: c4u
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.cluetrust.cartomobile-config with extension: c11amc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.cluetrust.cartomobile-config-pkg with extension: c11amz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.coffeescript with extension: coffee
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.collabio.xodocuments.document with extension: xodt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.collabio.xodocuments.document-template with extension: xott
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.collabio.xodocuments.presentation with extension: xodp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.collabio.xodocuments.presentation-template with extension: xotp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.collabio.xodocuments.spreadsheet with extension: xods
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.collabio.xodocuments.spreadsheet-template with extension: xots
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.comicbook+zip with extension: cbz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.comicbook-rar with extension: cbr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.commerce-battelle with extension: icf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.commerce-battelle with extension: icd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.commerce-battelle with extension: ic0
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.commerce-battelle with extension: ic1
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.commerce-battelle with extension: ic2
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.commerce-battelle with extension: ic3
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.commerce-battelle with extension: ic4
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.commerce-battelle with extension: ic5
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.commerce-battelle with extension: ic6
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.commerce-battelle with extension: ic7
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.commerce-battelle with extension: ic8
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.commonspace with extension: csp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.commonspace with extension: cst
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.contact.cmsg with extension: cdbcmsg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.coreos.ignition+json with extension: ign
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.coreos.ignition+json with extension: ignition
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.cosmocaller with extension: cmc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.crick.clicker with extension: clkx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.crick.clicker.keyboard with extension: clkk
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.crick.clicker.palette with extension: clkp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.crick.clicker.template with extension: clkt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.crick.clicker.wordbank with extension: clkw
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.criticaltools.wbs+xml with extension: wbs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.crypto-shade-file with extension: ssvc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.cryptomator.encrypted with extension: c9r
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.cryptomator.encrypted with extension: c9s
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.cryptomator.vault with extension: cryptomator
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ctc-posml with extension: pml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.cups-ppd with extension: ppd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.dart with extension: dart
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.data-vision.rdz with extension: rdz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.dbf with extension: dbf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.debian.binary-package with extension: deb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.debian.binary-package with extension: ddeb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.debian.binary-package with extension: udeb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.dece.data with extension: uvf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.dece.data with extension: uvvf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.dece.data with extension: uvd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.dece.data with extension: uvvd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.dece.ttml+xml with extension: uvt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.dece.ttml+xml with extension: uvvt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.dece.unspecified with extension: uvx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.dece.unspecified with extension: uvvx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.dece.zip with extension: uvz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.dece.zip with extension: uvvz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.denovo.fcselayout-link with extension: fe_launch
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.desmume.movie with extension: dsm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.dna with extension: dna
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.document+json with extension: docjson
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.doremir.scorecloud-binary-document with extension: scld
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.dpgraph with extension: dpg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.dpgraph with extension: mwc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.dpgraph with extension: dpgraph
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.dreamfactory with extension: dfac
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.dtg.local.flash with extension: fla
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.dvb.ait with extension: ait
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.dvb.service with extension: svc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.dynageo with extension: geo
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.dzr with extension: dzr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ecowin.chart with extension: mag
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.enliven with extension: nml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.epson.esf with extension: esf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.epson.msf with extension: msf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.epson.quickanime with extension: qam
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.epson.salt with extension: slt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.epson.ssf with extension: ssf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ericsson.quickcall with extension: qcall
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ericsson.quickcall with extension: qca
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.espass-espass+zip with extension: espass
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.eszigno3+xml with extension: es3
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.eszigno3+xml with extension: et3
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.etsi.asic-e+zip with extension: asice
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.etsi.asic-e+zip with extension: sce
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.etsi.asic-s+zip with extension: asics
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.etsi.timestamp-token with extension: tst
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.eu.kasparian.car+json with extension: carjson
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.evolv.ecig.profile with extension: ecigprofile
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.evolv.ecig.settings with extension: ecig
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.evolv.ecig.theme with extension: ecigtheme
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.exstream-empower+zip with extension: mpw
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.exstream-package with extension: pub
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ezpix-album with extension: ez2
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ezpix-package with extension: ez3
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.familysearch.gedcom+zip with extension: gdz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.fastcopy-disk-image with extension: dim
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.fdf with extension: fdf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.fdsn.mseed with extension: msd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.fdsn.mseed with extension: mseed
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.fdsn.seed with extension: seed
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.fdsn.seed with extension: dataless
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ficlab.flb+zip with extension: flb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.filmit.zfc with extension: zfc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.FloGraphIt with extension: gph
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.fluxtime.clip with extension: ftc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.font-fontforge-sfd with extension: sfd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.framemaker with extension: fm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.fsc.weblaunch with extension: fsc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.fujitsu.oasys with extension: oas
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.fujitsu.oasys2 with extension: oa2
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.fujitsu.oasys3 with extension: oa3
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.fujitsu.oasysgp with extension: fg5
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.fujitsu.oasysprs with extension: bh2
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.fujixerox.ddd with extension: ddd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.fujixerox.docuworks with extension: xdw
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.fujixerox.docuworks.binder with extension: xbd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.fujixerox.docuworks.container with extension: xct
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.fuzzysheet with extension: fzs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.genomatix.tuxedo with extension: txd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.geogebra.file with extension: ggb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.geogebra.slides with extension: ggs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.geogebra.tool with extension: ggt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.geometry-explorer with extension: gex
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.geometry-explorer with extension: gre
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.geonext with extension: gxt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.geoplan with extension: g2w
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.geospace with extension: g3w
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.google-earth.kml+xml with extension: kml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.google-earth.kmz with extension: kmz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.grafeq with extension: gqf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.grafeq with extension: gqs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.groove-account with extension: gac
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.groove-help with extension: ghf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.groove-identity-message with extension: gim
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.groove-injector with extension: grv
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.groove-tool-message with extension: gtm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.groove-tool-template with extension: tpl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.groove-vcard with extension: vcg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.hal+xml with extension: hal
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.HandHeld-Entertainment+xml with extension: zmm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.hbci with extension: hbci
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.hbci with extension: hbc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.hbci with extension: kom
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.hbci with extension: upa
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.hbci with extension: pkd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.hbci with extension: bpd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.hdt with extension: hdt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.hhe.lesson-player with extension: les
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.hp-HPGL with extension: hpgl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.hp-hpid with extension: hpi
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.hp-hpid with extension: hpid
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.hp-hps with extension: hps
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.hp-jlyt with extension: jlt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.hp-PCL with extension: pcl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.hydrostatix.sof-data with extension: sfd-hdstx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ibm.electronic-media with extension: emm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ibm.MiniPay with extension: mpy
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ibm.rights-management with extension: irm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ibm.secure-container with extension: sc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.iccprofile with extension: icc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.iccprofile with extension: icm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ieee.1905 with extension: 1905.1
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.igloader with extension: igl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.imagemeter.folder+zip with extension: imf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.imagemeter.image+zip with extension: imi
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.immervision-ivp with extension: ivp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.immervision-ivu with extension: ivu
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ims.imsccv1p1 with extension: imscc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.insors.igm with extension: igm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.intercon.formnet with extension: xpw
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.intercon.formnet with extension: xpx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.intergeo with extension: i2g
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.intu.qbo with extension: qbo
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.intu.qfx with extension: qfx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ipunplugged.rcprofile with extension: rcprofile
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.irepository.package+xml with extension: irp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.is-xpr with extension: xpr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.isac.fcs with extension: fcs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.jam with extension: jam
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.jcp.javame.midlet-rms with extension: rms
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.jisp with extension: jisp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.joost.joda-archive with extension: joda
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.kahootz with extension: ktz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.kahootz with extension: ktr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.kde.karbon with extension: karbon
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.kde.kchart with extension: chrt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.kde.kformula with extension: kfo
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.kde.kivio with extension: flw
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.kde.kontour with extension: kon
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.kde.kpresenter with extension: kpr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.kde.kpresenter with extension: kpt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.kde.kspread with extension: ksp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.kde.kword with extension: kwd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.kde.kword with extension: kwt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.kenameaapp with extension: htke
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.kidspiration with extension: kia
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.Kinar with extension: kne
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.Kinar with extension: knp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.Kinar with extension: sdf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.koan with extension: skp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.koan with extension: skd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.koan with extension: skm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.koan with extension: skt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.kodak-descriptor with extension: sse
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.las with extension: las
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.las.las+json with extension: lasjson
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.las.las+xml with extension: lasxml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.llamagraphics.life-balance.desktop with extension: lbd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.llamagraphics.life-balance.exchange+xml with extension: lbe
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.logipipe.circuit+zip with extension: lcs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.logipipe.circuit+zip with extension: lca
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.loom with extension: loom
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.lotus-1-2-3 with extension: 123
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.lotus-1-2-3 with extension: wk4
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.lotus-1-2-3 with extension: wk3
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.lotus-1-2-3 with extension: wk1
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.lotus-approach with extension: apr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.lotus-approach with extension: vew
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.lotus-freelance with extension: prz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.lotus-freelance with extension: pre
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.lotus-notes with extension: nsf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.lotus-notes with extension: ntf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.lotus-notes with extension: ndl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.lotus-notes with extension: ns4
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.lotus-notes with extension: ns3
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.lotus-notes with extension: ns2
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.lotus-notes with extension: nsh
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.lotus-notes with extension: nsg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.lotus-organizer with extension: or3
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.lotus-organizer with extension: or2
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.lotus-organizer with extension: org
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.lotus-screencam with extension: scm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.lotus-wordpro with extension: lwp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.lotus-wordpro with extension: sam
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.macports.portpkg with extension: portpkg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.mapbox-vector-tile with extension: mvt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.marlin.drm.mdcf with extension: mdc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.maxar.archive.3tz+zip with extension: 3tz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.maxmind.maxmind-db with extension: mmdb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.mcd with extension: mcd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.medcalcdata with extension: mc1
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.mediastation.cdkey with extension: cdkey
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.MFER with extension: mwf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.mfmp with extension: mfm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.micrografx.flo with extension: flo
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.micrografx.igx with extension: igx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.mif with extension: mif
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.Mobius.DAF with extension: daf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.Mobius.DIS with extension: dis
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.Mobius.MBK with extension: mbk
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.Mobius.MQY with extension: mqy
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.Mobius.MSL with extension: msl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.Mobius.PLC with extension: plc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.Mobius.TXF with extension: txf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.mophun.application with extension: mpn
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.mophun.certificate with extension: mpc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.mozilla.xul+xml with extension: xul
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-3mfdocument with extension: 3mf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-artgalry with extension: cil
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-asf with extension: asf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-cab-compressed with extension: cab
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-excel with extension: xls
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-excel with extension: xlm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-excel with extension: xla
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-excel with extension: xlc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-excel with extension: xlt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-excel with extension: xlw
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-excel.addin.macroEnabled.12 with extension: xlam
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-excel.sheet.binary.macroEnabled.12 with extension: xlsb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-excel.sheet.macroEnabled.12 with extension: xlsm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-excel.template.macroEnabled.12 with extension: xltm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-fontobject with extension: eot
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-htmlhelp with extension: chm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-ims with extension: ims
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-lrm with extension: lrm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-officetheme with extension: thmx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-pki.seccat with extension: cat
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-powerpoint with extension: ppt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-powerpoint with extension: pps
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-powerpoint.addin.macroEnabled.12 with extension: ppam
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-powerpoint.presentation.macroEnabled.12 with extension: pptm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-powerpoint.slide.macroEnabled.12 with extension: sldm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-powerpoint.slideshow.macroEnabled.12 with extension: ppsm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-powerpoint.template.macroEnabled.12 with extension: potm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-project with extension: mpp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-project with extension: mpt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-tnef with extension: tnef
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-tnef with extension: tnf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-word.document.macroEnabled.12 with extension: docm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-word.template.macroEnabled.12 with extension: dotm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-works with extension: wcm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-works with extension: wdb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-works with extension: wks
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-works with extension: wps
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-wpl with extension: wpl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ms-xpsdocument with extension: xps
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.msa-disk-image with extension: msa
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.mseq with extension: mseq
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.multiad.creator with extension: crtr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.multiad.creator.cif with extension: cif
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.musician with extension: mus
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.muvee.style with extension: msty
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.mynfc with extension: taglet
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.nebumind.line with extension: nebul
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.nebumind.line with extension: line
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.nervana with extension: entity
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.nervana with extension: request
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.nervana with extension: bkm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.nervana with extension: kcm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.neurolanguage.nlu with extension: nlu
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.nimn with extension: nimn
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.nintendo.nitro.rom with extension: nds
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.nintendo.snes.rom with extension: sfc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.nintendo.snes.rom with extension: smc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.nitf with extension: nitf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.noblenet-directory with extension: nnd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.noblenet-sealer with extension: nns
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.noblenet-web with extension: nnw
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.nokia.n-gage.data with extension: ngdat
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.nokia.radio-preset with extension: rpst
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.nokia.radio-presets with extension: rpss
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.novadigm.EDM with extension: edm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.novadigm.EDX with extension: edx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.novadigm.EXT with extension: ext
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.oasis.opendocument.chart with extension: odc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.oasis.opendocument.chart-template with extension: otc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.oasis.opendocument.database with extension: odb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.oasis.opendocument.formula with extension: odf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.oasis.opendocument.graphics with extension: odg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.oasis.opendocument.graphics-template with extension: otg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.oasis.opendocument.image with extension: odi
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.oasis.opendocument.image-template with extension: oti
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.oasis.opendocument.presentation with extension: odp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.oasis.opendocument.presentation-template with extension: otp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.oasis.opendocument.spreadsheet with extension: ods
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.oasis.opendocument.spreadsheet-template with extension: ots
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.oasis.opendocument.text with extension: odt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.oasis.opendocument.text-master with extension: odm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.oasis.opendocument.text-template with extension: ott
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.oasis.opendocument.text-web with extension: oth
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.olpc-sugar with extension: xo
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.oma.dd2+xml with extension: dd2
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.onepager with extension: tam
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.onepagertamp with extension: tamp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.onepagertamx with extension: tamx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.onepagertat with extension: tat
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.onepagertatp with extension: tatp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.onepagertatx with extension: tatx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.openblox.game+xml with extension: obgx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.openblox.game-binary with extension: obg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.openeye.oeb with extension: oeb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.openofficeorg.extension with extension: oxt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.openstreetmap.data+xml with extension: osm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.openxmlformats-officedocument.presentationml.presentation with extension: pptx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.openxmlformats-officedocument.presentationml.slide with extension: sldx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.openxmlformats-officedocument.presentationml.slideshow with extension: ppsx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.openxmlformats-officedocument.presentationml.template with extension: potx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet with extension: xlsx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.openxmlformats-officedocument.spreadsheetml.template with extension: xltx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.openxmlformats-officedocument.wordprocessingml.document with extension: docx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.openxmlformats-officedocument.wordprocessingml.template with extension: dotx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.osa.netdeploy with extension: ndc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.osgeo.mapguide.package with extension: mgp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.osgi.dp with extension: dp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.osgi.subsystem with extension: esa
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.oxli.countgraph with extension: oxlicg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.palm with extension: pdb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.palm with extension: pqa
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.palm with extension: oprc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.panoply with extension: plp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.patentdive with extension: dive
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.pawaafile with extension: paw
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.pg.format with extension: str
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.pg.osasli with extension: ei6
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.piaccess.application-licence with extension: pil
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.picsel with extension: efif
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.pmi.widget with extension: wg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.pocketlearn with extension: plf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.powerbuilder6 with extension: pbd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.preminet with extension: preminet
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.previewsystems.box with extension: box
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.previewsystems.box with extension: vbox
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.proteus.magazine with extension: mgz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.psfs with extension: psfs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.publishare-delta-tree with extension: qps
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.pvi.ptid1 with extension: ptid
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.qualcomm.brew-app-res with extension: bar
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.Quark.QuarkXPress with extension: qxd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.Quark.QuarkXPress with extension: qxt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.Quark.QuarkXPress with extension: qwd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.Quark.QuarkXPress with extension: qwt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.Quark.QuarkXPress with extension: qxl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.Quark.QuarkXPress with extension: qxb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.quobject-quoxdocument with extension: quox
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.quobject-quoxdocument with extension: quiz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.rainstor.data with extension: tree
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.rar with extension: rar
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.realvnc.bed with extension: bed
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.recordare.musicxml with extension: mxl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.resilient.logic with extension: rlm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.resilient.logic with extension: reload
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.rig.cryptonote with extension: cryptonote
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.rim.cod with extension: cod
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.route66.link66+xml with extension: link66
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sailingtracker.track with extension: st
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sar with extension: SAR
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.scribus with extension: scd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.scribus with extension: sla
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.scribus with extension: slaz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sealed.3df with extension: s3df
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sealed.csf with extension: scsf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sealed.doc with extension: sdoc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sealed.doc with extension: sdo
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sealed.doc with extension: s1w
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sealed.eml with extension: seml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sealed.eml with extension: sem
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sealed.mht with extension: smht
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sealed.mht with extension: smh
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sealed.ppt with extension: sppt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sealed.ppt with extension: s1p
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sealed.tiff with extension: stif
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sealed.xls with extension: sxls
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sealed.xls with extension: sxl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sealed.xls with extension: s1e
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sealedmedia.softseal.html with extension: stml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sealedmedia.softseal.html with extension: s1h
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sealedmedia.softseal.pdf with extension: spdf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sealedmedia.softseal.pdf with extension: spd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sealedmedia.softseal.pdf with extension: s1a
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.seemail with extension: see
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sema with extension: sema
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.semd with extension: semd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.semf with extension: semf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.shade-save-file with extension: ssv
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.shana.informed.formdata with extension: ifm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.shana.informed.formtemplate with extension: itp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.shana.informed.interchange with extension: iif
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.shana.informed.package with extension: ipk
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.shp with extension: shp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.shx with extension: shx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sigrok.session with extension: sr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.SimTech-MindMapper with extension: twd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.SimTech-MindMapper with extension: twds
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.smaf with extension: mmf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.smart.notebook with extension: notebook
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.smart.teacher with extension: teacher
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.snesdev-page-table with extension: ptrom
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.snesdev-page-table with extension: pt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.software602.filler.form+xml with extension: fo
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.software602.filler.form-xml-zip with extension: zfo
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.solent.sdkm+xml with extension: sdkm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.solent.sdkm+xml with extension: sdkd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.spotfire.dxp with extension: dxp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.spotfire.sfs with extension: sfs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sqlite3 with extension: sqlite
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sqlite3 with extension: sqlite3
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.stardivision.calc with extension: sdc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.stardivision.chart with extension: sds
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.stardivision.draw with extension: sda
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.stardivision.impress with extension: sdd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.stardivision.math with extension: smf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.stardivision.writer with extension: sdw
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.stardivision.writer-global with extension: sgl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.stepmania.package with extension: smzip
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.stepmania.stepchart with extension: sm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sun.wadl+xml with extension: wadl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sun.xml.calc with extension: sxc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sun.xml.calc.template with extension: stc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sun.xml.draw with extension: sxd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sun.xml.draw.template with extension: std
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sun.xml.impress with extension: sxi
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sun.xml.impress.template with extension: sti
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sun.xml.math with extension: sxm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sun.xml.writer with extension: sxw
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sun.xml.writer.global with extension: sxg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sun.xml.writer.template with extension: stw
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sus-calendar with extension: sus
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sus-calendar with extension: susp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.sycle+xml with extension: scl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.syft+json with extension: syft.json
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.symbian.install with extension: sis
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.syncml+xml with extension: xsm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.syncml.dm+wbxml with extension: bdm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.syncml.dm+xml with extension: xdm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.syncml.dmddf+xml with extension: ddf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.tao.intent-module-archive with extension: tao
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.tcpdump.pcap with extension: pcap
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.tcpdump.pcap with extension: cap
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.tcpdump.pcap with extension: dmp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.theqvd with extension: qvd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.think-cell.ppttc+json with extension: ppttc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.tml with extension: vfr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.tml with extension: viaframe
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.tmobile-livetv with extension: tmo
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.trid.tpt with extension: tpt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.triscape.mxs with extension: mxs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.trueapp with extension: tra
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ufdl with extension: ufdl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ufdl with extension: ufd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ufdl with extension: frm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.uiq.theme with extension: utz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.umajin with extension: umj
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.unity with extension: unityweb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.uoml+xml with extension: uoml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.uoml+xml with extension: uo
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.uri-map with extension: urim
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.uri-map with extension: urimap
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.valve.source.material with extension: vmt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.vcx with extension: vcx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.vd-study with extension: mxi
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.vd-study with extension: study-inter
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.vd-study with extension: model-inter
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.vectorworks with extension: vwx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.veritone.aion+json with extension: aion
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.veritone.aion+json with extension: vtnstd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.veryant.thin with extension: istc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.veryant.thin with extension: isws
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.ves.encrypted with extension: VES
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.vidsoft.vidconference with extension: vsc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.visio with extension: vsd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.visio with extension: vst
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.visio with extension: vsw
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.visio with extension: vss
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.visionary with extension: vis
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.vsf with extension: vsf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.wap.sic with extension: sic
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.wap.slc with extension: slc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.wap.wbxml with extension: wbxml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.wap.wmlc with extension: wmlc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.wap.wmlscriptc with extension: wmlsc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.webturbo with extension: wtb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.wfa.p2p with extension: p2p
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.wfa.wsc with extension: wsc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.wmc with extension: wmc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.wolfram.mathematica with extension: nb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.wolfram.mathematica.package with extension: m
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.wolfram.player with extension: nbp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.wordperfect with extension: wpd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.wordperfect5.1 with extension: wp5
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.wqd with extension: wqd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.wt.stf with extension: stf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.wv.csp+wbxml with extension: wv
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.xara with extension: xar
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.xfdl with extension: xfdl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.xfdl with extension: xfd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.xmpie.cpkg with extension: cpkg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.xmpie.dpkg with extension: dpkg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.xmpie.ppkg with extension: ppkg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.xmpie.xlim with extension: xlim
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.yamaha.hv-dic with extension: hvd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.yamaha.hv-script with extension: hvs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.yamaha.hv-voice with extension: hvp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.yamaha.openscoreformat with extension: osf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.yamaha.smaf-audio with extension: saf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.yamaha.smaf-phrase with extension: spf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.yaoweme with extension: yme
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.yellowriver-custom-menu with extension: cmp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.zul with extension: zir
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.zul with extension: zirz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/vnd.zzazz.deck+xml with extension: zaz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/voicexml+xml with extension: vxml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/voucher-cms+json with extension: vcj
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/wasm with extension: wasm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/watcherinfo+xml with extension: wif
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/widget with extension: wgt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/wsdl+xml with extension: wsdl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/wspolicy+xml with extension: wspolicy
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-123 with extension: wk
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-7z-compressed with extension: 7z
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-abiword with extension: abw
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-apple-diskimage with extension: dmg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-bcpio with extension: bcpio
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-bittorrent with extension: torrent
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-cdf with extension: cdf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-cdf with extension: cda
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-cdlink with extension: vcd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-comsol with extension: mph
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-cpio with extension: cpio
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-csh with extension: csh
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-director with extension: dcr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-director with extension: dir
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-director with extension: dxr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-doom with extension: wad
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-dvi with extension: dvi
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-font with extension: pfa
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-font with extension: pfb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-font with extension: gsf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-font-pcf with extension: pcf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-font-pcf with extension: pcf.Z
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-freemind with extension: mm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-ganttproject with extension: gan
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-gnumeric with extension: gnumeric
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-go-sgf with extension: sgf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-graphing-calculator with extension: gcf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-gtar with extension: gtar
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-gtar-compressed with extension: tgz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-gtar-compressed with extension: taz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-hdf with extension: hdf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-hwp with extension: hwp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-ica with extension: ica
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-info with extension: info
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-internet-signup with extension: ins
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-internet-signup with extension: isp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-iphone with extension: iii
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-iso9660-image with extension: iso
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-java-jnlp-file with extension: jnlp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-jmol with extension: jmz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-killustrator with extension: kil
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-latex with extension: latex
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-lha with extension: lha
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-lyx with extension: lyx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-lzh with extension: lzh
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-lzx with extension: lzx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-maker with extension: frm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-maker with extension: maker
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-maker with extension: frame
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-maker with extension: fm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-maker with extension: fb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-maker with extension: book
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-maker with extension: fbdoc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-ms-wmd with extension: wmd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-ms-wmz with extension: wmz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-msdos-program with extension: com
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-msdos-program with extension: exe
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-msdos-program with extension: bat
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-msdos-program with extension: dll
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-msi with extension: msi
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-netcdf with extension: nc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-ns-proxy-autoconfig with extension: pac
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-nwc with extension: nwc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-object with extension: o
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-oz-application with extension: oza
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-pkcs7-certreqresp with extension: p7r
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-python-code with extension: pyc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-python-code with extension: pyo
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-qgis with extension: qgs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-qgis with extension: shp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-qgis with extension: shx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-quicktimeplayer with extension: qtl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-rdp with extension: rdp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-redhat-package-manager with extension: rpm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-rss+xml with extension: rss
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-ruby with extension: rb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-scilab with extension: sci
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-scilab with extension: sce
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-scilab-xcos with extension: xcos
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-sh with extension: sh
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-shar with extension: shar
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-silverlight with extension: scr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-stuffit with extension: sit
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-stuffit with extension: sitx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-sv4cpio with extension: sv4cpio
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-sv4crc with extension: sv4crc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-tar with extension: tar
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-tcl with extension: tcl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-tex-gf with extension: gf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-tex-pk with extension: pk
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-texinfo with extension: texinfo
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-texinfo with extension: texi
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-trash with extension: ~
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-trash with extension: %
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-trash with extension: bak
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-trash with extension: old
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-trash with extension: sik
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-troff-man with extension: man
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-troff-me with extension: me
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-troff-ms with extension: ms
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-ustar with extension: ustar
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-wais-source with extension: src
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-wingz with extension: wz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-x509-ca-cert with extension: crt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-xfig with extension: fig
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-xpinstall with extension: xpi
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/x-xz with extension: xz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/xcap-att+xml with extension: xav
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/xcap-caps+xml with extension: xca
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/xcap-diff+xml with extension: xdf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/xcap-el+xml with extension: xel
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/xcap-error+xml with extension: xer
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/xcap-ns+xml with extension: xns
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/xhtml+xml with extension: xhtml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/xhtml+xml with extension: xhtm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/xhtml+xml with extension: xht
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/xliff+xml with extension: xlf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/xml with extension: xml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/xml-dtd with extension: dtd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/xml-dtd with extension: mod
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/xml-external-parsed-entity with extension: ent
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/xop+xml with extension: xop
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/xslt+xml with extension: xsl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/xslt+xml with extension: xslt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/xspf+xml with extension: xspf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/xv+xml with extension: mxml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/xv+xml with extension: xhvml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/xv+xml with extension: xvml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/xv+xml with extension: xvm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/yang with extension: yang
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/yin+xml with extension: yin
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/zip with extension: zip
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: application/zstd with extension: zst
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/32kadpcm with extension: 726
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/aac with extension: adts
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/aac with extension: aac
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/aac with extension: ass
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/ac3 with extension: ac3
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/AMR with extension: amr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/AMR with extension: AMR
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/AMR-WB with extension: awb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/AMR-WB with extension: AWB
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/annodex with extension: axa
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/asc with extension: acn
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/ATRAC-ADVANCED-LOSSLESS with extension: aal
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/ATRAC-X with extension: atx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/ATRAC3 with extension: at3
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/ATRAC3 with extension: aa3
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/ATRAC3 with extension: omg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/basic with extension: au
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/basic with extension: snd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/csound with extension: csd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/csound with extension: orc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/csound with extension: sco
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/dls with extension: dls
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/EVRC with extension: evc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/EVRC-QCP with extension: qcp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/EVRC-QCP with extension: QCP
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/EVRCB with extension: evb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/EVRCNW with extension: enw
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/EVRCWB with extension: evw
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/flac with extension: flac
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/iLBC with extension: lbc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/L16 with extension: l16
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/mhas with extension: mhas
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/mobile-xmf with extension: mxmf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/mp4 with extension: m4a
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/mpeg with extension: mpga
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/mpeg with extension: mpega
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/mpeg with extension: mp1
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/mpeg with extension: mp2
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/mpeg with extension: mp3
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/mpegurl with extension: m3u
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/ogg with extension: oga
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/ogg with extension: ogg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/ogg with extension: opus
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/ogg with extension: spx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/prs.sid with extension: sid
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/prs.sid with extension: psid
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/SMV with extension: smv
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/sofa with extension: sofa
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/sp-midi with extension: mid
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/usac with extension: loas
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/usac with extension: xhe
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/vnd.audiokoz with extension: koz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/vnd.dece.audio with extension: uva
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/vnd.dece.audio with extension: uvva
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/vnd.digital-winds with extension: eol
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/vnd.dolby.mlp with extension: mlp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/vnd.dts with extension: dts
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/vnd.dts.hd with extension: dtshd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/vnd.everad.plj with extension: plj
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/vnd.lucent.voice with extension: lvp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/vnd.ms-playready.media.pya with extension: pya
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/vnd.nortel.vbk with extension: vbk
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/vnd.nuera.ecelp4800 with extension: ecelp4800
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/vnd.nuera.ecelp7470 with extension: ecelp7470
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/vnd.nuera.ecelp9600 with extension: ecelp9600
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/vnd.presonus.multitrack with extension: multitrack
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/vnd.rip with extension: rip
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/vnd.sealedmedia.softseal.mpeg with extension: smp3
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/vnd.sealedmedia.softseal.mpeg with extension: smp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/vnd.sealedmedia.softseal.mpeg with extension: s1m
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/x-aiff with extension: aif
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/x-aiff with extension: aiff
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/x-aiff with extension: aifc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/x-gsm with extension: gsm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/x-ms-wax with extension: wax
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/x-ms-wma with extension: wma
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/x-pn-realaudio with extension: ra
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/x-pn-realaudio with extension: rm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/x-pn-realaudio with extension: ram
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/x-scpls with extension: pls
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/x-sd2 with extension: sd2
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: audio/x-wav with extension: wav
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-alchemy with extension: alc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-cache with extension: cac
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-cache with extension: cache
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-cache-csf with extension: csf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-cactvs-binary with extension: cbin
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-cactvs-binary with extension: cascii
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-cactvs-binary with extension: ctab
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-cdx with extension: cdx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-chem3d with extension: c3d
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-chemdraw with extension: chm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-cif with extension: cif
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-cmdf with extension: cmdf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-cml with extension: cml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-compass with extension: cpa
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-crossfire with extension: bsd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-csml with extension: csml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-csml with extension: csm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-ctx with extension: ctx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-cxf with extension: cxf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-cxf with extension: cef
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-embl-dl-nucleotide with extension: emb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-embl-dl-nucleotide with extension: embl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-galactic-spc with extension: spc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-gamess-input with extension: inp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-gamess-input with extension: gam
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-gamess-input with extension: gamin
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-gaussian-checkpoint with extension: fch
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-gaussian-checkpoint with extension: fchk
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-gaussian-cube with extension: cub
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-gaussian-input with extension: gau
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-gaussian-input with extension: gjc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-gaussian-input with extension: gjf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-gaussian-log with extension: gal
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-gcg8-sequence with extension: gcg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-genbank with extension: gen
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-hin with extension: hin
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-isostar with extension: istr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-isostar with extension: ist
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-jcamp-dx with extension: jdx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-jcamp-dx with extension: dx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-kinemage with extension: kin
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-macmolecule with extension: mcm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-macromodel-input with extension: mmod
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-mdl-molfile with extension: mol
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-mdl-rdfile with extension: rd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-mdl-rxnfile with extension: rxn
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-mdl-sdfile with extension: sd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-mdl-sdfile with extension: sdf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-mdl-tgf with extension: tgf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-mmcif with extension: mcif
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-mol2 with extension: mol2
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-molconn-Z with extension: b
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-mopac-graph with extension: gpt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-mopac-input with extension: mop
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-mopac-input with extension: mopcrt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-mopac-input with extension: mpc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-mopac-input with extension: zmt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-mopac-out with extension: moo
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-mopac-vib with extension: mvb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-ncbi-asn1 with extension: asn
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-ncbi-asn1-ascii with extension: prt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-ncbi-asn1-binary with extension: val
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-ncbi-asn1-binary with extension: aso
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-ncbi-asn1-spec with extension: asn
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-pdb with extension: pdb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-rosdal with extension: ros
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-swissprot with extension: sw
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-vamas-iso14976 with extension: vms
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-vmd with extension: vmd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-xtel with extension: xtel
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: chemical/x-xyz with extension: xyz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: font/collection with extension: ttc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: font/otf with extension: otf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: font/ttf with extension: ttf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: font/woff with extension: woff
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: font/woff2 with extension: woff2
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/aces with extension: exr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/avci with extension: avci
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/avcs with extension: avcs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/avif with extension: avif
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/avif with extension: hif
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/bmp with extension: bmp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/cgm with extension: cgm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/dicom-rle with extension: drle
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/emf with extension: emf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/fits with extension: fits
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/fits with extension: fit
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/fits with extension: fts
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/gif with extension: gif
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/heic with extension: heic
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/heic-sequence with extension: heics
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/heif with extension: heif
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/heif-sequence with extension: heifs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/hej2k with extension: hej2
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/hsj2 with extension: hsj2
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/ief with extension: ief
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/jls with extension: jls
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/jp2 with extension: jp2
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/jp2 with extension: jpg2
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/jpeg with extension: jpeg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/jpeg with extension: jpg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/jpeg with extension: jpe
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/jpeg with extension: jfif
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/jph with extension: jph
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/jphc with extension: jhc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/jphc with extension: jphc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/jpm with extension: jpm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/jpm with extension: jpgm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/jpx with extension: jpx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/jpx with extension: jpf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/jxl with extension: jxl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/jxr with extension: jxr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/jxrA with extension: jxra
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/jxrS with extension: jxrs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/jxs with extension: jxs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/jxsc with extension: jxsc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/jxsi with extension: jxsi
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/jxss with extension: jxss
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/ktx with extension: ktx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/ktx2 with extension: ktx2
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/png with extension: png
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/prs.btif with extension: btif
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/prs.btif with extension: btf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/prs.pti with extension: pti
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/svg+xml with extension: svg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/svg+xml with extension: svgz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/tiff with extension: tiff
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/tiff with extension: tif
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/tiff-fx with extension: tfx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.adobe.photoshop with extension: psd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.airzip.accelerator.azv with extension: azv
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.dece.graphic with extension: uvi
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.dece.graphic with extension: uvvi
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.dece.graphic with extension: uvg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.dece.graphic with extension: uvvg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.djvu with extension: djvu
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.djvu with extension: djv
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.dwg with extension: dwg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.dxf with extension: dxf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.fastbidsheet with extension: fbs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.fpx with extension: fpx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.fst with extension: fst
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.fujixerox.edmics-mmr with extension: mmr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.fujixerox.edmics-rlc with extension: rlc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.globalgraphics.pgb with extension: PGB
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.globalgraphics.pgb with extension: pgb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.microsoft.icon with extension: ico
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.mozilla.apng with extension: apng
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.ms-modi with extension: mdi
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.pco.b16 with extension: b16
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.radiance with extension: hdr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.radiance with extension: rgbe
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.radiance with extension: xyze
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.sealed.png with extension: spng
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.sealed.png with extension: spn
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.sealed.png with extension: s1n
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.sealedmedia.softseal.gif with extension: sgif
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.sealedmedia.softseal.gif with extension: sgi
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.sealedmedia.softseal.gif with extension: s1g
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.sealedmedia.softseal.jpg with extension: sjpg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.sealedmedia.softseal.jpg with extension: sjp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.sealedmedia.softseal.jpg with extension: s1j
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.tencent.tap with extension: tap
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.valve.source.texture with extension: vtf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.wap.wbmp with extension: wbmp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.xiff with extension: xif
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/vnd.zbrush.pcx with extension: pcx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/wmf with extension: wmf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/x-canon-cr2 with extension: cr2
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/x-canon-crw with extension: crw
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/x-cmu-raster with extension: ras
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/x-coreldraw with extension: cdr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/x-coreldrawpattern with extension: pat
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/x-coreldrawtemplate with extension: cdt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/x-corelphotopaint with extension: cpt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/x-epson-erf with extension: erf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/x-jg with extension: art
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/x-jng with extension: jng
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/x-nikon-nef with extension: nef
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/x-olympus-orf with extension: orf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/x-portable-anymap with extension: pnm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/x-portable-bitmap with extension: pbm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/x-portable-graymap with extension: pgm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/x-portable-pixmap with extension: ppm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/x-rgb with extension: rgb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/x-xbitmap with extension: xbm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/x-xcf with extension: xcf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/x-xpixmap with extension: xpm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: image/x-xwindowdump with extension: xwd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: message/global with extension: u8msg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: message/global-delivery-status with extension: u8dsn
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: message/global-disposition-notification with extension: u8mdn
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: message/global-headers with extension: u8hdr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: message/rfc822 with extension: eml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: message/rfc822 with extension: mail
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: message/rfc822 with extension: art
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/gltf+json with extension: gltf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/gltf-binary with extension: glb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/iges with extension: igs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/iges with extension: iges
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/mesh with extension: msh
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/mesh with extension: mesh
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/mesh with extension: silo
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/mtl with extension: mtl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/obj with extension: obj
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/prc with extension: prc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/step with extension: stp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/step with extension: step
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/step+xml with extension: stpx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/step+zip with extension: stpz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/step-xml+zip with extension: stpxz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/stl with extension: stl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/u3d with extension: u3d
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vnd.collada+xml with extension: dae
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vnd.dwf with extension: dwf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vnd.gdl with extension: gdl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vnd.gdl with extension: gsm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vnd.gdl with extension: win
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vnd.gdl with extension: dor
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vnd.gdl with extension: lmp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vnd.gdl with extension: rsm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vnd.gdl with extension: msm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vnd.gdl with extension: ism
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vnd.gtw with extension: gtw
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vnd.moml+xml with extension: moml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vnd.mts with extension: mts
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vnd.opengex with extension: ogex
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vnd.parasolid.transmit.binary with extension: x_b
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vnd.parasolid.transmit.binary with extension: xmt_bin
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vnd.parasolid.transmit.text with extension: x_t
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vnd.parasolid.transmit.text with extension: xmt_txt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vnd.pytha.pyox with extension: pyox
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vnd.sap.vds with extension: vds
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vnd.usdz+zip with extension: usdz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vnd.valve.source.compiled-map with extension: bsp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vnd.vtu with extension: vtu
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vrml with extension: wrl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vrml with extension: vrm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/vrml with extension: vrml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/x3d+fastinfoset with extension: x3db
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/x3d+xml with extension: x3d
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/x3d+xml with extension: x3dz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/x3d-vrml with extension: x3dv
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: model/x3d-vrml with extension: x3dvz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: multipart/vnd.bint.med-plus with extension: bmed
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: multipart/voice-message with extension: vpm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/cache-manifest with extension: appcache
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/cache-manifest with extension: manifest
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/calendar with extension: ics
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/calendar with extension: ifb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/cql with extension: CQL
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/css with extension: css
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/csv with extension: csv
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/csv-schema with extension: csvs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/dns with extension: soa
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/dns with extension: zone
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/gff3 with extension: gff3
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/html with extension: html
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/html with extension: htm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/html with extension: shtml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/javascript with extension: es
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/javascript with extension: js
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/javascript with extension: mjs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/jcr-cnd with extension: cnd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/markdown with extension: md
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/markdown with extension: markdown
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/mizar with extension: miz
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/n3 with extension: n3
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/plain with extension: txt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/plain with extension: text
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/plain with extension: pot
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/plain with extension: brf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/plain with extension: srt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/provenance-notation with extension: provn
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/prs.fallenstein.rst with extension: rst
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/prs.lines.tag with extension: tag
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/prs.lines.tag with extension: dsc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/SGML with extension: sgml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/SGML with extension: sgm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/shaclc with extension: shaclc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/shaclc with extension: shc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/shex with extension: shex
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/spdx with extension: spdx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/tab-separated-values with extension: tsv
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/texmacs with extension: tm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/troff with extension: t
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/troff with extension: tr
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/troff with extension: roff
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/turtle with extension: ttl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/uri-list with extension: uris
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/uri-list with extension: uri
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vcard with extension: vcf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vcard with extension: vcard
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.a with extension: a
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.abc with extension: abc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.ascii-art with extension: ascii
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.curl with extension: curl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.debian.copyright with extension: copyright
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.DMClientScript with extension: dms
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.esmertec.theme-descriptor with extension: jtd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.familysearch.gedcom with extension: ged
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.ficlab.flt with extension: flt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.fly with extension: fly
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.fmi.flexstor with extension: flx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.graphviz with extension: gv
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.graphviz with extension: dot
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.hans with extension: hans
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.hgl with extension: hgl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.in3d.3dml with extension: 3dml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.in3d.3dml with extension: 3dm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.in3d.spot with extension: spot
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.in3d.spot with extension: spo
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.ms-mediapackage with extension: mpf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.net2phone.commcenter.command with extension: ccc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.senx.warpscript with extension: mc2
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.sosi with extension: sos
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.sun.j2me.app-descriptor with extension: jad
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.trolltech.linguist with extension: ts
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.wap.si with extension: si
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.wap.sl with extension: sl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.wap.wml with extension: wml
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vnd.wap.wmlscript with extension: wmls
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/vtt with extension: vtt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-bibtex with extension: bib
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-boo with extension: boo
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-c++hdr with extension: h++
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-c++hdr with extension: hpp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-c++hdr with extension: hxx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-c++hdr with extension: hh
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-c++src with extension: c++
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-c++src with extension: cpp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-c++src with extension: cxx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-c++src with extension: cc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-chdr with extension: h
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-component with extension: htc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-csh with extension: csh
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-csrc with extension: c
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-diff with extension: diff
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-diff with extension: patch
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-dsrc with extension: d
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-haskell with extension: hs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-java with extension: java
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-lilypond with extension: ly
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-literate-haskell with extension: lhs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-moc with extension: moc
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-pascal with extension: p
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-pascal with extension: pas
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-pcs-gcd with extension: gcd
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-perl with extension: pl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-perl with extension: pm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-python with extension: py
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-scala with extension: scala
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-setext with extension: etx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-sfv with extension: sfv
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-sh with extension: sh
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-tcl with extension: tcl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-tcl with extension: tk
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-tex with extension: tex
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-tex with extension: ltx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-tex with extension: sty
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-tex with extension: cls
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: text/x-vcalendar with extension: vcs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/annodex with extension: axv
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/dl with extension: dl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/dv with extension: dif
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/dv with extension: dv
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/fli with extension: fli
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/gl with extension: gl
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/iso.segment with extension: m4s
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/mj2 with extension: mj2
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/mj2 with extension: mjp2
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/mp4 with extension: mp4
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/mp4 with extension: mpg4
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/mp4 with extension: m4v
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/mpeg with extension: mpeg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/mpeg with extension: mpg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/mpeg with extension: mpe
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/mpeg with extension: m1v
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/mpeg with extension: m2v
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/ogg with extension: ogv
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/quicktime with extension: qt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/quicktime with extension: mov
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.dece.hd with extension: uvh
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.dece.hd with extension: uvvh
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.dece.mobile with extension: uvm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.dece.mobile with extension: uvvm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.dece.mp4 with extension: uvu
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.dece.mp4 with extension: uvvu
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.dece.pd with extension: uvp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.dece.pd with extension: uvvp
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.dece.sd with extension: uvs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.dece.sd with extension: uvvs
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.dece.video with extension: uvv
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.dece.video with extension: uvvv
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.dvb.file with extension: dvb
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.fvt with extension: fvt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.mpegurl with extension: mxu
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.mpegurl with extension: m4u
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.ms-playready.media.pyv with extension: pyv
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.nokia.interleaved-multimedia with extension: nim
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.radgamettools.bink with extension: bik
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.radgamettools.bink with extension: bk2
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.radgamettools.smacker with extension: smk
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.sealed.mpeg1 with extension: smpg
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.sealed.mpeg1 with extension: s11
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.sealed.mpeg4 with extension: s14
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.sealed.swf with extension: sswf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.sealed.swf with extension: ssw
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.sealedmedia.softseal.mov with extension: smov
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.sealedmedia.softseal.mov with extension: smo
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.sealedmedia.softseal.mov with extension: s1q
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.vivo with extension: viv
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/vnd.youtube.yt with extension: yt
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/webm with extension: webm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/x-flv with extension: flv
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/x-la-asf with extension: lsf
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/x-la-asf with extension: lsx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/x-matroska with extension: mpv
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/x-matroska with extension: mkv
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/x-mng with extension: mng
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/x-ms-wm with extension: wm
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/x-ms-wmv with extension: wmv
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/x-ms-wmx with extension: wmx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/x-ms-wvx with extension: wvx
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/x-msvideo with extension: avi
+[2025-10-16 17:45:47] [DEBUG]    Added mime type: video/x-sgi-movie with extension: movie
+[2025-10-16 17:45:47] [INFO]     Loaded 1504 mime types from /etc/mime.types
+[2025-10-16 17:45:47] [INFO]     Response: 200 OK for GET /
+[2025-10-16 17:45:47] [DEBUG]    Client: Handling event for client 5 in state 4
+[2025-10-16 17:45:47] [DEBUG]    Client: Handling event for client 5 in state 4
+[2025-10-16 17:45:47] [INFO]     Client closed connection during response
+[2025-10-16 17:45:47] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 17:45:47] [INFO]     Client 5 disconnected: Client closed connection
+[2025-10-16 17:45:47] [DEBUG]    [PerformanceMonitor.cpp:206] PerformanceMonitor: Disconnection recorded. Active: 0
+[2025-10-16 17:46:11] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 17:46:11] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 17:46:11] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 17:46:11] [INFO]     Client connected from :0
+[2025-10-16 17:46:11] [DEBUG]    ServerManager: Client 5 added to epoll
+[2025-10-16 17:46:11] [DEBUG]    [PerformanceMonitor.cpp:194] PerformanceMonitor: Connection recorded. Active: 1
+[2025-10-16 17:46:11] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 17:46:11] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 17:46:11] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 17:46:11] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 17:46:11] [INFO]     Client connected from :0
+[2025-10-16 17:46:11] [DEBUG]    ServerManager: Client 8 added to epoll
+[2025-10-16 17:46:11] [DEBUG]    [PerformanceMonitor.cpp:194] PerformanceMonitor: Connection recorded. Active: 2
+[2025-10-16 17:46:11] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 17:46:11] [DEBUG]    Client: Handling event for client 5 in state 0
+[2025-10-16 17:46:11] [DEBUG]    Client: Starting to read request from client 5
+[2025-10-16 17:46:11] [DEBUG]    Client: Reading request from client 5
+[2025-10-16 17:46:11] [DEBUG]    Client: Received 589 bytes from client 5
+[2025-10-16 17:46:11] [DEBUG]    Client: Temp buffer: GET /favicon.ico HTTP/1.1
+Host: localhost:8080
+Connection: keep-alive
+sec-ch-ua-platform: "Windows"
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36
+sec-ch-ua: "Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"
+sec-ch-ua-mobile: ?0
+Accept: image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: no-cors
+Sec-Fetch-Dest: image
+Referer: http://localhost:8080/
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9
+
+
+[2025-10-16 17:46:11] [DEBUG]    HttpRequest: Moved 589 bytes into _rawBuffer; now has 589
+[2025-10-16 17:46:11] [DEBUG]    HttpURI: Parsed request line: GET /favicon.ico HTTP/1.1
+[2025-10-16 17:46:11] [DEBUG]    HttpURI: Request line OK (GET /favicon.ico HTTP/1.1)
+[2025-10-16 17:46:11] [DEBUG]    HttpURI: Remaining readable in main buffer after URI parse = 562
+[2025-10-16 17:46:11] [DEBUG]    HttpRequest: Request line parsing complete
+[2025-10-16 17:46:11] [DEBUG]    HttpRequest: Header parseBuffer() returned = 1
+[2025-10-16 17:46:11] [DEBUG]    HttpRequest: Headers parsing complete
+[2025-10-16 17:46:11] [DEBUG]    HttpRequest: Body parsing complete
+[2025-10-16 17:46:11] [DEBUG]    HttpRequest::parseBuffer finished with state = 3
+[2025-10-16 17:46:11] [DEBUG]    HttpResponse: Set body with 381 bytes
+[2025-10-16 17:46:11] [INFO]     Routing GET request for /favicon.ico
+[2025-10-16 17:46:11] [DEBUG]    Matched location: /
+[2025-10-16 17:46:11] [INFO]     GetMethodHandler: Handling GET request for URI: /favicon.ico
+[2025-10-16 17:46:11] [DEBUG]    GetMethodHandler: Resolved file path: ./www/favicon.ico
+[2025-10-16 17:46:11] [WARNING]  File not found: ./www/favicon.ico
+[2025-10-16 17:46:11] [DEBUG]    HttpResponse: Set body with 9 bytes
+[2025-10-16 17:46:11] [INFO]     Response: 404 Not Found for GET /favicon.ico
+[2025-10-16 17:46:11] [DEBUG]    Client: Handling event for client 5 in state 4
+[2025-10-16 17:46:11] [INFO]     Client 9 disconnected in state 0
+[2025-10-16 17:46:11] [INFO]     Client 9 disconnected in state 0
+[2025-10-16 17:46:11] [INFO]     Client 9 disconnected in state 0
+[2025-10-16 17:46:11] [INFO]     Client connected from :0
+[2025-10-16 17:46:11] [DEBUG]    ServerManager: Client 9 added to epoll
+[2025-10-16 17:46:11] [DEBUG]    [PerformanceMonitor.cpp:194] PerformanceMonitor: Connection recorded. Active: 3
+[2025-10-16 17:46:11] [INFO]     Client 9 disconnected in state 0
+[2025-10-16 17:46:20] [DEBUG]    Client: Handling event for client 5 in state 4
+[2025-10-16 17:46:20] [INFO]     Client closed connection during response
+[2025-10-16 17:46:20] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 17:46:20] [INFO]     Client 5 disconnected: Client closed connection
+[2025-10-16 17:46:20] [DEBUG]    [PerformanceMonitor.cpp:206] PerformanceMonitor: Disconnection recorded. Active: 2
+[2025-10-16 17:46:20] [DEBUG]    Client: Handling event for client 8 in state 0
+[2025-10-16 17:46:20] [DEBUG]    Client: Starting to read request from client 8
+[2025-10-16 17:46:20] [DEBUG]    Client: Reading request from client 8
+[2025-10-16 17:46:20] [DEBUG]    Client: Received 0 bytes from client 8
+[2025-10-16 17:46:20] [DEBUG]    Client: Temp buffer: 
+[2025-10-16 17:46:20] [INFO]     Client disconnected during read: 8
+[2025-10-16 17:46:20] [INFO]     Client 8 disconnected while reading request
+[2025-10-16 17:46:20] [INFO]     Client 8 disconnected: Client disconnected during read: 8
+[2025-10-16 17:46:20] [DEBUG]    [PerformanceMonitor.cpp:206] PerformanceMonitor: Disconnection recorded. Active: 1
+[2025-10-16 17:46:20] [DEBUG]    Client: Handling event for client 9 in state 0
+[2025-10-16 17:46:20] [DEBUG]    Client: Starting to read request from client 9
+[2025-10-16 17:46:20] [DEBUG]    Client: Reading request from client 9
+[2025-10-16 17:46:20] [DEBUG]    Client: Received 0 bytes from client 9
+[2025-10-16 17:46:20] [DEBUG]    Client: Temp buffer: 
+[2025-10-16 17:46:20] [INFO]     Client disconnected during read: 9
+[2025-10-16 17:46:20] [INFO]     Client 9 disconnected while reading request
+[2025-10-16 17:46:20] [INFO]     Client 9 disconnected: Client disconnected during read: 9
+[2025-10-16 17:46:20] [DEBUG]    [PerformanceMonitor.cpp:206] PerformanceMonitor: Disconnection recorded. Active: 0
+[2025-10-16 17:46:23] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 17:46:23] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 17:46:23] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 17:46:23] [INFO]     Client connected from :0
+[2025-10-16 17:46:23] [DEBUG]    ServerManager: Client 5 added to epoll
+[2025-10-16 17:46:23] [DEBUG]    [PerformanceMonitor.cpp:194] PerformanceMonitor: Connection recorded. Active: 1
+[2025-10-16 17:46:23] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 17:46:23] [DEBUG]    Client: Handling event for client 5 in state 0
+[2025-10-16 17:46:23] [DEBUG]    Client: Starting to read request from client 5
+[2025-10-16 17:46:23] [DEBUG]    Client: Reading request from client 5
+[2025-10-16 17:46:23] [DEBUG]    Client: Received 604 bytes from client 5
+[2025-10-16 17:46:23] [DEBUG]    Client: Temp buffer: GET /favicon.ico HTTP/1.1
+Host: localhost:8080
+Connection: keep-alive
+sec-ch-ua-platform: "Windows"
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0
+sec-ch-ua: "Microsoft Edge";v="141", "Not?A_Brand";v="8", "Chromium";v="141"
+sec-ch-ua-mobile: ?0
+Accept: image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: no-cors
+Sec-Fetch-Dest: image
+Referer: http://localhost:8080/
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9
+
+
+[2025-10-16 17:46:23] [DEBUG]    HttpRequest: Moved 604 bytes into _rawBuffer; now has 604
+[2025-10-16 17:46:23] [DEBUG]    HttpURI: Parsed request line: GET /favicon.ico HTTP/1.1
+[2025-10-16 17:46:23] [DEBUG]    HttpURI: Request line OK (GET /favicon.ico HTTP/1.1)
+[2025-10-16 17:46:23] [DEBUG]    HttpURI: Remaining readable in main buffer after URI parse = 577
+[2025-10-16 17:46:23] [DEBUG]    HttpRequest: Request line parsing complete
+[2025-10-16 17:46:23] [DEBUG]    HttpRequest: Header parseBuffer() returned = 1
+[2025-10-16 17:46:23] [DEBUG]    HttpRequest: Headers parsing complete
+[2025-10-16 17:46:23] [DEBUG]    HttpRequest: Body parsing complete
+[2025-10-16 17:46:23] [DEBUG]    HttpRequest::parseBuffer finished with state = 3
+[2025-10-16 17:46:23] [DEBUG]    HttpResponse: Set body with 381 bytes
+[2025-10-16 17:46:23] [INFO]     Routing GET request for /favicon.ico
+[2025-10-16 17:46:23] [DEBUG]    Matched location: /
+[2025-10-16 17:46:23] [INFO]     GetMethodHandler: Handling GET request for URI: /favicon.ico
+[2025-10-16 17:46:23] [DEBUG]    GetMethodHandler: Resolved file path: ./www/favicon.ico
+[2025-10-16 17:46:23] [WARNING]  File not found: ./www/favicon.ico
+[2025-10-16 17:46:23] [DEBUG]    HttpResponse: Set body with 9 bytes
+[2025-10-16 17:46:23] [INFO]     Response: 404 Not Found for GET /favicon.ico
+[2025-10-16 17:46:23] [DEBUG]    Client: Handling event for client 5 in state 4
+[2025-10-16 17:46:23] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 17:46:23] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 17:46:23] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 17:46:23] [INFO]     Client connected from :0
+[2025-10-16 17:46:23] [DEBUG]    ServerManager: Client 8 added to epoll
+[2025-10-16 17:46:23] [DEBUG]    [PerformanceMonitor.cpp:194] PerformanceMonitor: Connection recorded. Active: 2
+[2025-10-16 17:46:23] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 17:46:26] [DEBUG]    Client: Handling event for client 8 in state 0
+[2025-10-16 17:46:26] [DEBUG]    Client: Starting to read request from client 8
+[2025-10-16 17:46:26] [DEBUG]    Client: Reading request from client 8
+[2025-10-16 17:46:26] [DEBUG]    Client: Received 0 bytes from client 8
+[2025-10-16 17:46:26] [DEBUG]    Client: Temp buffer: 
+[2025-10-16 17:46:26] [INFO]     Client disconnected during read: 8
+[2025-10-16 17:46:26] [INFO]     Client 8 disconnected while reading request
+[2025-10-16 17:46:26] [INFO]     Client 8 disconnected: Client disconnected during read: 8
+[2025-10-16 17:46:26] [DEBUG]    [PerformanceMonitor.cpp:206] PerformanceMonitor: Disconnection recorded. Active: 1
+[2025-10-16 17:46:26] [DEBUG]    Client: Handling event for client 5 in state 4
+[2025-10-16 17:46:26] [INFO]     Client closed connection during response
+[2025-10-16 17:46:26] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 17:46:26] [INFO]     Client 5 disconnected: Client closed connection
+[2025-10-16 17:46:26] [DEBUG]    [PerformanceMonitor.cpp:206] PerformanceMonitor: Disconnection recorded. Active: 0
+[2025-10-16 18:31:41] [INFO]     Signal received: 15
+[2025-10-16 18:31:41] [ERROR]    [EpollManager.cpp:105] epoll_wait failed: Interrupted system call
+[2025-10-16 18:31:41] [ERROR]    [main.cpp:76] WebServ failed: epoll_wait failed: Interrupted system call
+[2025-10-16 18:31:41] [INFO]     [PerformanceMonitor.cpp:407] === PERFORMANCE SUMMARY ===
+[2025-10-16 18:31:41] [INFO]     [PerformanceMonitor.cpp:408] Performance Summary:
+  Requests/sec: 0.00
+  Bytes/sec: 0.00
+  Avg Response Time: 33.22 ms
+  Success Rate: 0.0%
+  Active Connections: 0
+  Memory Usage: 0 KB
+
+[2025-10-16 18:31:41] [INFO]     [PerformanceMonitor.cpp:409] === END PERFORMANCE SUMMARY ===
+[2025-10-16 18:31:41] [INFO]     === WebServ Session Ended ===
+[2025-10-16 18:31:41] [INFO]     Session ID: webserv_20251016_174540_79210

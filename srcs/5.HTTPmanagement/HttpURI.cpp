@@ -1,8 +1,7 @@
-#include "../../includes/HTTP/HttpURI.hpp"
-#include "../../includes/Global/Logger.hpp"
-#include "../../includes/Global/StrUtils.hpp"
-#include "../../includes/HTTP/HTTP.hpp"
-#include "../../includes/HTTP/HttpResponse.hpp"
+#include "../../includes/HttpURI.hpp"
+#include "../../includes/HttpResponse.hpp"
+#include "../../includes/Logger.hpp"
+#include "../../includes/StringUtils.hpp"
 #include <algorithm>
 #include <sstream>
 
@@ -10,207 +9,185 @@
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-HttpURI::HttpURI()
-{
-}
-
-HttpURI::HttpURI(const HttpURI &other)
-{
-	*this = other;
-}
-
 /*
 ** -------------------------------- DESTRUCTOR --------------------------------
 */
-
-HttpURI::~HttpURI()
-{
-}
 
 /*
 ** --------------------------------- OVERLOAD ---------------------------------
 */
 
-HttpURI &HttpURI::operator=(const HttpURI &other)
-{
-	if (this != &other)
-	{
-		_uriState = other._uriState;
-		_method = other._method;
-		_URI = other._URI;
-		_version = other._version;
-		_queryParameters = other._queryParameters;
-		_uriSize = other._uriSize;
-	}
-	return *this;
-}
 /*
 ** --------------------------------- METHODS ----------------------------------
 */
 
-void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
+int HttpURI::parseBuffer(RingBuffer &buffer, HttpResponse &response)
 {
-	std::vector<char>::iterator it = std::search(buffer.begin(), buffer.end(), HTTP::CRLF, HTTP::CRLF + 2);
-	if (it == buffer.end())
-	{
-		// If it can't be found check that the buffer has not currently exceeded the size limit of a header
-		if (buffer.size() > HTTP::MAX_URI_LINE_SIZE)
-		{
-			response.setStatus(413, "Request URI Too Large");
-			Logger::log(Logger::ERROR, "URI size limit exceeded");
-			_uriState = URI_PARSING_ERROR;
-		}
-		else
-			_uriState = URI_PARSING;
-		return;
-	}
+    if (_uriState == URI_PARSING_COMPLETE)
+        return URI_PARSING_COMPLETE;
 
-	// Extract request line up to the CLRF
-	std::string requestLine(buffer.begin(), it);
-	if (requestLine.size() + 2 > HTTP::MAX_URI_LINE_SIZE)
-	{
-		response.setStatus(413, "Request URI Too Large");
-		Logger::log(Logger::ERROR, "URI size limit exceeded");
-		_uriState = URI_PARSING_ERROR;
-		return;
-	}
-	_uriSize = requestLine.size() + 2;
-	// Clear buffer up to the CLRF
-	buffer.erase(buffer.begin(), it + 2);
+    if (_uriState == URI_PARSING_ERROR)
+        return URI_PARSING_ERROR;
 
-	// Parse request line
-	std::istringstream stream(requestLine);
+    // Peek instead of transfer — don't consume all data
+    std::string peeked;
+    buffer.peekBuffer(peeked, buffer.readable());
 
-	if (!(stream >> _method >> _URI >> _version))
-	{
-		Logger::log(Logger::ERROR, "Invalid request line: " + requestLine);
-		_uriState = URI_PARSING_ERROR;
-		response.setStatus(400, "Bad Request");
-		return;
-	}
+    // Find the end of the request line (CRLF or LF)
+    size_t lineEnd = peeked.find("\r\n");
+    size_t lineLen = std::string::npos;
 
-	// Validate URI
-	if (_URI.empty() || _URI[0] != '/')
-	{
-		Logger::log(Logger::ERROR, "Invalid URI: " + _URI);
-		_uriState = URI_PARSING_ERROR;
-		response.setStatus(400, "Bad Request");
-		return;
-	}
+    if (lineEnd != std::string::npos)
+        lineLen = lineEnd + 2;
+    else {
+        lineEnd = peeked.find('\n');
+        if (lineEnd == std::string::npos)
+            return URI_PARSING; // still incomplete
+        lineLen = lineEnd + 1;
+    }
 
-	// Validate version
-	if (_version != "HTTP/1.1")
-	{
-		Logger::log(Logger::ERROR, "Unsupported HTTP version: " + _version);
-		_uriState = URI_PARSING_ERROR;
-		response.setStatus(505, "HTTP Version Not Supported");
-		return;
-	}
+    // Read exactly the request line (consume only that much)
+    std::string requestLine;
+    buffer.readBuffer(requestLine, lineLen);
 
-	_uriState = URI_PARSING_COMPLETE;
-}
+    // Trim CRLF or LF manually
+    if (requestLine.size() >= 2 &&
+        requestLine[requestLine.size() - 2] == '\r' &&
+        requestLine[requestLine.size() - 1] == '\n')
+    {
+        requestLine.erase(requestLine.size() - 2);
+    }
+    else if (!requestLine.empty() &&
+             requestLine[requestLine.size() - 1] == '\n')
+    {
+        requestLine.erase(requestLine.size() - 1);
+    }
 
-void HttpURI::sanitizeURI(const Server *server, const Location *location)
-{
-	std::string path;
-	std::string queryParameters;
+    Logger::debug("HttpURI: Parsed request line: " + requestLine);
 
-	// 1. Seperate the URI into the path and the query parameters
-	size_t queryPos = _URI.find('?');
-	if (queryPos != std::string::npos)
-	{
-		path = _URI.substr(0, queryPos);
-		queryParameters = _URI.substr(queryPos + 1);
-	}
-	else
-	{
-		path = _URI;
-	}
+    std::istringstream stream(requestLine);
+    std::string method, uri, version;
+    if (!(stream >> method >> uri >> version))
+    {
+        Logger::log(Logger::ERROR, "Invalid request line: " + requestLine);
+        _uriState = URI_PARSING_ERROR;
+        response.setStatus(400, "Bad Request");
+        return URI_PARSING_ERROR;
+    }
 
-	// 2. Seperate query parameters into tokens
-	std::string token;
-	std::istringstream stream(queryParameters);
-	while (getline(stream, token, '&'))
-	{
-		// Seperate into key and value
-		size_t keyPos = token.find('=');
-		std::string key = token.substr(0, keyPos);
-		std::string value = token.substr(keyPos + 1);
+    // Validate method (C++98-style vector initialization)
+    std::vector<std::string> validMethods;
+    validMethods.push_back("GET");
+    validMethods.push_back("POST");
+    validMethods.push_back("DELETE");
 
-		// Decode key and value
-		key = StrUtils::percentDecode(key);
-		value = StrUtils::percentDecode(value);
+    bool methodValid = false;
+    for (std::vector<std::string>::const_iterator it = validMethods.begin();
+         it != validMethods.end(); ++it)
+    {
+        if (*it == method)
+        {
+            methodValid = true;
+            break;
+        }
+    }
 
-		// Add to query parameters
-		_queryParameters[key].push_back(value);
-	}
+    if (!methodValid)
+    {
+        Logger::log(Logger::ERROR, "Unsupported HTTP method: " + method);
+        _uriState = URI_PARSING_ERROR;
+        response.setStatus(501, "Not Implemented");
+        return URI_PARSING_ERROR;
+    }
 
-	// 3. Sanitize path
-	path = StrUtils::percentDecode(path);
+    // Validate URI
+    if (uri.empty() || uri[0] != '/')
+    {
+        Logger::log(Logger::ERROR, "Invalid URI: " + uri);
+        _uriState = URI_PARSING_ERROR;
+        response.setStatus(400, "Bad Request");
+        return URI_PARSING_ERROR;
+    }
 
-	// 4. Combine path and root path
-	std::string root;
-	if (location && !location->getRoot().empty())
-		root = location->getRoot();
-	else
-		root = server->getRootPath();
+    // Validate version
+    if (version != "HTTP/1.1" && version != "HTTP/1.0")
+    {
+        Logger::log(Logger::ERROR, "Unsupported HTTP version: " + version);
+        _uriState = URI_PARSING_ERROR;
+        response.setStatus(505, "HTTP Version Not Supported");
+        return URI_PARSING_ERROR;
+    }
 
-	std::string fullPath = root;
-	if (!root.empty() && root[root.size() - 1] != '/')
-		fullPath += "/";
-	fullPath += path;
+    // Store parsed values
+    _method = method;
+    _uri = uri;
+    _version = version;
 
-	char resolvedPath[PATH_MAX];
-	if (realpath(fullPath.c_str(), resolvedPath) == NULL)
-	{
-		_uriState = URI_PARSING_ERROR;
-		Logger::log(Logger::ERROR, "Cannot resolve path: " + fullPath);
-		return;
-	}
+    Logger::debug("HttpURI: Request line OK (" + method + " " + uri + " " + version + ")");
+    _uriState = URI_PARSING_COMPLETE;
 
-	if (std::string(resolvedPath).compare(0, root.size(), root) != 0)
-	{
-		_uriState = URI_PARSING_ERROR;
-		Logger::log(Logger::ERROR, "Resolved path escapes root: " + std::string(resolvedPath));
-		return;
-	}
+    Logger::debug("HttpURI: Remaining readable in main buffer after URI parse = " +
+                  StringUtils::toString(buffer.readable()));
 
-	_URI = resolvedPath;
-	return;
+    return URI_PARSING_COMPLETE;
 }
 
 /*
-** --------------------------------- ACCESSORS ----------------------------------
+** --------------------------------- ACCESSORS --------------------------------
 */
-
-const std::string &HttpURI::getURI() const
-{
-	return _URI;
-}
-
-const std::string &HttpURI::getVersion() const
-{
-	return _version;
-}
 
 HttpURI::URIState HttpURI::getURIState() const
 {
 	return _uriState;
 }
 
-size_t HttpURI::getURIsize() const
+RingBuffer &HttpURI::getRawURI()
 {
-	return _uriSize;
+	return _rawURI;
 }
 
-const std::string &HttpURI::getMethod() const
+std::string HttpURI::getMethod() const
 {
 	return _method;
 }
 
-const std::map<std::string, std::vector<std::string> > &HttpURI::getQueryParameters() const
+std::string HttpURI::getURI() const
 {
-	return _queryParameters;
+	return _uri;
+}
+
+std::string HttpURI::getVersion() const
+{
+	return _version;
+}
+
+/*
+** --------------------------------- MUTATORS --------------------------------
+*/
+
+void HttpURI::setURIState(URIState uriState)
+{
+	_uriState = uriState;
+}
+
+void HttpURI::setRawURI(RingBuffer &rawURI)
+{
+	_rawURI = rawURI;
+}
+
+void HttpURI::setMethod(const std::string &method)
+{
+	_method = method;
+}
+
+void HttpURI::setURI(const std::string &uri)
+{
+	_uri = uri;
+}
+
+void HttpURI::setVersion(const std::string &version)
+{
+	_version = version;
 }
 
 /*
@@ -220,8 +197,8 @@ const std::map<std::string, std::vector<std::string> > &HttpURI::getQueryParamet
 void HttpURI::reset()
 {
 	_uriState = URI_PARSING;
+	_rawURI.clear();
 	_method = "";
-	_URI = "";
+	_uri = "";
 	_version = "";
-	_queryParameters.clear();
 }

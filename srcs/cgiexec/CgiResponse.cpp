@@ -1,5 +1,5 @@
-#include "../../includes/CGI/CgiResponse.hpp"
-#include "../../includes/Global/StrUtils.hpp"
+#include "../../includes/CgiResponse.hpp"
+#include "../../includes/StringUtils.hpp"
 #include <algorithm>
 #include <cctype>
 #include <sstream>
@@ -127,7 +127,7 @@ void CgiResponse::populateHttpResponse(HttpResponse &httpResponse) const
 
 	for (std::map<std::string, std::string>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
 	{
-		httpResponse.setHeader(Header(it->first + ": " + it->second));
+		httpResponse.setHeader(it->first, it->second);
 	}
 
 	httpResponse.setBody(_body);
@@ -394,7 +394,7 @@ void CgiResponse::setDefaultHeaders()
 	// This ensures correct Content-Length even if CGI script provided an
 	// incorrect one or if no Content-Length was provided (EOF-based
 	// termination)
-		_headers["content-length"] = StrUtils::toString(_body.length());
+	_headers["content-length"] = StringUtils::toString(_body.length());
 
 	// Set Content-Type if not already set
 	if (!hasHeader("content-type"))

@@ -1,0 +1,70 @@
+#ifndef SERVERMAP_HPP
+#define SERVERMAP_HPP
+
+#include "ListeningSocket.hpp"
+#include "Logger.hpp"
+#include "Server.hpp"
+#include "ServerConfig.hpp"
+#include <algorithm>
+#include <cstdlib>
+#include <cstring>
+#include <errno.h>
+#include <fcntl.h>
+#include <iostream>
+#include <map>
+#include <netinet/in.h>
+#include <sstream>
+#include <string>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <vector>
+
+// The job of this class is to divide up the information taken from the config
+// into manageble maps for later server operations
+// 1. Divide up ServerConfigs into Server classes (This reduces navigation
+// complexity as well as makes it clearer which class is doing what)
+// 2. Spawn the map of servers where key is a pair pair of fd to host + port
+// pair simultaneously binding to the fd and listening port to get the fd
+// 3. Attempt to deep copy the Server classes to their repective value vectors
+// if a match is found its ignored Accessors returns a const reference to a
+// server object
+class ServerMap
+{
+private:
+	// Owned server configurations (Server objects reference these)
+	std::vector<ServerConfig> _serverConfigs;
+
+	// Server key struct
+	std::map<ListeningSocket, std::vector<Server> > _serverMap;
+
+	// Utility Methods
+	std::vector<Server> _spawnServers(std::vector<ServerConfig> &serverConfigs);
+	void _populateServerMap(std::vector<Server> &servers);
+	void _convertAndAddLocationsToServer(Server &server, const ServerConfig &serverConfig);
+
+public:
+	ServerMap();
+	ServerMap(const std::vector<ServerConfig> &serverConfigs);
+	ServerMap(const ServerMap &src);
+	ServerMap &operator=(ServerMap const &rhs);
+	~ServerMap();
+
+	// Getters
+	const std::map<ListeningSocket, std::vector<Server> > &getServerMap() const;
+
+	// Server vectors
+	std::vector<Server> &getServers(const ListeningSocket &key);
+
+	// Individual servers
+	const Server &getServer(const ListeningSocket &key, const std::string &serverName);
+
+	// Listening sockets
+	const ListeningSocket &getListeningSocket(int &fd) const;
+
+	// Utility Methods
+	bool hasFd(int &fd) const;
+	void printServerMap() const;
+};
+
+#endif /* *************************************************** SERVERMANAGER_H                                          \
+		*/

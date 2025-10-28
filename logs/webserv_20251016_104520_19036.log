@@ -1,0 +1,258 @@
+[2025-10-16 10:45:20] [INFO]     === WebServ Session Started ===
+[2025-10-16 10:45:20] [INFO]     Session ID: webserv_20251016_104520_19036
+[2025-10-16 10:45:20] [INFO]     Log Directory: logs
+[2025-10-16 10:45:20] [INFO]     Process ID: 19036
+[2025-10-16 10:45:20] [INFO]     [PerformanceMonitor.cpp:21] PerformanceMonitor: Performance monitoring initialized
+[2025-10-16 10:45:20] [INFO]     [PerformanceMonitor.cpp:503] PerformanceMonitor: Thresholds set - Max Request Time: 1000 ms, Max CGI Time: 5000 ms, Max Memory: 102400 KB
+[2025-10-16 10:45:20] [INFO]     [main.cpp:28] PerformanceMonitor: Performance monitoring initialized
+[2025-10-16 10:45:20] [INFO]     Starting WebServ with config file: test.conf
+[2025-10-16 10:45:20] [DEBUG]    ConfigParser: Starting to parse configuration file: test.conf
+[2025-10-16 10:45:20] [DEBUG]    ConfigParser: Configuration file loaded successfully
+[2025-10-16 10:45:20] [DEBUG]    ConfigParser: Found http block
+[2025-10-16 10:45:20] [DEBUG]    ConfigParser: Found server block
+[2025-10-16 10:45:20] [DEBUG]    ConfigParser: Starting to parse server block at line 2
+[2025-10-16 10:45:20] [DEBUG]    ServerConfig: Processing listen directive: listen 8080;
+[2025-10-16 10:45:20] [DEBUG]    ConfigParser: Successfully parsed server block with 1 listen directives
+[2025-10-16 10:45:20] [DEBUG]    ConfigParser: Found server block
+[2025-10-16 10:45:20] [DEBUG]    ConfigParser: Starting to parse server block at line 16
+[2025-10-16 10:45:20] [DEBUG]    ServerConfig: Processing listen directive: listen 8081;
+[2025-10-16 10:45:20] [DEBUG]    ConfigParser: Successfully parsed server block with 1 listen directives
+[2025-10-16 10:45:20] [DEBUG]    ConfigParser: Successfully parsed 2 server configurations
+[2025-10-16 10:45:20] [INFO]     Parsed 2 server configurations
+[2025-10-16 10:45:20] [INFO]     EpollManager: Epoll instance created successfully with fd 4
+[2025-10-16 10:45:20] [INFO]     EpollManager: Epoll instance created successfully with fd 5
+[2025-10-16 10:45:20] [INFO]     Starting server manager...
+[2025-10-16 10:45:20] [INFO]     Starting ServerManager with 2 server configurations
+[2025-10-16 10:45:20] [INFO]     ServerMap: Creating ServerMap from 2 server configurations
+[2025-10-16 10:45:20] [DEBUG]    ServerMap: ServerMap created successfully
+[2025-10-16 10:45:20] [DEBUG]    ServerMap: Listening socket: fd: FileDescriptor: 4 isOpen: 1, host: 0.0.0.0, port: 8080 memory address: 0x602283dbb590
+Servers:
+ localhost
+ServerMap: Listening socket: fd: FileDescriptor: 6 isOpen: 1, host: 0.0.0.0, port: 8081 memory address: 0x602283dbb750
+Servers:
+ localhost
+
+[2025-10-16 10:45:20] [INFO]     EpollManager: Epoll instance created successfully with fd 7
+[2025-10-16 10:45:20] [INFO]     ServerManager: Added 2 server file descriptors to epoll
+[2025-10-16 10:45:20] [INFO]     ServerManager initialized successfully, entering main event loop
+[2025-10-16 10:45:23] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 10:45:23] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 10:45:23] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 10:45:23] [INFO]     Client connected from :0
+[2025-10-16 10:45:23] [DEBUG]    ServerManager: Client 5 added to epoll
+[2025-10-16 10:45:23] [DEBUG]    [PerformanceMonitor.cpp:194] PerformanceMonitor: Connection recorded. Active: 1
+[2025-10-16 10:45:23] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 10:45:23] [DEBUG]    Client: Handling event for client 5 in state 0
+[2025-10-16 10:45:23] [DEBUG]    Client: Starting to read request from client 5
+[2025-10-16 10:45:23] [DEBUG]    Client: Reading request from client 5
+[2025-10-16 10:45:23] [DEBUG]    Client: Received 678 bytes from client 5
+[2025-10-16 10:45:23] [DEBUG]    Client: Temp buffer: GET / HTTP/1.1
+Host: localhost:8080
+Connection: keep-alive
+sec-ch-ua: "Microsoft Edge";v="141", "Not?A_Brand";v="8", "Chromium";v="141"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "Windows"
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Sec-Fetch-Site: none
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9
+
+
+[2025-10-16 10:45:23] [DEBUG]    HttpRequest: Moved 678 bytes into _rawBuffer; now has 678
+[2025-10-16 10:45:23] [DEBUG]    HttpURI: Parsed request line: GET / HTTP/1.1
+[2025-10-16 10:45:23] [DEBUG]    HttpURI: Request line OK (GET / HTTP/1.1)
+[2025-10-16 10:45:23] [DEBUG]    HttpURI: Remaining readable in main buffer after URI parse = 662
+[2025-10-16 10:45:23] [DEBUG]    HttpRequest: Request line parsing complete
+[2025-10-16 10:45:23] [DEBUG]    HttpRequest: Header parseBuffer() returned = 1
+[2025-10-16 10:45:23] [DEBUG]    HttpRequest: Headers parsing complete
+[2025-10-16 10:45:23] [DEBUG]    HttpRequest: Body parsing complete
+[2025-10-16 10:45:23] [DEBUG]    HttpRequest::parseBuffer finished with state = 3
+[2025-10-16 10:45:23] [ERROR]    No server configuration provided to router
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 100 with message Continue and body false
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 101 with message Switching Protocols and body false
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 102 with message Processing and body false
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 103 with message Early Hints and body false
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 200 with message OK and body false
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 201 with message Created and body false
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 202 with message Accepted and body false
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 203 with message Non-Authoritative Information and body false
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 204 with message No Content and body false
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 205 with message Reset Content and body false
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 206 with message Partial Content and body false
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 300 with message Multiple Choices and body false
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 301 with message Moved Permanently and body false
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 302 with message Found and body false
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 303 with message See Other and body false
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 304 with message Not Modified and body false
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 305 with message Use Proxy and body false
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 307 with message Temporary Redirect and body false
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 308 with message Permanent Redirect and body false
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 400 with message Bad Request and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 401 with message Unauthorized and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 402 with message Payment Required and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 403 with message Forbidden and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 404 with message Not Found and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 405 with message Method Not Allowed and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 406 with message Not Acceptable and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 407 with message Proxy Authentication Required and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 408 with message Request Timeout and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 409 with message Conflict and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 410 with message Gone and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 411 with message Length Required and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 412 with message Precondition Failed and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 413 with message Payload Too Large and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 414 with message URI Too Long and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 415 with message Unsupported Media Type and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 416 with message Range Not Satisfiable and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 417 with message Expectation Failed and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 418 with message I'm a teapot and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 421 with message Misdirected Request and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 500 with message Internal Server Error and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 501 with message Not Implemented and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 502 with message Bad Gateway and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 503 with message Service Unavailable and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 504 with message Gateway Timeout and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 505 with message HTTP Version Not Supported and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Generated status info for 506 with message Variant Also Negotiates and body true
+[2025-10-16 10:45:23] [DEBUG]    StatusMap: Initialized default status map
+[2025-10-16 10:45:23] [DEBUG]    HttpResponse: Set body with 415 bytes
+[2025-10-16 10:45:23] [INFO]     Response: 500 Internal Server Error<!DOCTYPE html>
+<html>
+<head>
+<title>500 Internal Server Error</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Internal Server Error</h1>
+<p>The server encountered an internal error and was unable to complete your request.</p><hr>
+<center>42_Webserv/1.0</center>
+</body>
+</html>
+ for GET /
+[2025-10-16 10:45:23] [DEBUG]    Client: Handling event for client 5 in state 4
+[2025-10-16 10:45:23] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 10:45:23] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 10:45:23] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 10:45:23] [INFO]     Client connected from :0
+[2025-10-16 10:45:23] [DEBUG]    ServerManager: Client 8 added to epoll
+[2025-10-16 10:45:23] [DEBUG]    [PerformanceMonitor.cpp:194] PerformanceMonitor: Connection recorded. Active: 2
+[2025-10-16 10:45:23] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 10:45:23] [INFO]     Client 9 disconnected in state 0
+[2025-10-16 10:45:23] [INFO]     Client 9 disconnected in state 0
+[2025-10-16 10:45:23] [INFO]     Client 9 disconnected in state 0
+[2025-10-16 10:45:23] [INFO]     Client connected from :0
+[2025-10-16 10:45:23] [DEBUG]    ServerManager: Client 9 added to epoll
+[2025-10-16 10:45:23] [DEBUG]    [PerformanceMonitor.cpp:194] PerformanceMonitor: Connection recorded. Active: 3
+[2025-10-16 10:45:23] [INFO]     Client 9 disconnected in state 0
+[2025-10-16 10:45:54] [INFO]     Client 5 timed out, disconnecting
+[2025-10-16 10:45:54] [INFO]     Client 5 disconnected while sending response
+[2025-10-16 10:45:54] [DEBUG]    [PerformanceMonitor.cpp:206] PerformanceMonitor: Disconnection recorded. Active: 2
+[2025-10-16 10:45:54] [INFO]     Client 8 timed out, disconnecting
+[2025-10-16 10:45:54] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 10:45:54] [DEBUG]    [PerformanceMonitor.cpp:206] PerformanceMonitor: Disconnection recorded. Active: 1
+[2025-10-16 10:45:54] [INFO]     Client 9 timed out, disconnecting
+[2025-10-16 10:45:54] [INFO]     Client 9 disconnected in state 0
+[2025-10-16 10:45:54] [DEBUG]    [PerformanceMonitor.cpp:206] PerformanceMonitor: Disconnection recorded. Active: 0
+[2025-10-16 10:45:54] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 10:45:54] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 10:45:54] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 10:45:54] [INFO]     Client connected from :0
+[2025-10-16 10:45:54] [DEBUG]    ServerManager: Client 5 added to epoll
+[2025-10-16 10:45:54] [DEBUG]    [PerformanceMonitor.cpp:194] PerformanceMonitor: Connection recorded. Active: 1
+[2025-10-16 10:45:54] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 10:45:54] [DEBUG]    Client: Handling event for client 5 in state 0
+[2025-10-16 10:45:54] [DEBUG]    Client: Starting to read request from client 5
+[2025-10-16 10:45:54] [DEBUG]    Client: Reading request from client 5
+[2025-10-16 10:45:54] [DEBUG]    Client: Received 604 bytes from client 5
+[2025-10-16 10:45:54] [DEBUG]    Client: Temp buffer: GET /favicon.ico HTTP/1.1
+Host: localhost:8080
+Connection: keep-alive
+sec-ch-ua-platform: "Windows"
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0
+sec-ch-ua: "Microsoft Edge";v="141", "Not?A_Brand";v="8", "Chromium";v="141"
+sec-ch-ua-mobile: ?0
+Accept: image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: no-cors
+Sec-Fetch-Dest: image
+Referer: http://localhost:8080/
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9
+
+
+[2025-10-16 10:45:54] [DEBUG]    HttpRequest: Moved 604 bytes into _rawBuffer; now has 604
+[2025-10-16 10:45:54] [DEBUG]    HttpURI: Parsed request line: GET /favicon.ico HTTP/1.1
+[2025-10-16 10:45:54] [DEBUG]    HttpURI: Request line OK (GET /favicon.ico HTTP/1.1)
+[2025-10-16 10:45:54] [DEBUG]    HttpURI: Remaining readable in main buffer after URI parse = 577
+[2025-10-16 10:45:54] [DEBUG]    HttpRequest: Request line parsing complete
+[2025-10-16 10:45:54] [DEBUG]    HttpRequest: Header parseBuffer() returned = 1
+[2025-10-16 10:45:54] [DEBUG]    HttpRequest: Headers parsing complete
+[2025-10-16 10:45:54] [DEBUG]    HttpRequest: Body parsing complete
+[2025-10-16 10:45:54] [DEBUG]    HttpRequest::parseBuffer finished with state = 3
+[2025-10-16 10:45:54] [ERROR]    No server configuration provided to router
+[2025-10-16 10:45:54] [DEBUG]    HttpResponse: Set body with 415 bytes
+[2025-10-16 10:45:54] [INFO]     Response: 500 Internal Server Error<!DOCTYPE html>
+<html>
+<head>
+<title>500 Internal Server Error</title>
+<style>
+    body {
+        width: 35em;
+        margin: 0 auto;
+        font-family: Tahoma, Verdana, Arial, sans-serif;
+    }
+</style>
+</head>
+<body>
+<h1>Internal Server Error</h1>
+<p>The server encountered an internal error and was unable to complete your request.</p><hr>
+<center>42_Webserv/1.0</center>
+</body>
+</html>
+ for GET /favicon.ico
+[2025-10-16 10:45:54] [DEBUG]    Client: Handling event for client 5 in state 4
+[2025-10-16 10:45:55] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 10:45:55] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 10:45:55] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 10:45:55] [INFO]     Client connected from :0
+[2025-10-16 10:45:55] [DEBUG]    ServerManager: Client 8 added to epoll
+[2025-10-16 10:45:55] [DEBUG]    [PerformanceMonitor.cpp:194] PerformanceMonitor: Connection recorded. Active: 2
+[2025-10-16 10:45:55] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 10:46:05] [DEBUG]    Client: Handling event for client 8 in state 0
+[2025-10-16 10:46:05] [DEBUG]    Client: Starting to read request from client 8
+[2025-10-16 10:46:05] [DEBUG]    Client: Reading request from client 8
+[2025-10-16 10:46:05] [DEBUG]    Client: Received 0 bytes from client 8
+[2025-10-16 10:46:05] [DEBUG]    Client: Temp buffer: 
+[2025-10-16 10:46:05] [INFO]     Client disconnected during read: 8
+[2025-10-16 10:46:05] [INFO]     Client 8 disconnected while reading request
+[2025-10-16 10:46:05] [INFO]     Client 8 disconnected: Client disconnected during read: 8
+[2025-10-16 10:46:05] [DEBUG]    [PerformanceMonitor.cpp:206] PerformanceMonitor: Disconnection recorded. Active: 1
+[2025-10-16 10:46:25] [INFO]     Client 5 timed out, disconnecting
+[2025-10-16 10:46:25] [INFO]     Client 5 disconnected while sending response
+[2025-10-16 10:46:25] [DEBUG]    [PerformanceMonitor.cpp:206] PerformanceMonitor: Disconnection recorded. Active: 0
+[2025-10-16 10:52:20] [INFO]     Signal received: 15
+[2025-10-16 10:52:20] [ERROR]    [EpollManager.cpp:105] epoll_wait failed: Interrupted system call
+[2025-10-16 10:52:20] [ERROR]    [main.cpp:76] WebServ failed: epoll_wait failed: Interrupted system call
+[2025-10-16 10:52:20] [INFO]     [PerformanceMonitor.cpp:407] === PERFORMANCE SUMMARY ===
+[2025-10-16 10:52:20] [INFO]     [PerformanceMonitor.cpp:408] Performance Summary:
+  Requests/sec: 0.00
+  Bytes/sec: 0.00
+  Avg Response Time: 0.96 ms
+  Success Rate: 0.0%
+  Active Connections: 0
+  Memory Usage: 0 KB
+
+[2025-10-16 10:52:20] [INFO]     [PerformanceMonitor.cpp:409] === END PERFORMANCE SUMMARY ===
+[2025-10-16 10:52:20] [INFO]     === WebServ Session Ended ===
+[2025-10-16 10:52:20] [INFO]     Session ID: webserv_20251016_104520_19036

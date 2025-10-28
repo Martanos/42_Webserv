@@ -1,0 +1,197 @@
+[2025-10-16 10:05:35] [INFO]     === WebServ Session Started ===
+[2025-10-16 10:05:35] [INFO]     Session ID: webserv_20251016_100535_4507
+[2025-10-16 10:05:35] [INFO]     Log Directory: logs
+[2025-10-16 10:05:35] [INFO]     Process ID: 4507
+[2025-10-16 10:05:35] [INFO]     [PerformanceMonitor.cpp:21] PerformanceMonitor: Performance monitoring initialized
+[2025-10-16 10:05:35] [INFO]     [PerformanceMonitor.cpp:503] PerformanceMonitor: Thresholds set - Max Request Time: 1000 ms, Max CGI Time: 5000 ms, Max Memory: 102400 KB
+[2025-10-16 10:05:35] [INFO]     [main.cpp:28] PerformanceMonitor: Performance monitoring initialized
+[2025-10-16 10:05:35] [INFO]     Starting WebServ with config file: test.conf
+[2025-10-16 10:05:35] [DEBUG]    ConfigParser: Starting to parse configuration file: test.conf
+[2025-10-16 10:05:35] [DEBUG]    ConfigParser: Configuration file loaded successfully
+[2025-10-16 10:05:35] [DEBUG]    ConfigParser: Found http block
+[2025-10-16 10:05:35] [DEBUG]    ConfigParser: Found server block
+[2025-10-16 10:05:35] [DEBUG]    ConfigParser: Starting to parse server block at line 2
+[2025-10-16 10:05:35] [DEBUG]    ServerConfig: Processing listen directive: listen 8080;
+[2025-10-16 10:05:35] [DEBUG]    ConfigParser: Successfully parsed server block with 1 listen directives
+[2025-10-16 10:05:35] [DEBUG]    ConfigParser: Found server block
+[2025-10-16 10:05:35] [DEBUG]    ConfigParser: Starting to parse server block at line 16
+[2025-10-16 10:05:35] [DEBUG]    ServerConfig: Processing listen directive: listen 8081;
+[2025-10-16 10:05:35] [DEBUG]    ConfigParser: Successfully parsed server block with 1 listen directives
+[2025-10-16 10:05:35] [DEBUG]    ConfigParser: Successfully parsed 2 server configurations
+[2025-10-16 10:05:35] [INFO]     Parsed 2 server configurations
+[2025-10-16 10:05:35] [INFO]     EpollManager: Epoll instance created successfully with fd 4
+[2025-10-16 10:05:35] [INFO]     EpollManager: Epoll instance created successfully with fd 5
+[2025-10-16 10:05:35] [INFO]     Starting server manager...
+[2025-10-16 10:05:35] [INFO]     Starting ServerManager with 2 server configurations
+[2025-10-16 10:05:35] [INFO]     ServerMap: Creating ServerMap from 2 server configurations
+[2025-10-16 10:05:35] [DEBUG]    ServerMap: ServerMap created successfully
+[2025-10-16 10:05:35] [DEBUG]    ServerMap: Listening socket: fd: FileDescriptor: 4 isOpen: 1, host: 0.0.0.0, port: 8080 memory address: 0x5f4ab7211720
+Servers:
+ localhost
+ServerMap: Listening socket: fd: FileDescriptor: 6 isOpen: 1, host: 0.0.0.0, port: 8081 memory address: 0x5f4ab72118e0
+Servers:
+ localhost
+
+[2025-10-16 10:05:35] [INFO]     EpollManager: Epoll instance created successfully with fd 7
+[2025-10-16 10:05:35] [INFO]     ServerManager: Added 2 server file descriptors to epoll
+[2025-10-16 10:05:35] [INFO]     ServerManager initialized successfully, entering main event loop
+[2025-10-16 10:05:38] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 10:05:38] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 10:05:38] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 10:05:38] [INFO]     Client connected from :0
+[2025-10-16 10:05:38] [DEBUG]    ServerManager: Client 5 added to epoll
+[2025-10-16 10:05:38] [DEBUG]    [PerformanceMonitor.cpp:194] PerformanceMonitor: Connection recorded. Active: 1
+[2025-10-16 10:05:38] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 10:05:38] [DEBUG]    Client: Handling event for client 5 in state 0
+[2025-10-16 10:05:38] [DEBUG]    Client: Starting to read request from client 5
+[2025-10-16 10:05:38] [DEBUG]    Client: Reading request from client 5
+[2025-10-16 10:05:38] [DEBUG]    Client: Received 678 bytes from client 5
+[2025-10-16 10:05:38] [DEBUG]    Client: Temp buffer: GET / HTTP/1.1
+Host: localhost:8080
+Connection: keep-alive
+sec-ch-ua: "Microsoft Edge";v="141", "Not?A_Brand";v="8", "Chromium";v="141"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "Windows"
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Sec-Fetch-Site: none
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9
+
+
+[2025-10-16 10:05:38] [DEBUG]    HttpRequest: Moved 678 bytes into _rawBuffer; now has 678
+[2025-10-16 10:05:38] [DEBUG]    HttpURI: Parsed request line: GET / HTTP/1.1
+[2025-10-16 10:05:38] [DEBUG]    HttpRequest: Request line parsing complete
+[2025-10-16 10:05:38] [DEBUG]    HttpRequest: Header parseBuffer() returned = 0
+[2025-10-16 10:05:38] [DEBUG]    HttpRequest: Still parsing headers... waiting for more data
+[2025-10-16 10:05:38] [DEBUG]    HttpRequest::parseBuffer finished with state = 1
+[2025-10-16 10:05:39] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 10:05:39] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 10:05:39] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 10:05:39] [INFO]     Client connected from :0
+[2025-10-16 10:05:39] [DEBUG]    ServerManager: Client 8 added to epoll
+[2025-10-16 10:05:39] [DEBUG]    [PerformanceMonitor.cpp:194] PerformanceMonitor: Connection recorded. Active: 2
+[2025-10-16 10:05:39] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 10:05:39] [INFO]     Client 9 disconnected in state 0
+[2025-10-16 10:05:39] [INFO]     Client 9 disconnected in state 0
+[2025-10-16 10:05:39] [INFO]     Client 9 disconnected in state 0
+[2025-10-16 10:05:39] [INFO]     Client connected from :0
+[2025-10-16 10:05:39] [DEBUG]    ServerManager: Client 9 added to epoll
+[2025-10-16 10:05:39] [DEBUG]    [PerformanceMonitor.cpp:194] PerformanceMonitor: Connection recorded. Active: 3
+[2025-10-16 10:05:39] [INFO]     Client 9 disconnected in state 0
+[2025-10-16 10:05:44] [DEBUG]    Client: Handling event for client 8 in state 0
+[2025-10-16 10:05:44] [DEBUG]    Client: Starting to read request from client 8
+[2025-10-16 10:05:44] [DEBUG]    Client: Reading request from client 8
+[2025-10-16 10:05:44] [DEBUG]    Client: Received 0 bytes from client 8
+[2025-10-16 10:05:44] [DEBUG]    Client: Temp buffer: 
+[2025-10-16 10:05:44] [INFO]     Client disconnected during read: 8
+[2025-10-16 10:05:44] [INFO]     Client 8 disconnected while reading request
+[2025-10-16 10:05:44] [INFO]     Client 8 disconnected: Client disconnected during read: 8
+[2025-10-16 10:05:44] [DEBUG]    [PerformanceMonitor.cpp:206] PerformanceMonitor: Disconnection recorded. Active: 2
+[2025-10-16 10:05:44] [DEBUG]    Client: Handling event for client 9 in state 0
+[2025-10-16 10:05:44] [DEBUG]    Client: Starting to read request from client 9
+[2025-10-16 10:05:44] [DEBUG]    Client: Reading request from client 9
+[2025-10-16 10:05:44] [DEBUG]    Client: Received 0 bytes from client 9
+[2025-10-16 10:05:44] [DEBUG]    Client: Temp buffer: 
+[2025-10-16 10:05:44] [INFO]     Client disconnected during read: 9
+[2025-10-16 10:05:44] [INFO]     Client 9 disconnected while reading request
+[2025-10-16 10:05:44] [INFO]     Client 9 disconnected: Client disconnected during read: 9
+[2025-10-16 10:05:44] [DEBUG]    [PerformanceMonitor.cpp:206] PerformanceMonitor: Disconnection recorded. Active: 1
+[2025-10-16 10:06:09] [INFO]     Client 5 timed out, disconnecting
+[2025-10-16 10:06:09] [INFO]     Client 5 disconnected while reading request
+[2025-10-16 10:06:09] [DEBUG]    [PerformanceMonitor.cpp:206] PerformanceMonitor: Disconnection recorded. Active: 0
+[2025-10-16 10:06:10] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 10:06:10] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 10:06:10] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 10:06:10] [INFO]     Client connected from :0
+[2025-10-16 10:06:10] [DEBUG]    ServerManager: Client 5 added to epoll
+[2025-10-16 10:06:10] [DEBUG]    [PerformanceMonitor.cpp:194] PerformanceMonitor: Connection recorded. Active: 1
+[2025-10-16 10:06:10] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 10:06:10] [DEBUG]    Client: Handling event for client 5 in state 0
+[2025-10-16 10:06:10] [DEBUG]    Client: Starting to read request from client 5
+[2025-10-16 10:06:10] [DEBUG]    Client: Reading request from client 5
+[2025-10-16 10:06:10] [DEBUG]    Client: Received 704 bytes from client 5
+[2025-10-16 10:06:10] [DEBUG]    Client: Temp buffer: GET / HTTP/1.1
+Host: localhost:8080
+Connection: keep-alive
+Cache-Control: max-age=0
+sec-ch-ua: "Microsoft Edge";v="141", "Not?A_Brand";v="8", "Chromium";v="141"
+sec-ch-ua-mobile: ?0
+sec-ch-ua-platform: "Windows"
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+Sec-Fetch-Site: none
+Sec-Fetch-Mode: navigate
+Sec-Fetch-User: ?1
+Sec-Fetch-Dest: document
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9
+
+
+[2025-10-16 10:06:10] [DEBUG]    HttpRequest: Moved 704 bytes into _rawBuffer; now has 704
+[2025-10-16 10:06:10] [DEBUG]    HttpURI: Parsed request line: GET / HTTP/1.1
+[2025-10-16 10:06:10] [DEBUG]    HttpRequest: Request line parsing complete
+[2025-10-16 10:06:10] [DEBUG]    HttpRequest: Header parseBuffer() returned = 0
+[2025-10-16 10:06:10] [DEBUG]    HttpRequest: Still parsing headers... waiting for more data
+[2025-10-16 10:06:10] [DEBUG]    HttpRequest::parseBuffer finished with state = 1
+[2025-10-16 10:06:10] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 10:06:10] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 10:06:10] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 10:06:10] [INFO]     Client connected from :0
+[2025-10-16 10:06:10] [DEBUG]    ServerManager: Client 8 added to epoll
+[2025-10-16 10:06:10] [DEBUG]    [PerformanceMonitor.cpp:194] PerformanceMonitor: Connection recorded. Active: 2
+[2025-10-16 10:06:10] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 10:06:11] [INFO]     Client 9 disconnected in state 0
+[2025-10-16 10:06:11] [INFO]     Client 9 disconnected in state 0
+[2025-10-16 10:06:11] [INFO]     Client 9 disconnected in state 0
+[2025-10-16 10:06:11] [INFO]     Client connected from :0
+[2025-10-16 10:06:11] [DEBUG]    ServerManager: Client 9 added to epoll
+[2025-10-16 10:06:11] [DEBUG]    [PerformanceMonitor.cpp:194] PerformanceMonitor: Connection recorded. Active: 3
+[2025-10-16 10:06:11] [INFO]     Client 9 disconnected in state 0
+[2025-10-16 10:06:13] [DEBUG]    Client: Handling event for client 5 in state 1
+[2025-10-16 10:06:13] [WARNING]  Read buffer is not empty: 704
+[2025-10-16 10:06:13] [DEBUG]    Client: Reading request from client 5
+[2025-10-16 10:06:13] [DEBUG]    Client: Received 0 bytes from client 5
+[2025-10-16 10:06:13] [DEBUG]    Client: Temp buffer: 
+[2025-10-16 10:06:13] [INFO]     Client disconnected during read: 5
+[2025-10-16 10:06:13] [INFO]     Client 5 disconnected while reading request
+[2025-10-16 10:06:13] [INFO]     Client 5 disconnected: Client disconnected during read: 5
+[2025-10-16 10:06:13] [DEBUG]    [PerformanceMonitor.cpp:206] PerformanceMonitor: Disconnection recorded. Active: 2
+[2025-10-16 10:06:13] [DEBUG]    Client: Handling event for client 8 in state 0
+[2025-10-16 10:06:13] [DEBUG]    Client: Starting to read request from client 8
+[2025-10-16 10:06:13] [DEBUG]    Client: Reading request from client 8
+[2025-10-16 10:06:13] [DEBUG]    Client: Received 0 bytes from client 8
+[2025-10-16 10:06:13] [DEBUG]    Client: Temp buffer: 
+[2025-10-16 10:06:13] [INFO]     Client disconnected during read: 8
+[2025-10-16 10:06:13] [INFO]     Client 8 disconnected while reading request
+[2025-10-16 10:06:13] [INFO]     Client 8 disconnected: Client disconnected during read: 8
+[2025-10-16 10:06:13] [DEBUG]    [PerformanceMonitor.cpp:206] PerformanceMonitor: Disconnection recorded. Active: 1
+[2025-10-16 10:06:13] [DEBUG]    Client: Handling event for client 9 in state 0
+[2025-10-16 10:06:13] [DEBUG]    Client: Starting to read request from client 9
+[2025-10-16 10:06:13] [DEBUG]    Client: Reading request from client 9
+[2025-10-16 10:06:13] [DEBUG]    Client: Received 0 bytes from client 9
+[2025-10-16 10:06:13] [DEBUG]    Client: Temp buffer: 
+[2025-10-16 10:06:13] [INFO]     Client disconnected during read: 9
+[2025-10-16 10:06:13] [INFO]     Client 9 disconnected while reading request
+[2025-10-16 10:06:13] [INFO]     Client 9 disconnected: Client disconnected during read: 9
+[2025-10-16 10:06:13] [DEBUG]    [PerformanceMonitor.cpp:206] PerformanceMonitor: Disconnection recorded. Active: 0
+[2025-10-16 10:06:29] [INFO]     Signal received: 15
+[2025-10-16 10:06:29] [ERROR]    [EpollManager.cpp:105] epoll_wait failed: Interrupted system call
+[2025-10-16 10:06:29] [ERROR]    [main.cpp:76] WebServ failed: epoll_wait failed: Interrupted system call
+[2025-10-16 10:06:29] [INFO]     [PerformanceMonitor.cpp:407] === PERFORMANCE SUMMARY ===
+[2025-10-16 10:06:29] [INFO]     [PerformanceMonitor.cpp:408] Performance Summary:
+  Requests/sec: 0.00
+  Bytes/sec: 0.00
+  Avg Response Time: 0.50 ms
+  Success Rate: 0.0%
+  Active Connections: 0
+  Memory Usage: 0 KB
+
+[2025-10-16 10:06:29] [INFO]     [PerformanceMonitor.cpp:409] === END PERFORMANCE SUMMARY ===
+[2025-10-16 10:06:29] [INFO]     === WebServ Session Ended ===
+[2025-10-16 10:06:29] [INFO]     Session ID: webserv_20251016_100535_4507

@@ -1,10 +1,6 @@
-#include "../../includes/Core/Client.hpp"
-#include "../../includes/Core/GetHandler.hpp"
-#include "../../includes/Core/MethodHandlerFactory.hpp"
-#include "../../includes/Global/Logger.hpp"
-#include "../../includes/Global/StrUtils.hpp"
-#include "../../includes/HTTP/HttpRequest.hpp"
-#include "../../includes/HTTP/HttpResponse.hpp"
+#include "../../includes/Client.hpp"
+#include "../../includes/Logger.hpp"
+#include "../../includes/PerformanceMonitor.hpp"
 #include <cstdio>
 #include <sstream>
 #include <sys/epoll.h>
@@ -21,49 +17,26 @@
 */
 
 Client::Client()
+	: _clientFd(), _socketFd(-1), _localAddr(), _remoteAddr(), _totalBytesRead(0), _request(), _response(),
+	  _readBuffer(), _potentialServers(NULL), _serverFound(false), _server(NULL),
+	  _currentState(CLIENT_WAITING_FOR_REQUEST), _lastActivity(time(NULL)), _keepAlive(true)
 {
-	_clientFd = FileDescriptor();
-	_localAddr = SocketAddress();
-	_remoteAddr = SocketAddress();
-	_request = HttpRequest();
-	_response = HttpResponse();
-	_responseBuffer = std::deque<HttpResponse>();
-	long pageSize = sysconf(_SC_PAGESIZE);
-	if (pageSize == -1)
-	{
-		// handle error: fallback, throw, or use a default
-		perror("sysconf");
-		pageSize = 4096; // safe default on most systems
-	}
-	_receiveBuffer = std::vector<char>(static_cast<size_t>(pageSize)); // Is about 4KB depending on the system
-	_potentialServers = NULL;
-	_state = CLIENT_WAITING_FOR_REQUEST;
-	_lastActivity = time(NULL);
 }
 
 Client::Client(const Client &src)
+	: _clientFd(src._clientFd), _socketFd(src._socketFd), _localAddr(src._localAddr), _remoteAddr(src._remoteAddr),
+	  _totalBytesRead(src._totalBytesRead), _request(src._request), _response(src._response),
+	  _readBuffer(src._readBuffer), _potentialServers(src._potentialServers), _serverFound(src._serverFound),
+	  _server(src._server), _currentState(src._currentState), _lastActivity(src._lastActivity),
+	  _keepAlive(src._keepAlive)
 {
-	*this = src;
 }
 
 Client::Client(FileDescriptor socketFd, SocketAddress clientAddr, SocketAddress remoteAddr)
+	: _clientFd(socketFd), _socketFd(socketFd.getFd()), _localAddr(clientAddr), _remoteAddr(remoteAddr),
+	  _totalBytesRead(0), _request(), _response(), _readBuffer(), _potentialServers(NULL), _serverFound(false),
+	  _server(NULL), _currentState(CLIENT_WAITING_FOR_REQUEST), _lastActivity(time(NULL)), _keepAlive(true)
 {
-	_clientFd = socketFd;
-	_localAddr = clientAddr;
-	_remoteAddr = remoteAddr;
-	_request = HttpRequest();
-	_response = HttpResponse();
-	_responseBuffer = std::deque<HttpResponse>();
-	long pageSize = sysconf(_SC_PAGESIZE);
-	if (pageSize == -1)
-	{
-		perror("sysconf");
-		pageSize = 4096;
-	}
-	_receiveBuffer = std::vector<char>(static_cast<size_t>(pageSize));
-	_potentialServers = NULL;
-	_state = CLIENT_WAITING_FOR_REQUEST;
-	_lastActivity = time(NULL);
 }
 
 /*
@@ -72,233 +45,425 @@ Client::Client(FileDescriptor socketFd, SocketAddress clientAddr, SocketAddress 
 
 Client::~Client()
 {
+	// Log client disconnection based on current state
+	if (_currentState != CLIENT_DISCONNECTED)
+	{
+		std::stringstream ss;
+		ss << "Client " << _clientFd.getFd() << " disconnected";
+
+		switch (_currentState)
+		{
+		case CLIENT_READING_REQUEST:
+			ss << " while reading request";
+			break;
+		case CLIENT_PROCESSING_REQUEST:
+			ss << " while processing request";
+			break;
+		case CLIENT_SENDING_RESPONSE:
+			ss << " while sending response";
+			break;
+		case CLIENT_READING_FILE:
+			ss << " while reading file";
+			break;
+		default:
+			ss << " in state " << _currentState;
+			break;
+		}
+
+		Logger::log(Logger::INFO, ss.str());
+	}
 }
 
 /*
 ** --------------------------------- OVERLOAD ---------------------------------
 */
 
-Client &Client::operator=(const Client &rhs)
+Client &Client::operator=(Client const &rhs)
 {
 	if (this != &rhs)
 	{
 		_clientFd = rhs._clientFd;
 		_localAddr = rhs._localAddr;
 		_remoteAddr = rhs._remoteAddr;
+		_currentState = rhs._currentState;
 		_request = rhs._request;
 		_response = rhs._response;
-		_responseBuffer = rhs._responseBuffer;
-		_receiveBuffer = rhs._receiveBuffer;
-		_holdingBuffer = rhs._holdingBuffer;
-		_potentialServers = rhs._potentialServers;
-		_state = rhs._state;
+		_readBuffer = rhs._readBuffer;
 		_lastActivity = rhs._lastActivity;
 		_keepAlive = rhs._keepAlive;
+		_server = rhs._server;
+		_readBuffer = rhs._readBuffer;
 	}
 	return *this;
 }
 
 /*
-** --------------------------------- METHODS ----------------------------------
+** --------------------------------- EVENT HANDLING
+*----------------------------------
 */
 
+// TODO: Encapsulate in a try catch block
 void Client::handleEvent(epoll_event event)
 {
-	if (event.events & EPOLLIN)
+	updateActivity();
+	Logger::debug("Client: Handling event for client " + StringUtils::toString(_clientFd.getFd()) + " in state " +
+				  StringUtils::toString(_currentState));
+
+	if (event.events & (EPOLLHUP | EPOLLRDHUP | EPOLLERR))
 	{
-		_handleBuffer();
+		std::stringstream ss;
+		ss << "Client disconnected: " << _clientFd.getFd();
+		Logger::log(Logger::INFO, ss.str());
+		throw std::runtime_error(ss.str());
 	}
-	else if (event.events & EPOLLOUT)
+
+	switch (_currentState)
 	{
-		_handleResponseBuffer();
-	}
-	else if (event.events & (EPOLLERR | EPOLLHUP))
-	{
-		_state = CLIENT_DISCONNECTED;
+	case CLIENT_WAITING_FOR_REQUEST:
+		if (event.events & EPOLLIN)
+		{
+			Logger::debug("Client: Starting to read request from client " + StringUtils::toString(_clientFd.getFd()));
+			_currentState = CLIENT_READING_REQUEST;
+			readRequest();
+		}
+		break;
+	case CLIENT_READING_REQUEST:
+		if (event.events & EPOLLIN)
+			readRequest();
+		break;
+	case CLIENT_READING_FILE:
+		// File reading is handled by HttpRequest class
+		if (event.events & EPOLLIN)
+		{
+			_processHTTPRequest();
+		}
+		break;
+	case CLIENT_PROCESSING_REQUEST:
+		// Request processing state
+		Logger::debug("Client: Processing HTTP request for client " + StringUtils::toString(_clientFd.getFd()));
+		{
+			PERF_SCOPED_TIMER(request_processing);
+			_processHTTPRequest();
+		}
+		break;
+	case CLIENT_SENDING_RESPONSE:
+		if (event.events & EPOLLOUT)
+		{
+			sendResponse();
+		}
+		break;
+	case CLIENT_CLOSING:
+		// Connection is being closed
+		_currentState = CLIENT_DISCONNECTED;
+		break;
+	case CLIENT_DISCONNECTED:
+		// Connection is already disconnected
+		break;
 	}
 }
 
-void Client::_handleBuffer()
+void Client::readRequest()
 {
-	Logger::debug("Client: Reading from socket fd: " + StrUtils::toString(_clientFd.getFd()));
-	ssize_t bytesRead = recv(_clientFd.getFd(), &_receiveBuffer[0], _receiveBuffer.size(), 0);
-	Logger::debug("Client: Read " + StrUtils::toString(bytesRead) + " bytes");
-	
+	if (!_readBuffer.empty())
+	{
+		std::stringstream ss;
+		ss << "Read buffer is not empty: " << _readBuffer.readable();
+		Logger::log(Logger::WARNING, ss.str());
+		_readBuffer.clear();
+	}
+	Logger::debug("Client: Reading request from client " + StringUtils::toString(_clientFd.getFd()));
+	// Buffer should be empty each loop
+	// Read data into a temporary buffer first
+	char tempBuffer[4096];
+	ssize_t bytesRead = _clientFd.receiveData(tempBuffer, sizeof(tempBuffer));
+	Logger::debug("Client: Received " + StringUtils::toString(bytesRead) + " bytes from client " +
+				  StringUtils::toString(_clientFd.getFd()));
+	std::string tempBufferString(tempBuffer, bytesRead);
+	Logger::debug("Client: Temp buffer: " + tempBufferString);
+	if (bytesRead > 0)
+	{
+		_readBuffer.writeBuffer(tempBuffer, bytesRead);
+	}
 	if (bytesRead <= 0)
 	{
-		Logger::debug("Client: Connection closed or error, disconnecting");
-		_state = CLIENT_DISCONNECTED;
-		return;
-	}
-	
-	_holdingBuffer.insert(_holdingBuffer.end(), _receiveBuffer.begin(), _receiveBuffer.begin() + bytesRead);
-	Logger::debug("Client: Total buffer size: " + StrUtils::toString(_holdingBuffer.size()));
-	
-	// Debug: Print the raw request
-	std::string rawRequest(_holdingBuffer.begin(), _holdingBuffer.end());
-	Logger::debug("Client: Raw request: " + rawRequest);
-	
-	_handleRequest();
-}
-
-void Client::_handleRequest()
-{
-	Logger::debug("Client: Handling request, buffer size: " + StrUtils::toString(_holdingBuffer.size()));
-	
-	// Set the server for this request before parsing
-	if (_potentialServers && !_potentialServers->empty())
-	{
-		Logger::debug("Client: Setting server from potential servers, count: " + StrUtils::toString(_potentialServers->size()));
-		Server *serverPtr = const_cast<Server*>(&_potentialServers->front());
+		// Client disconnected or error occurred
 		std::stringstream ss;
-		ss << "Client: Server pointer: " << serverPtr;
-		Logger::debug(ss.str());
-		_request.setServer(serverPtr);
+		ss << "Client disconnected during read: " << _clientFd.getFd();
+		Logger::log(Logger::INFO, ss.str());
+		throw std::runtime_error(ss.str());
 	}
-	else
+	_totalBytesRead += bytesRead;
+	if (_serverFound && _totalBytesRead > _server->getClientMaxBodySize())
 	{
-		_response.setStatus(500, "Internal Server Error");
-		_response.setBody(NULL, NULL);
-		_response.setHeader(Header("Content-Type: text/html"));
-		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
-		_responseBuffer.push_back(_response);
-		_state = CLIENT_PROCESSING_RESPONSES;
-		return;
-	}
-	
-	// Parse the HTTP request from the buffer
-	HttpRequest::ParseState parseState = _request.parseBuffer(_holdingBuffer, _response);
-	Logger::debug("Client: Parse state: " + StrUtils::toString(parseState));
-	
-	// If parsing is not complete, wait for more data
-	if (parseState != HttpRequest::PARSING_COMPLETE)
-	{
-		if (parseState == HttpRequest::PARSING_ERROR)
-		{
-			_state = CLIENT_DISCONNECTED;
-		}
-		return;
-	}
-	
-	// Identify if request is handled by the server then route
-	Logger::debug("Client: Getting server for request");
-	Server *server = _request.getServer();
-	if (!server)
-	{
-		Logger::error("Client: No server available for request");
-		_response.setStatus(500, "Internal Server Error");
-		_response.setBody(NULL, NULL);
-		_response.setHeader(Header("Content-Type: text/html"));
-		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
-		_responseBuffer.push_back(_response);
-		_state = CLIENT_PROCESSING_RESPONSES;
-		return;
-	}
-	
-	Logger::debug("Client: Got server, getting location for URI: " + _request.getUri());
-	const Location *location = NULL;
-	try
-	{
-		location = server->getLocation(_request.getUri());
-		Logger::debug("Client: Location lookup complete");
-	}
-	catch (const std::exception &e)
-	{
-		Logger::error("Client: Exception during location lookup: " + std::string(e.what()));
-		_response.setStatus(500, "Internal Server Error");
-		_response.setBody(NULL, NULL);
-		_response.setHeader(Header("Content-Type: text/html"));
-		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
-		_responseBuffer.push_back(_response);
-		_state = CLIENT_PROCESSING_RESPONSES;
-		return;
-	}
-	catch (...)
-	{
-		Logger::error("Client: Unknown exception during location lookup");
-		_response.setStatus(500, "Internal Server Error");
-		_response.setBody(NULL, NULL);
-		_response.setHeader(Header("Content-Type: text/html"));
-		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
-		_responseBuffer.push_back(_response);
-		_state = CLIENT_PROCESSING_RESPONSES;
-		return;
-	}
-	if (!location) // 1. Verify location can be found on server (returns Null if exact match / longest prefix match is not found)
-	{
-		_response.setStatus(404, "Not Found");
-		_response.setBody(NULL, _request.getServer());
-		_response.setHeader(Header("Content-Type: text/html"));
-		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
-		_responseBuffer.push_back(_response);
-		_state = CLIENT_PROCESSING_RESPONSES;
-		return;
-	}
-	else if (std::find(location->getAllowedMethods().begin(), location->getAllowedMethods().end(),
-					   _request.getMethod()) == location->getAllowedMethods().end()) // 2. Verify method is allowed
-	{
-		_response.setStatus(405, "Method Not Allowed");
-		_response.setBody(location, _request.getServer());
-		_response.setHeader(Header("Content-Type: text/html"));
-		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
-		_responseBuffer.push_back(_response);
-		_state = CLIENT_PROCESSING_RESPONSES;
+		_response.reset();
+		_response.setStatus(413, "Payload Too Large");
+		_response.setBody(DefaultStatusMap::getStatusBody(413));
+		_response.setHeader("Content-Type", "text/html");
+		_response.setHeader("Content-Length", StringUtils::toString(_response.getBody().length()));
+		_response.setHeader("Connection", _keepAlive ? "keep-alive" : "close");
+		_response.setHeader("Server", SERVER::SERVER_VERSION);
+		_currentState = CLIENT_SENDING_RESPONSE;
 		return;
 	}
 
-	// 3. Once location is found sanitize the request (can only be done after location is found)
-	_request.sanitizeRequest(_response, _request.getServer(), location);
-	
-	// Use method handlers
-	IMethodHandler *handler = MethodHandlerFactory::createHandler(_request.getMethod());
-	if (handler)
+	// Parse the request
+	HttpRequest::ParseState parseResult = _request.parseBuffer(_readBuffer, _response);
+
+	switch (parseResult)
 	{
-		handler->handleRequest(_request, _response, _request.getServer(), location);
-		delete handler;
-	}
-	else
+	case HttpRequest::PARSING_COMPLETE:
+		_currentState = CLIENT_PROCESSING_REQUEST;
+		_processHTTPRequest();
+		_currentState = CLIENT_SENDING_RESPONSE;
+		break;
+	case HttpRequest::PARSING_ERROR:
+		_generateErrorResponse(400, "Bad Request");
+		_currentState = CLIENT_SENDING_RESPONSE;
+		break;
+
+	case HttpRequest::PARSING_REQUEST_LINE:
+	case HttpRequest::PARSING_HEADERS:
+	case HttpRequest::PARSING_BODY:
 	{
-		_response.setStatus(405, "Method Not Allowed");
-		_response.setBody(location, _request.getServer());
-		_response.setHeader(Header("Content-Type: text/html"));
-		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
+		_identifyServer();
+		_currentState = CLIENT_READING_REQUEST;
+		// Continue reading - need more data
+		break;
 	}
-	
-	// Add response to response buffer and prepare for sending
-	_responseBuffer.push_back(_response);
-	_state = CLIENT_PROCESSING_RESPONSES;
+	}
 }
 
-void Client::_handleResponseBuffer()
+void Client::sendResponse()
 {
-	if (_responseBuffer.empty())
+	if (_response.getRawResponse().empty())
 	{
-		_state = CLIENT_DISCONNECTED;
-		return;
+		// Generate the raw HTTP response if not already done
+		_response.setRawResponse(_response.toString());
 	}
-	
-	HttpResponse &response = _responseBuffer.front();
-	response.sendResponse(_clientFd);
-	_responseBuffer.pop_front();
-	
-	if (_responseBuffer.empty())
+
+	std::string responseData = _response.getRawResponse();
+	size_t totalSize = responseData.length();
+	size_t remainingBytes = totalSize - _response.getBytesSent();
+
+	if (remainingBytes == 0)
 	{
-		_state = CLIENT_DISCONNECTED;
+		// Response fully sent
+
+		// Check if we should keep the connection alive
+		bool clientWantsKeepAlive = false;
+		const std::vector<std::string> &connectionHeaders = _request.getHeader("Connection");
+
+		for (size_t i = 0; i < connectionHeaders.size(); ++i)
+		{
+			std::string header = connectionHeaders[i];
+			// Convert to lowercase for comparison
+			std::transform(header.begin(), header.end(), header.begin(), ::tolower);
+
+			if (header.find("keep-alive") != std::string::npos)
+			{
+				clientWantsKeepAlive = true;
+			}
+			else if (header.find("close") != std::string::npos)
+			{
+				clientWantsKeepAlive = false;
+				break;
+			}
+		}
+
+		// Server configuration also matters
+		bool serverAllowsKeepAlive = _server->getKeepAlive();
+
+		// HTTP/1.0 defaults to close, HTTP/1.1 defaults to keep-alive
+		bool defaultKeepAlive = (_request.getVersion() == "HTTP/1.1");
+
+		_keepAlive = serverAllowsKeepAlive && (clientWantsKeepAlive || (defaultKeepAlive && connectionHeaders.empty()));
+
+		if (_keepAlive)
+		{
+			// Reset for next request on same connection
+			_request.reset();
+			_response = HttpResponse(); // Create fresh response
+			_readBuffer.clear();
+			_currentState = CLIENT_WAITING_FOR_REQUEST;
+			updateActivity(); // Reset timeout
+
+			// Important: Set response header to inform client
+			_response.setHeader("Connection", "keep-alive");
+			// Optionally set Keep-Alive timeout
+			_response.setHeader("Keep-Alive", "timeout=15, max=100");
+		}
+		else
+		{
+			_currentState = CLIENT_CLOSING;
+			_response.setHeader("Connection", "close");
+		}
+	}
+
+	// Send remaining data
+	ssize_t bytesSent = send(_clientFd.getFd(),
+                         responseData.c_str() + _response.getBytesSent(),
+                         remainingBytes,
+                         MSG_NOSIGNAL);
+
+
+	if (bytesSent > 0)
+	{
+		_response.setBytesSent(_response.getBytesSent() + bytesSent);
+
+		// Log progress for large responses
+		if (totalSize > static_cast<size_t>(sysconf(_SC_PAGE_SIZE)))
+		{
+			std::stringstream ss;
+			ss << "Sent " << _response.getBytesSent() << "/" << totalSize << " bytes to client " << _clientFd.getFd();
+			Logger::log(Logger::DEBUG, ss.str());
+		}
+	}
+	else if (bytesSent == 0)
+	{
+		// Connection closed by client
+		Logger::log(Logger::INFO, "Client closed connection during response");
+		throw std::runtime_error("Client closed connection");
+	}
+	else
+	{
+		// TODO: Checking errno check if this is allowed
+		// Error occurred
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+		{
+			// Socket buffer full, try again later
+			return;
+		}
+		else
+		{
+			std::stringstream ss;
+			ss << "Send error: " << strerror(errno);
+			Logger::log(Logger::ERROR, ss.str());
+			throw std::runtime_error(ss.str());
+		}
 	}
 }
 
 /*
-** --------------------------------- ACCESSORS --------------------------------
+** --------------------------------- PRIVATE METHODS
+*----------------------------------
 */
 
-Client::ClientState Client::getCurrentState() const
+void Client::_identifyServer()
 {
-	return _state;
+	if (_server != NULL)
+	{
+		return;
+	}
+	// If host header is not present, use the first server in the potential
+	// servers
+	if (!_potentialServers || _potentialServers->empty())
+	{
+		_server = NULL;
+		return;
+	}
+
+	if (_request.getHeader("host").empty())
+	{
+		_server = const_cast<Server *>(&((*_potentialServers)[0]));
+	}
+	else
+	{
+		// If host header is present, attempt to match host name to a server
+		// configuration
+		const std::vector<std::string> &hostHeaders = _request.getHeader("host");
+		if (!hostHeaders.empty())
+		{
+			for (std::vector<Server>::const_iterator it = _potentialServers->begin(); it != _potentialServers->end();
+				 ++it)
+			{
+				if (it->getHost() == hostHeaders[0])
+				{
+					_server = const_cast<Server *>(&(*it));
+					break;
+				}
+			}
+		}
+		// If no server is found, use the first server in the potential servers
+		if (_server == NULL)
+		{
+			_server = const_cast<Server *>(&((*_potentialServers)[0]));
+		}
+	}
 }
 
-void Client::setState(ClientState newState)
+void Client::_processHTTPRequest()
 {
-	_state = newState;
+	// Create router instance
+	RequestRouter router;
+
+	// Clear any previous response
+	_response.reset();
+
+	// Route the request through the handler system
+	router.route(_request, _response, _server);
+
+	// Check Connection header to determine keep-alive
+	const std::vector<std::string> &connectionHeaders = _request.getHeader("connection");
+	std::string connectionHeader = connectionHeaders.empty() ? "" : connectionHeaders[0];
+
+	// HTTP/1.1 defaults to keep-alive, HTTP/1.0 defaults to close
+	if (_request.getVersion() == "HTTP/1.1")
+	{
+		_keepAlive = (connectionHeader != "close");
+	}
+	else
+	{
+		_keepAlive = (connectionHeader == "keep-alive");
+	}
+
+	// Override with server configuration if needed
+	if (_server && !_server->getKeepAlive())
+	{
+		_keepAlive = false;
+	}
+
+	// Ensure Connection header is set in response
+	if (!_keepAlive)
+	{
+		_response.setHeader("Connection", "close");
+	}
+
+	// Log the response
+	std::stringstream logMsg;
+	logMsg << "Response: " << _response.getStatusCode() << " " << _response.getStatusMessage() << " for "
+		   << _request.getMethod() << " " << _request.getUri();
+	Logger::log(Logger::INFO, logMsg.str());
+
+	// Transition to sending state
+	_currentState = CLIENT_SENDING_RESPONSE;
+}
+
+void Client::_generateErrorResponse(int statusCode, const std::string &message)
+{
+	// This can be simplified to just set basic error response
+	// The router handles most error cases now
+	_response.reset();
+	_response.setStatus(statusCode, message);
+	_response.setBody(DefaultStatusMap::getStatusBody(statusCode));
+	_response.setHeader("Content-Type", "text/html");
+	_response.setHeader("Content-Length", StringUtils::toString(_response.getBody().length()));
+	_response.setHeader("Connection", _keepAlive ? "keep-alive" : "close");
+	_response.setHeader("Server", "42_Webserv/1.0");
+}
+
+/*
+** --------------------------------- ACCESSOR METHODS
+*----------------------------------
+*/
+
+Client::State Client::getCurrentState() const
+{
+	return _currentState;
+}
+
+void Client::setState(State newState)
+{
+	_currentState = newState;
 }
 
 void Client::updateActivity()
@@ -321,6 +486,22 @@ const SocketAddress &Client::getRemoteAddr() const
 	return _remoteAddr;
 }
 
+const Server *Client::getServer() const
+{
+	return _server;
+}
+
+void Client::setServer(const Server *server)
+{
+	_server = const_cast<Server *>(server);
+}
+
+bool Client::isTimedOut() const
+{
+	const time_t TIMEOUT_SECONDS = 30;
+	return (time(NULL) - _lastActivity) > TIMEOUT_SECONDS;
+}
+
 const std::vector<Server> &Client::getPotentialServers() const
 {
 	return *_potentialServers;
@@ -328,11 +509,10 @@ const std::vector<Server> &Client::getPotentialServers() const
 
 void Client::setPotentialServers(const std::vector<Server> &potentialServers)
 {
-	_potentialServers = &potentialServers;
+	_potentialServers = const_cast<std::vector<Server> *>(&potentialServers);
 }
 
-bool Client::isTimedOut() const
+void Client::initializeServer()
 {
-	time_t currentTime = time(NULL);
-	return (currentTime - _lastActivity) > 30; // 30 second timeout
+	_identifyServer();
 }

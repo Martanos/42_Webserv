@@ -1,0 +1,191 @@
+[2025-10-16 18:32:28] [INFO]     === WebServ Session Started ===
+[2025-10-16 18:32:28] [INFO]     Session ID: webserv_20251016_183228_89910
+[2025-10-16 18:32:28] [INFO]     Log Directory: logs
+[2025-10-16 18:32:28] [INFO]     Process ID: 89910
+[2025-10-16 18:32:28] [INFO]     [PerformanceMonitor.cpp:21] PerformanceMonitor: Performance monitoring initialized
+[2025-10-16 18:32:28] [INFO]     [PerformanceMonitor.cpp:503] PerformanceMonitor: Thresholds set - Max Request Time: 1000 ms, Max CGI Time: 5000 ms, Max Memory: 102400 KB
+[2025-10-16 18:32:28] [INFO]     [main.cpp:28] PerformanceMonitor: Performance monitoring initialized
+[2025-10-16 18:32:28] [INFO]     Starting WebServ with config file: test.conf
+[2025-10-16 18:32:28] [DEBUG]    ConfigParser: Starting to parse configuration file: test.conf
+[2025-10-16 18:32:28] [DEBUG]    ConfigParser: Configuration file loaded successfully
+[2025-10-16 18:32:28] [DEBUG]    ConfigParser: Found http block
+[2025-10-16 18:32:28] [DEBUG]    ConfigParser: Found server block
+[2025-10-16 18:32:28] [DEBUG]    ConfigParser: Starting to parse server block at line 2
+[2025-10-16 18:32:28] [DEBUG]    ServerConfig: Processing listen directive: listen 8080;
+[2025-10-16 18:32:28] [DEBUG]    ConfigParser: Successfully parsed server block with 1 listen directives
+[2025-10-16 18:32:28] [DEBUG]    ConfigParser: Found server block
+[2025-10-16 18:32:28] [DEBUG]    ConfigParser: Starting to parse server block at line 16
+[2025-10-16 18:32:28] [DEBUG]    ServerConfig: Processing listen directive: listen 8081;
+[2025-10-16 18:32:28] [DEBUG]    ConfigParser: Successfully parsed server block with 1 listen directives
+[2025-10-16 18:32:28] [DEBUG]    ConfigParser: Successfully parsed 2 server configurations
+[2025-10-16 18:32:28] [INFO]     Parsed 2 server configurations
+[2025-10-16 18:32:28] [INFO]     EpollManager: Epoll instance created successfully with fd 4
+[2025-10-16 18:32:28] [INFO]     EpollManager: Epoll instance created successfully with fd 5
+[2025-10-16 18:32:28] [INFO]     Starting server manager...
+[2025-10-16 18:32:28] [INFO]     Starting ServerManager with 2 server configurations
+[2025-10-16 18:32:28] [INFO]     ServerMap: Creating ServerMap from 2 server configurations
+[2025-10-16 18:32:28] [DEBUG]    ServerMap: ServerMap created successfully
+[2025-10-16 18:32:28] [DEBUG]    ServerMap: Listening socket: fd: FileDescriptor: 4 isOpen: 1, host: 0.0.0.0, port: 8080 memory address: 0x5c9a77fca2c0
+Servers:
+ localhost
+ServerMap: Listening socket: fd: FileDescriptor: 6 isOpen: 1, host: 0.0.0.0, port: 8081 memory address: 0x5c9a77fca4b0
+Servers:
+ localhost
+
+[2025-10-16 18:32:28] [INFO]     EpollManager: Epoll instance created successfully with fd 7
+[2025-10-16 18:32:28] [INFO]     ServerManager: Added 2 server file descriptors to epoll
+[2025-10-16 18:32:28] [INFO]     ServerManager initialized successfully, entering main event loop
+[2025-10-16 18:32:32] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 18:32:32] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 18:32:32] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 18:32:32] [INFO]     Client connected from :0
+[2025-10-16 18:32:32] [DEBUG]    ServerManager: Client 5 added to epoll
+[2025-10-16 18:32:32] [DEBUG]    [PerformanceMonitor.cpp:194] PerformanceMonitor: Connection recorded. Active: 1
+[2025-10-16 18:32:32] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 18:32:32] [DEBUG]    Client: Handling event for client 5 in state 0
+[2025-10-16 18:32:32] [DEBUG]    Client: Starting to read request from client 5
+[2025-10-16 18:32:32] [DEBUG]    Client: Reading request from client 5
+[2025-10-16 18:32:32] [DEBUG]    Client: Received 604 bytes from client 5
+[2025-10-16 18:32:32] [DEBUG]    Client: Temp buffer: GET /favicon.ico HTTP/1.1
+Host: localhost:8080
+Connection: keep-alive
+sec-ch-ua-platform: "Windows"
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0
+sec-ch-ua: "Microsoft Edge";v="141", "Not?A_Brand";v="8", "Chromium";v="141"
+sec-ch-ua-mobile: ?0
+Accept: image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8
+Sec-Fetch-Site: same-origin
+Sec-Fetch-Mode: no-cors
+Sec-Fetch-Dest: image
+Referer: http://localhost:8080/
+Accept-Encoding: gzip, deflate, br, zstd
+Accept-Language: en-US,en;q=0.9
+
+
+[2025-10-16 18:32:32] [DEBUG]    HttpRequest: Moved 604 bytes into _rawBuffer; now has 604
+[2025-10-16 18:32:32] [DEBUG]    HttpURI: Parsed request line: GET /favicon.ico HTTP/1.1
+[2025-10-16 18:32:32] [DEBUG]    HttpURI: Request line OK (GET /favicon.ico HTTP/1.1)
+[2025-10-16 18:32:32] [DEBUG]    HttpURI: Remaining readable in main buffer after URI parse = 577
+[2025-10-16 18:32:32] [DEBUG]    HttpRequest: Request line parsing complete
+[2025-10-16 18:32:32] [DEBUG]    HttpRequest: Header parseBuffer() returned = 1
+[2025-10-16 18:32:32] [DEBUG]    HttpRequest: Headers parsing complete
+[2025-10-16 18:32:32] [DEBUG]    HttpRequest: Body parsing complete
+[2025-10-16 18:32:32] [DEBUG]    HttpRequest::parseBuffer finished with state = 3
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 100 with message Continue and body false
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 101 with message Switching Protocols and body false
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 102 with message Processing and body false
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 103 with message Early Hints and body false
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 200 with message OK and body false
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 201 with message Created and body false
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 202 with message Accepted and body false
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 203 with message Non-Authoritative Information and body false
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 204 with message No Content and body false
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 205 with message Reset Content and body false
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 206 with message Partial Content and body false
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 300 with message Multiple Choices and body false
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 301 with message Moved Permanently and body false
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 302 with message Found and body false
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 303 with message See Other and body false
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 304 with message Not Modified and body false
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 305 with message Use Proxy and body false
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 307 with message Temporary Redirect and body false
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 308 with message Permanent Redirect and body false
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 400 with message Bad Request and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 401 with message Unauthorized and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 402 with message Payment Required and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 403 with message Forbidden and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 404 with message Not Found and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 405 with message Method Not Allowed and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 406 with message Not Acceptable and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 407 with message Proxy Authentication Required and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 408 with message Request Timeout and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 409 with message Conflict and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 410 with message Gone and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 411 with message Length Required and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 412 with message Precondition Failed and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 413 with message Payload Too Large and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 414 with message URI Too Long and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 415 with message Unsupported Media Type and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 416 with message Range Not Satisfiable and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 417 with message Expectation Failed and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 418 with message I'm a teapot and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 421 with message Misdirected Request and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 500 with message Internal Server Error and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 501 with message Not Implemented and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 502 with message Bad Gateway and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 503 with message Service Unavailable and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 504 with message Gateway Timeout and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 505 with message HTTP Version Not Supported and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Generated status info for 506 with message Variant Also Negotiates and body true
+[2025-10-16 18:32:32] [DEBUG]    StatusMap: Initialized default status map
+[2025-10-16 18:32:32] [DEBUG]    HttpResponse: Set body with 381 bytes
+[2025-10-16 18:32:32] [INFO]     Routing GET request for /favicon.ico
+[2025-10-16 18:32:32] [DEBUG]    Matched location: /
+[2025-10-16 18:32:32] [INFO]     MethodHandlerFactory initialized with GET, HEAD, POST, DELETE handlers
+[2025-10-16 18:32:32] [INFO]     GetMethodHandler: Handling GET request for URI: /favicon.ico
+[2025-10-16 18:32:32] [DEBUG]    GetMethodHandler: Resolved file path: /bwee/webserve-msw16Oct/www/favicon.ico
+[2025-10-16 18:32:32] [WARNING]  File not found: /bwee/webserve-msw16Oct/www/favicon.ico
+[2025-10-16 18:32:32] [DEBUG]    HttpResponse: Set body with 9 bytes
+[2025-10-16 18:32:32] [INFO]     Response: 404 Not Found for GET /favicon.ico
+[2025-10-16 18:32:32] [DEBUG]    Client: Handling event for client 5 in state 4
+[2025-10-16 18:32:33] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 18:32:33] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 18:32:33] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 18:32:33] [INFO]     Client connected from :0
+[2025-10-16 18:32:33] [DEBUG]    ServerManager: Client 8 added to epoll
+[2025-10-16 18:32:33] [DEBUG]    [PerformanceMonitor.cpp:194] PerformanceMonitor: Connection recorded. Active: 2
+[2025-10-16 18:32:33] [INFO]     Client 8 disconnected in state 0
+[2025-10-16 18:32:34] [DEBUG]    Client: Handling event for client 8 in state 0
+[2025-10-16 18:32:34] [DEBUG]    Client: Starting to read request from client 8
+[2025-10-16 18:32:34] [DEBUG]    Client: Reading request from client 8
+[2025-10-16 18:32:34] [DEBUG]    Client: Received 0 bytes from client 8
+[2025-10-16 18:32:34] [DEBUG]    Client: Temp buffer: 
+[2025-10-16 18:32:34] [INFO]     Client disconnected during read: 8
+[2025-10-16 18:32:34] [INFO]     Client 8 disconnected while reading request
+[2025-10-16 18:32:34] [INFO]     Client 8 disconnected: Client disconnected during read: 8
+[2025-10-16 18:32:34] [DEBUG]    [PerformanceMonitor.cpp:206] PerformanceMonitor: Disconnection recorded. Active: 1
+[2025-10-16 18:32:34] [DEBUG]    Client: Handling event for client 5 in state 4
+[2025-10-16 18:32:34] [INFO]     Client closed connection during response
+[2025-10-16 18:32:34] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 18:32:34] [INFO]     Client 5 disconnected: Client closed connection
+[2025-10-16 18:32:34] [DEBUG]    [PerformanceMonitor.cpp:206] PerformanceMonitor: Disconnection recorded. Active: 0
+[2025-10-16 18:33:04] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 18:33:04] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 18:33:04] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 18:33:04] [INFO]     Client connected from :0
+[2025-10-16 18:33:04] [DEBUG]    ServerManager: Client 5 added to epoll
+[2025-10-16 18:33:04] [DEBUG]    [PerformanceMonitor.cpp:194] PerformanceMonitor: Connection recorded. Active: 1
+[2025-10-16 18:33:04] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 18:33:04] [DEBUG]    Client: Handling event for client 5 in state 0
+[2025-10-16 18:33:04] [DEBUG]    Client: Starting to read request from client 5
+[2025-10-16 18:33:04] [DEBUG]    Client: Reading request from client 5
+[2025-10-16 18:33:04] [DEBUG]    Client: Received 78 bytes from client 5
+[2025-10-16 18:33:04] [DEBUG]    Client: Temp buffer: GET / HTTP/1.1
+Host: localhost:8080
+User-Agent: curl/7.81.0
+Accept: */*
+
+
+[2025-10-16 18:33:04] [DEBUG]    HttpRequest: Moved 78 bytes into _rawBuffer; now has 78
+[2025-10-16 18:33:04] [DEBUG]    HttpURI: Parsed request line: GET / HTTP/1.1
+[2025-10-16 18:33:04] [DEBUG]    HttpURI: Request line OK (GET / HTTP/1.1)
+[2025-10-16 18:33:04] [DEBUG]    HttpURI: Remaining readable in main buffer after URI parse = 62
+[2025-10-16 18:33:04] [DEBUG]    HttpRequest: Request line parsing complete
+[2025-10-16 18:33:04] [DEBUG]    HttpRequest: Header parseBuffer() returned = 1
+[2025-10-16 18:33:04] [DEBUG]    HttpRequest: Headers parsing complete
+[2025-10-16 18:33:04] [DEBUG]    HttpRequest: Body parsing complete
+[2025-10-16 18:33:04] [DEBUG]    HttpRequest::parseBuffer finished with state = 3
+[2025-10-16 18:33:04] [DEBUG]    HttpResponse: Set body with 381 bytes
+[2025-10-16 18:33:04] [INFO]     Routing GET request for /
+[2025-10-16 18:33:04] [DEBUG]    Matched location: /
+[2025-10-16 18:33:04] [INFO]     GetMethodHandler: Handling GET request for URI: /
+[2025-10-16 18:33:04] [DEBUG]    GetMethodHandler: Resolved file path: /bwee/webserve-msw16Oct/www/
+[2025-10-16 18:33:04] [WARNING]  File not found: /bwee/webserve-msw16Oct/www/
+[2025-10-16 18:33:04] [DEBUG]    HttpResponse: Set body with 9 bytes
+[2025-10-16 18:33:04] [INFO]     Response: 404 Not Found for GET /
+[2025-10-16 18:33:04] [DEBUG]    Client: Handling event for client 5 in state 4
+[2025-10-16 18:33:04] [DEBUG]    Client: Handling event for client 5 in state 4
+[2025-10-16 18:33:04] [INFO]     Client closed connection during response
+[2025-10-16 18:33:04] [INFO]     Client 5 disconnected in state 0
+[2025-10-16 18:33:04] [INFO]     Client 5 disconnected: Client closed connection
+[2025-10-16 18:33:04] [DEBUG]    [PerformanceMonitor.cpp:206] PerformanceMonitor: Disconnection recorded. Active: 0

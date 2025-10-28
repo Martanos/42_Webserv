@@ -1,5 +1,4 @@
-#include "../../includes/Wrapper/FileManager.hpp"
-#include "../../includes/HTTP/HTTP.hpp"
+#include "../../includes/FileManager.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -7,13 +6,14 @@
 
 FileManager::FileManager()
 {
-	_isATempFile = true;
-	_instantiated = false;
+	_filePath = _generateTempFilePath();
+	_fd = FileDescriptor::createFromOpen(_filePath.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
+	_isUsingTempFile = true;
 }
 
 FileManager::FileManager(const FileManager &src)
 {
-	*this = src;
+	(void)src; // TODO: Implement proper copy constructor
 }
 
 /*
@@ -23,9 +23,9 @@ FileManager::FileManager(const FileManager &src)
 FileManager::~FileManager()
 {
 	// Delete file if its stil a temp file
-	if (_isATempFile && _instantiated)
+	if (_isUsingTempFile)
 	{
-		destroy();
+		unlink(_filePath.c_str());
 	}
 }
 
@@ -39,8 +39,7 @@ FileManager &FileManager::operator=(FileManager const &rhs)
 	{
 		_filePath = rhs._filePath;
 		_fd = rhs._fd;
-		_isATempFile = rhs._isATempFile;
-		_instantiated = rhs._instantiated;
+		_isUsingTempFile = rhs._isUsingTempFile;
 	}
 	return *this;
 }
@@ -124,33 +123,17 @@ std::string FileManager::_generateTempFilePath()
 	Logger::log(Logger::WARNING, "All temp file generation attempts failed, using fallback: " + ss.str());
 	return ss.str();
 }
-
-void FileManager::instantiate()
-{
-	_filePath = _generateTempFilePath();
-	_fd = FileDescriptor::createFromOpen(_filePath.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
-	_instantiated = true;
-}
-
-void FileManager::destroy()
-{
-	unlink(_filePath.c_str());
-	_instantiated = false;
-}
-
 void FileManager::append(const std::string &data)
 {
-	if (!_instantiated)
-		instantiate();
 	_fd.writeFile(data);
 }
 
-void FileManager::append(const std::vector<char> &buffer, std::vector<char>::iterator start,
-						 std::vector<char>::iterator end)
+void FileManager::append(const RingBuffer &buffer)
 {
-	if (!_instantiated)
-		instantiate();
-	_fd.writeFile(buffer, start, end);
+	std::string data;
+	data.resize(buffer.readable());
+	buffer.peekBuffer(data, buffer.readable());
+	_fd.writeFile(data);
 }
 
 void FileManager::reset()
@@ -187,26 +170,9 @@ FileDescriptor &FileManager::getFd()
 	return _fd;
 }
 
-const FileDescriptor &FileManager::getFd() const
+bool FileManager::getIsUsingTempFile() const
 {
-	return _fd;
-}
-
-bool FileManager::getIsATempFile() const
-{
-	return _isATempFile;
-}
-
-size_t FileManager::getFileSize() const
-{
-	if (!_instantiated)
-		return 0;
-	
-	struct stat fileStat;
-	if (fstat(_fd.getFd(), &fileStat) != 0)
-		return 0;
-	
-	return fileStat.st_size;
+	return _isUsingTempFile;
 }
 
 /*
@@ -223,9 +189,9 @@ void FileManager::setFd(const FileDescriptor &fd)
 	_fd = fd;
 }
 
-void FileManager::setIsATempFile(bool isATempFile)
+void FileManager::setIsUsingTempFile(bool isUsingTempFile)
 {
-	_isATempFile = isATempFile;
+	_isUsingTempFile = isUsingTempFile;
 }
 
 /* ************************************************************************** */

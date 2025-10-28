@@ -1,6 +1,6 @@
-#include "../../includes/CGI/CgiExecutor.hpp"
-#include "../../includes/Global/PerformanceMonitor.hpp"
-#include "../../includes/Global/StrUtils.hpp"
+#include "../../includes/CgiExecutor.hpp"
+#include "../../includes/PerformanceMonitor.hpp"
+#include "../../includes/StringUtils.hpp"
 #include <cstring>
 #include <fcntl.h>
 #include <fstream>
@@ -127,7 +127,7 @@ CgiExecutor::ExecutionResult CgiExecutor::execute(const std::string &scriptPath,
 	result = forkAndExec(scriptPath, interpreter, envp);
 	if (result != SUCCESS)
 	{
-		Logger::error("CgiExecutor: Failed to fork and execute CGI script", __FILE__, __LINE__, __FUNCTION__);
+		Logger::error("CgiExecutor: Failed to fork and execute CGI script", __FILE__, __LINE__);
 		closePipes();
 		return result;
 	}
@@ -145,7 +145,7 @@ CgiExecutor::ExecutionResult CgiExecutor::execute(const std::string &scriptPath,
 	}
 
 	closePipes();
-	Logger::info("CgiExecutor: CGI execution completed with result: " + StrUtils::toString(result));
+	Logger::info("CgiExecutor: CGI execution completed with result: " + StringUtils::toString(result));
 	return result;
 }
 
@@ -168,7 +168,7 @@ void CgiExecutor::killProcess()
 {
 	if (_processRunning && _childPid > 0)
 	{
-		Logger::log(Logger::WARNING, "Killing CGI process: " + StrUtils::toString(_childPid));
+		Logger::log(Logger::WARNING, "Killing CGI process: " + StringUtils::toString(_childPid));
 		kill(_childPid, SIGTERM);
 
 		// Force kill if still running
@@ -413,14 +413,14 @@ CgiExecutor::ExecutionResult CgiExecutor::waitForChild()
 		int exitCode = WEXITSTATUS(status);
 		if (exitCode != 0)
 		{
-			Logger::log(Logger::WARNING, "CGI process exited with code: " + StrUtils::toString(exitCode));
+			Logger::log(Logger::WARNING, "CGI process exited with code: " + StringUtils::toString(exitCode));
 		}
 		return SUCCESS;
 	}
 	else if (WIFSIGNALED(status))
 	{
 		int signal = WTERMSIG(status);
-		Logger::log(Logger::ERROR, "CGI process killed by signal: " + StrUtils::toString(signal));
+		Logger::log(Logger::ERROR, "CGI process killed by signal: " + StringUtils::toString(signal));
 		return ERROR_PROCESS_CRASHED;
 	}
 
