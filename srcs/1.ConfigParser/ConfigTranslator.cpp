@@ -79,7 +79,7 @@ Server ConfigTranslator::_translateServer(const AST::ASTNode &ast)
 				_translateServerClientMaxHeadersSize(**it, server);
 			else if ((*it)->value == "client_max_uri_size")
 				_translateServerClientMaxUriSize(**it, server);
-			else if ((*it)->value == "status_pages")
+			else if ((*it)->value == "error_page")
 				_translateServerStatusPage(**it, server);
 			else
 				Logger::warning("Unknown directive in server block: " + (*it)->value +
@@ -482,74 +482,91 @@ void ConfigTranslator::_translateServerStatusPage(const AST::ASTNode &directive,
 {
 	try
 	{
-		std::vector<int> codes;
-		std::string path;
-		std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
-		// Collect status page codes
-		while (++it != directive.children.end() - 1)
+		if (directive.children.size() < 2)
 		{
-			if ((*it)->type == AST::ARG)
-			{
-				char *end;
-				double code = strtod((*it)->value.c_str(), &end);
-				if (end == (*it)->value.c_str() || *end != '\0' || code > 599 || code < 100)
-					Logger::warning("Invalid status page code: " + (*it)->value +
-										" line: " + StrUtils::toString<int>((*it)->line) +
-										" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
-									__FILE__, __LINE__, __PRETTY_FUNCTION__);
-				else
-					codes.push_back(static_cast<int>(code));
-			}
-			else
-				Logger::warning("Unknown token in status page directive: " + (*it)->value +
-									" line: " + StrUtils::toString<int>((*it)->line) +
-									" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
-								__FILE__, __LINE__, __PRETTY_FUNCTION__);
-		}
-		if (codes.empty())
-		{
-			Logger::warning("No valid status page codes" + directive.value +
-								" line: " + StrUtils::toString<int>(directive.line) +
+			Logger::warning("error_page directive requires at least 2 arguments (code and path) line: " + StrUtils::toString<int>(directive.line) +
 								" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
 							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 			return;
 		}
-		else if ((*it)->type == AST::ARG)
+
+		std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
+		std::vector<int> codes;
+
+		// Collect all status codes (all arguments except the last one)
+		for (size_t i = 0; i < directive.children.size() - 1; ++i, ++it)
 		{
-			if ((*it)->value.empty())
+			if ((*it)->type != AST::ARG)
 			{
-				Logger::warning("Empty status page path" + directive.value +
-									" line: " + StrUtils::toString<int>(directive.line) +
-									" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+				Logger::warning("All arguments before the last must be status codes in error_page directive line: " + StrUtils::toString<int>((*it)->line) +
+									" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
 								__FILE__, __LINE__, __PRETTY_FUNCTION__);
 				return;
 			}
-			else if (!StrUtils::isAbsolutePath((*it)->value))
-				Logger::warning("Status page path is not absolute: " + (*it)->value +
+
+			// Parse status code
+			char *end;
+			double code = strtod((*it)->value.c_str(), &end);
+			if (end == (*it)->value.c_str() || *end != '\0' || code > 599 || code < 100)
+			{
+				Logger::warning("Invalid status code: " + (*it)->value +
 									" line: " + StrUtils::toString<int>((*it)->line) +
-									" column: " + StrUtils::toString<int>((*it)->column),
+									" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
 								__FILE__, __LINE__, __PRETTY_FUNCTION__);
-			else if (StrUtils::hasConsecutiveDots((*it)->value))
-				Logger::warning("Status page path contains consecutive dots: " + (*it)->value +
-									" line: " + StrUtils::toString<int>((*it)->line) +
-									" column: " + StrUtils::toString<int>((*it)->column),
-								__FILE__, __LINE__, __PRETTY_FUNCTION__);
-			else if (StrUtils::hasControlCharacters((*it)->value))
-				Logger::warning("Status page path contains control characters: " + (*it)->value +
-									" line: " + StrUtils::toString<int>((*it)->line) +
-									" column: " + StrUtils::toString<int>((*it)->column),
-								__FILE__, __LINE__, __PRETTY_FUNCTION__);
-			server.insertStatusPage((*it)->value, codes);
+				return;
+			}
+			codes.push_back(static_cast<int>(code));
 		}
-		else
-			Logger::warning("Unknown token in status page directive: " + (*it)->value +
-								" line: " + StrUtils::toString<int>((*it)->line) +
+
+		if (codes.empty())
+		{
+			Logger::warning("No valid status codes found in error_page directive line: " + StrUtils::toString<int>(directive.line) +
+								" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			return;
+		}
+
+		// Last argument should be the path
+		if (it == directive.children.end() || (*it)->type != AST::ARG)
+		{
+			Logger::warning("Missing or invalid path argument in error_page directive line: " + StrUtils::toString<int>(directive.line) +
+								" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			return;
+		}
+
+		std::string path = (*it)->value;
+		if (path.empty())
+		{
+			Logger::warning("Empty error page path line: " + StrUtils::toString<int>((*it)->line) +
 								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
 							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			return;
+		}
+
+		// Validate path
+		if (!StrUtils::isAbsolutePath(path))
+			Logger::warning("Error page path is not absolute: " + path +
+								" line: " + StrUtils::toString<int>((*it)->line) +
+								" column: " + StrUtils::toString<int>((*it)->column),
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+		else if (StrUtils::hasConsecutiveDots(path))
+			Logger::warning("Error page path contains consecutive dots: " + path +
+								" line: " + StrUtils::toString<int>((*it)->line) +
+								" column: " + StrUtils::toString<int>((*it)->column),
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+		else if (StrUtils::hasControlCharacters(path))
+			Logger::warning("Error page path contains control characters: " + path +
+								" line: " + StrUtils::toString<int>((*it)->line) +
+								" column: " + StrUtils::toString<int>((*it)->column),
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+
+		// Insert the error page mapping
+		server.insertStatusPage(path, codes);
 	}
 	catch (const std::exception &e)
 	{
-		Logger::error("Error translating status page directive: " + std::string(e.what()) +
+		Logger::error("Error translating error_page directive: " + std::string(e.what()) +
 						  " line: " + StrUtils::toString<int>(directive.line) +
 						  " column: " + StrUtils::toString<int>(directive.column) + " skipping...",
 					  __FILE__, __LINE__, __PRETTY_FUNCTION__);

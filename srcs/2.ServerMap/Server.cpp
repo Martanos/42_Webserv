@@ -67,7 +67,8 @@ std::ostream &operator<<(std::ostream &o, Server const &i)
 	o << "Server names: ";
 	if (!i.getServerNames().isEmpty())
 	{
-		for (TrieTree<std::string>::const_iterator it = i.getServerNames().begin(); it != i.getServerNames().end(); ++it)
+		std::vector<std::string> names = i.getServerNames().getAllKeys();
+		for (std::vector<std::string>::const_iterator it = names.begin(); it != names.end(); ++it)
 			o << *it << " ";
 	}
 	o << std::endl;
@@ -78,8 +79,12 @@ std::ostream &operator<<(std::ostream &o, Server const &i)
 	o << std::endl;
 	o << "Root: " << i.getRootPath() << std::endl;
 	o << "Indexes: ";
-	for (TrieTree<std::string>::const_iterator it = i.getIndexes().begin(); it != i.getIndexes().end(); ++it)
-		o << *it << " ";
+	if (!i.getIndexes().isEmpty())
+	{
+		std::vector<std::string> indexes = i.getIndexes().getAllKeys();
+		for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); ++it)
+			o << *it << " ";
+	}
 	o << std::endl;
 	o << "Autoindex: " << (i.isAutoIndex() ? "true" : "false") << std::endl;
 	o << "Client max uri size: " << i.getClientMaxUriSize() << std::endl;
@@ -92,8 +97,12 @@ std::ostream &operator<<(std::ostream &o, Server const &i)
 		o << it->first << ": " << it->second << " ";
 	o << std::endl;
 	o << "Locations: ";
-	for (TrieTree<Location>::const_iterator it = i.getLocations().begin(); it != i.getLocations().end(); ++it)
-		o << it->getPath() << " ";
+	if (!i.getLocations().isEmpty())
+	{
+		std::vector<Location> locations = i.getLocations().getAllValues();
+		for (std::vector<Location>::const_iterator it = locations.begin(); it != locations.end(); ++it)
+			o << it->getPath() << " ";
+	}
 	o << std::endl;
 	o << "--------------------------------" << std::endl;
 	return o;

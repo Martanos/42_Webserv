@@ -54,7 +54,7 @@ Location &Location::operator=(Location const &rhs)
 	return *this;
 }
 
-void operator<<(std::ostream &o, Location const &i)
+std::ostream &operator<<(std::ostream &o, Location const &i)
 {
 	o << "--------------------------------" << std::endl;
 	o << "Path: " << i.getPath() << std::endl;
@@ -77,6 +77,7 @@ void operator<<(std::ostream &o, Location const &i)
 	o << std::endl;
 	o << "CgiPath: " << i.getCgiPath() << std::endl;
 	o << "--------------------------------" << std::endl;
+	return o;
 }
 
 /*
