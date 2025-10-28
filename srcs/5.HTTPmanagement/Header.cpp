@@ -1,5 +1,6 @@
 #include "../../includes/HTTP/Header.hpp"
 #include "../../includes/Global/StrUtils.hpp"
+#include "../../includes/Global/Logger.hpp"
 #include <cstddef>
 
 /*
@@ -83,11 +84,9 @@ void Header::_parseRawHeader()
 			throw std::invalid_argument("Empty value");
 		// Trim token of any intial valid whitespace
 		_values[i] = StrUtils::trimLeadingSpaces(_values[i]);
-		// Verify that value is a valid token
-		if (!StrUtils::isValidToken(_values[i]))
-			throw std::invalid_argument("Value is not a valid token");
-		// Normalize value to lowercase
-		_values[i] = StrUtils::toLowerCase(_values[i]);
+		// Header values can contain spaces and other characters, so we don't validate them as tokens
+		// Only normalize to lowercase for certain headers if needed
+		// _values[i] = StrUtils::toLowerCase(_values[i]);
 	}
 
 	if (hasParameters)

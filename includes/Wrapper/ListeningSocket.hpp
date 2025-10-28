@@ -20,8 +20,6 @@ public:
 	ListeningSocket &operator=(const ListeningSocket &rhs);
 	~ListeningSocket();
 	ListeningSocket();
-
-	ListeningSocket &operator=(const ListeningSocket &rhs);
 	// Accept connection
 	void accept(SocketAddress &address, FileDescriptor &clientFd) const;
 

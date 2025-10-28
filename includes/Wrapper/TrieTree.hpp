@@ -173,6 +173,13 @@ public:
 			{
 				IteratorState &state = _stack.back();
 
+				// Check if node is valid
+				if (!state.node)
+				{
+					_stack.pop_back();
+					continue;
+				}
+
 				// First visit: check if current node is an endpoint
 				if (state.node->isEndOfPath() && state.node->getData() && _currentData != state.node->getData())
 				{
@@ -293,6 +300,13 @@ public:
 			{
 				IteratorState &state = _stack.back();
 
+				// Check if node is valid
+				if (!state.node)
+				{
+					_stack.pop_back();
+					continue;
+				}
+
 				if (state.node->isEndOfPath() && state.node->getData() && _currentData != state.node->getData())
 				{
 					_currentData = state.node->getData();
@@ -384,6 +398,8 @@ public:
 	// Iterator accessors
 	iterator begin()
 	{
+		if (!_root)
+			return iterator();
 		return iterator(_root);
 	}
 
@@ -394,6 +410,8 @@ public:
 
 	const_iterator begin() const
 	{
+		if (!_root)
+			return const_iterator();
 		return const_iterator(_root);
 	}
 

@@ -49,7 +49,7 @@ private:
 	// Body Portion
 	std::string _body;
 	bool _streamBody;
-	FileDescriptor _bodyFileDescriptor; // If the body is a file, this will be the file descriptor\
+	FileDescriptor _bodyFileDescriptor; // If the body is a file, this will be the file descriptor
 
 	// Sending Portion
 	size_t _bytesSent;

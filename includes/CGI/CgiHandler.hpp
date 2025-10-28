@@ -4,11 +4,11 @@
 #include "CgiEnv.hpp"
 #include "CgiExecutor.hpp"
 #include "CgiResponse.hpp"
-#include "HttpRequest.hpp"
-#include "HttpResponse.hpp"
-#include "Location.hpp"
-#include "Logger.hpp"
-#include "Server.hpp"
+#include "../HTTP/HttpRequest.hpp"
+#include "../HTTP/HttpResponse.hpp"
+#include "../Core/Location.hpp"
+#include "../Global/Logger.hpp"
+#include "../Core/Server.hpp"
 #include <string>
 
 class CgiHandler

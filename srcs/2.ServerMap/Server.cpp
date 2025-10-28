@@ -65,8 +65,11 @@ std::ostream &operator<<(std::ostream &o, Server const &i)
 {
 	o << "--------------------------------" << std::endl;
 	o << "Server names: ";
-	for (TrieTree<std::string>::const_iterator it = i.getServerNames().begin(); it != i.getServerNames().end(); ++it)
-		o << *it << " ";
+	if (!i.getServerNames().isEmpty())
+	{
+		for (TrieTree<std::string>::const_iterator it = i.getServerNames().begin(); it != i.getServerNames().end(); ++it)
+			o << *it << " ";
+	}
 	o << std::endl;
 	o << "Hosts/ports: ";
 	for (std::vector<SocketAddress>::const_iterator it = i.getSocketAddresses().begin();
@@ -200,7 +203,17 @@ const std::map<int, std::string> &Server::getStatusPages() const
 // Returns longest prefix match location null if no match found
 const Location *Server::getLocation(const std::string &path) const
 {
-	return _locations.findLongestPrefix(path);
+	Logger::debug("Server::getLocation: Looking for path: " + path);
+	const Location *location = _locations.findLongestPrefix(path);
+	if (location)
+	{
+		Logger::debug("Server::getLocation: Found location: " + location->getPath());
+	}
+	else
+	{
+		Logger::debug("Server::getLocation: No location found for path: " + path);
+	}
+	return location;
 }
 
 const TrieTree<Location> &Server::getLocations() const
@@ -241,10 +254,16 @@ void Server::insertIndex(const std::string &index)
 
 void Server::insertLocation(const Location &location)
 {
+	Logger::debug("Server::insertLocation: Adding location: " + location.getPath());
 	if (!hasLocation(location.getPath()))
 	{
 		_locations.insert(location.getPath(), location);
 		_modified = true;
+		Logger::debug("Server::insertLocation: Location added successfully");
+	}
+	else
+	{
+		Logger::debug("Server::insertLocation: Location already exists");
 	}
 }
 

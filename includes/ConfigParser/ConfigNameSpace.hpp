@@ -95,7 +95,7 @@ struct ASTNode
 
 	void Error(std::string message)
 	{
-		this->type = NodeType::ERROR;
+		this->type = ERROR;
 		this->message = message;
 	}
 };

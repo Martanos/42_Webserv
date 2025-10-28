@@ -1,6 +1,7 @@
 #include "../../includes/Wrapper/SocketAddress.hpp"
 #include "../../includes/Global/IPAddressParser.hpp"
 #include "../../includes/Global/Logger.hpp"
+#include "../../includes/Global/StrUtils.hpp"
 #include <cstddef>
 #include <sstream>
 
@@ -15,7 +16,7 @@ SocketAddress::SocketAddress() : _addrLen(0), _family(AF_UNSPEC), _host("localho
 
 SocketAddress::SocketAddress(const std::string &host, const unsigned short &port) : _addrLen(0), _family(AF_UNSPEC)
 {
-	*this = SocketAddress(host, std::to_string(port));
+	*this = SocketAddress(host, StrUtils::toString(port));
 }
 
 SocketAddress::SocketAddress(const std::string &host, const std::string &port) : _addrLen(0), _family(AF_UNSPEC)
@@ -135,7 +136,8 @@ SocketAddress::SocketAddress(const std::string &host_port) : _addrLen(0), _famil
 	size_t colon_pos = host_port.rfind(':');
 	if (colon_pos == std::string::npos)
 	{
-		*this = SocketAddress(host_port, "80");
+		// If no colon, treat as port number
+		*this = SocketAddress("0.0.0.0", host_port);
 	}
 	else
 	{

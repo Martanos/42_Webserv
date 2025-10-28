@@ -18,8 +18,8 @@ private:
 	bool accept(Token::TokenType type, Token::Token *out = 0);
 
 	void parseServerBlock(AST::ASTNode &cfg);
-	AST::ASTNode parseDirective();
-	AST::ASTNode parseLocation();
+	AST::ASTNode *parseDirective();
+	AST::ASTNode *parseLocation();
 
 	// Non-copyable
 	ConfigParser(ConfigParser const &);

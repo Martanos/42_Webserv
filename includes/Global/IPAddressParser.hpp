@@ -37,7 +37,7 @@ bool parseIPv4(const std::string &ipStr, uint32_t &result)
 	{
 		char *end;
 		uint32_t octet = std::strtoul(octets[i].c_str(), &end, 10);
-		if (end == octets[i].c_str() || *end != '\0' || octet < 0 || octet > 255)
+		if (end == octets[i].c_str() || *end != '\0' || octet > 255)
 		{
 			return false;
 		}

@@ -8,7 +8,7 @@
 #include "../includes/Core/ServerManager.hpp"
 #include "../includes/Global/Logger.hpp"
 #include "../includes/Global/PerformanceMonitor.hpp"
-#include "../includes/Global/StringUtils.hpp"
+#include "../includes/Global/StrUtils.hpp"
 
 int main(int argc, char **argv)
 {
@@ -19,7 +19,7 @@ int main(int argc, char **argv)
 	PerformanceMonitor &perfMonitor = PerformanceMonitor::getInstance();
 	perfMonitor.setPerformanceThresholds(1000.0, 5000.0, 100 * 1024 * 1024); // 1s, 5s, 100MB
 	Logger::log(Logger::INFO, "PerformanceMonitor: Performance monitoring initialized", __FILE__, __LINE__,
-				__PRETTY_FUNCTION__);
+				__FUNCTION__);
 
 	if (argc != 2)
 	{
@@ -49,11 +49,13 @@ int main(int argc, char **argv)
 
 		// 3. Build server map
 		ServerMap serverMap(servers);
-		serverMap.printServerMap();
+		// serverMap.printServerMap(); // Temporarily commented out to debug segfault
 
 		// 4. Create manager instance with server map
-		// TODO: Create manager instance with server map
 		ServerManager serverManager(serverMap);
+
+		// 5. Start the server
+		serverManager.run();
 
 		// Log final performance report
 		perfMonitor.logPerformanceReport();

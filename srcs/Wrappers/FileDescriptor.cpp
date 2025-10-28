@@ -1,6 +1,6 @@
-#include "../../includes/FileDescriptor.hpp"
-#include "../../includes/Logger.hpp"
-#include "../../includes/StringUtils.hpp"
+#include "../../includes/Wrapper/FileDescriptor.hpp"
+#include "../../includes/Global/Logger.hpp"
+#include "../../includes/Global/StrUtils.hpp"
 #include <cerrno>
 #include <cstring>
 #include <dirent.h>
@@ -74,10 +74,10 @@ void FileDescriptor::closeDescriptor()
 		{
 			if (::close(_ctrl->fd) == -1 && errno != EBADF)
 			{
-				std::stringstream ss;
-				ss << __FILE__ << ":" << __LINE__
-				   << ": FileDescriptor: Failed to close file descriptor: " << strerror(errno);
-				Logger::error(ss.str(), __FILE__, __LINE__);
+		std::stringstream ss;
+		ss << __FILE__ << ":" << __LINE__
+		   << ": FileDescriptor: Failed to close file descriptor: " << strerror(errno);
+		Logger::error(ss.str(), __FILE__, __LINE__, __FUNCTION__);
 				throw std::runtime_error(ss.str());
 			}
 		}
@@ -567,7 +567,7 @@ ssize_t FileDescriptor::writePipe(const std::string &buffer)
 		{
 			std::stringstream ss;
 			ss << "FileDescriptor: Failed to write pipe: " << strerror(errno);
-			Logger::error(ss.str(), __FILE__, __LINE__);
+			Logger::error(ss.str(), __FILE__, __LINE__, __FUNCTION__);
 			throw std::runtime_error(ss.str());
 		}
 		totalWritten += bytesWritten;

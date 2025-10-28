@@ -4,7 +4,7 @@
 #include "../../includes/ConfigParser/ServerMap.hpp"
 #include "../../includes/Core/Client.hpp"
 #include "../../includes/Core/EpollManager.hpp"
-#include "../../includes/Core/Logger.hpp"
+#include "../../includes/Global/Logger.hpp"
 #include "../../includes/Wrapper/FileDescriptor.hpp"
 #include <map>
 #include <sys/epoll.h>
@@ -24,9 +24,12 @@ private:
 
 	void _addServerFdsToEpoll(ServerMap &serverMap);
 	void _checkClientTimeouts();
+	void _handleNewConnection(int serverFd);
+	void _handleClientEvent(int clientFd, epoll_event event);
 
 	// Private methods
 	void _handleEventLoop(int ready_events, std::vector<epoll_event> &events);
+	bool _isClientFd(int fd) const;
 
 	// Signal handlers
 	static void _handleSignal(int signal);

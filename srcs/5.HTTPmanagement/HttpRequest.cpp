@@ -58,33 +58,43 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 {
 	PERF_SCOPED_TIMER(http_request_parsing);
 
-	// Delegate to the appropriate parser
-	switch (_parseState)
+	Logger::debug("HttpRequest: parseBuffer called, state: " + StrUtils::toString(_parseState) + ", buffer size: " + StrUtils::toString(holdingBuffer.size()));
+
+	// Continue parsing until complete or need more data
+	while (_parseState != PARSING_COMPLETE && _parseState != PARSING_ERROR)
 	{
-	case PARSING_URI:
-	{
-		_uri.parseBuffer(holdingBuffer, response);
-		switch (_uri.getURIState())
+		// Delegate to the appropriate parser
+		switch (_parseState)
 		{
-		case HttpURI::URI_PARSING_COMPLETE:
+		case PARSING_URI:
 		{
-			Logger::debug("HttpRequest: URI parsing complete");
-			Logger::debug("URI: " + _uri.getMethod() + " " + _uri.getURI() + " " + _uri.getVersion());
-			_parseState = PARSING_HEADERS;
+			Logger::debug("HttpRequest: Parsing URI");
+			_uri.parseBuffer(holdingBuffer, response);
+			Logger::debug("HttpRequest: URI state: " + StrUtils::toString(_uri.getURIState()));
+			switch (_uri.getURIState())
+			{
+			case HttpURI::URI_PARSING_COMPLETE:
+			{
+				Logger::debug("HttpRequest: URI parsing complete");
+				Logger::debug("URI: " + _uri.getMethod() + " " + _uri.getURI() + " " + _uri.getVersion());
+				_parseState = PARSING_HEADERS;
+				Logger::debug("HttpRequest: Transitioned to PARSING_HEADERS");
+				break;
+			}
+			case HttpURI::URI_PARSING_ERROR:
+				Logger::error("HttpRequest: Request line parsing error");
+				_parseState = PARSING_ERROR;
+				break;
+			default:
+				return _parseState;
+			}
 			break;
 		}
-		case HttpURI::URI_PARSING_ERROR:
-			Logger::error("HttpRequest: Request line parsing error");
-			_parseState = PARSING_ERROR;
-			break;
-		default:
-			break;
-		}
-		break;
-	}
 	case PARSING_HEADERS:
 	{
+		Logger::debug("HttpRequest: Starting headers parsing");
 		_headers.parseBuffer(holdingBuffer, response, _body);
+		Logger::debug("HttpRequest: Headers parsing state: " + StrUtils::toString(_headers.getHeadersState()));
 		switch (_headers.getHeadersState())
 		{
 		case HttpHeaders::HEADERS_PARSING_COMPLETE:
@@ -95,11 +105,15 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 			Logger::error("HttpRequest: Headers parsing error", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			_parseState = PARSING_ERROR;
 			break;
+		case HttpHeaders::HEADERS_PARSING:
+			Logger::debug("HttpRequest: Headers still parsing, need more data");
+			return _parseState;
 		}
 		break;
 	}
 	case PARSING_BODY:
 	{
+		Logger::debug("HttpRequest: Parsing body");
 		if (_server == NULL)
 		{
 			Logger::error("HttpRequest: No server found", __FILE__, __LINE__, __PRETTY_FUNCTION__);
@@ -108,15 +122,18 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 			break;
 		}
 		_body.parseBuffer(holdingBuffer, response);
+		Logger::debug("HttpRequest: Body state: " + StrUtils::toString(_body.getBodyState()));
 		switch (_body.getBodyState())
 		{
 		case HttpBody::BODY_PARSING_COMPLETE:
 		{
 			Logger::debug("HttpRequest: Body parsing complete");
 			_parseState = PARSING_COMPLETE;
+			Logger::debug("HttpRequest: Transitioned to PARSING_COMPLETE");
 			break;
 		}
 		case HttpBody::BODY_PARSING:
+			Logger::debug("HttpRequest: Body parsing in progress");
 			_parseState = PARSING_BODY;
 			break;
 		case HttpBody::BODY_PARSING_ERROR:
@@ -129,12 +146,15 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 	default:
 		break;
 	}
+	}
 	// TODO: Log state here
+	Logger::debug("HttpRequest: parseBuffer returning state: " + StrUtils::toString(_parseState));
 	return _parseState;
 }
 
 void HttpRequest::sanitizeRequest(HttpResponse &response, const Server *server, const Location *location)
 {
+	(void)response;
 	_uri.sanitizeURI(server, location);
 }
 
@@ -143,9 +163,12 @@ void HttpRequest::sanitizeRequest(HttpResponse &response, const Server *server, 
 *----------------------------------
 */
 
-const Header::Header *HttpRequest::getHeader(const std::string &name) const
+const std::vector<std::string> HttpRequest::getHeader(const std::string &name) const
 {
-	return _headers.getHeader(name);
+	const Header *header = _headers.getHeader(name);
+	if (header)
+		return header->getValues();
+	return std::vector<std::string>();
 }
 
 // Enhanced reset method
@@ -201,7 +224,15 @@ std::string HttpRequest::getVersion() const
 
 std::map<std::string, std::vector<std::string> > HttpRequest::getHeaders() const
 {
-	return _headers.getHeaders();
+	std::map<std::string, std::vector<std::string> > result;
+	const std::vector<Header> &headers = _headers.getHeaders();
+	
+	for (std::vector<Header>::const_iterator it = headers.begin(); it != headers.end(); ++it)
+	{
+		result[it->getDirective()] = it->getValues();
+	}
+	
+	return result;
 };
 
 std::string HttpRequest::getBodyData() const

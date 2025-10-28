@@ -1,4 +1,5 @@
-#include "../../includes/FileManager.hpp"
+#include "../../includes/Wrapper/FileManager.hpp"
+#include "../../includes/HTTP/HTTP.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------

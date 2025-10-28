@@ -106,15 +106,36 @@ void ServerMap::printServerMap() const
 		ss << "Servers:" << std::endl;
 		for (std::vector<Server>::const_iterator server = it->second.begin(); server != it->second.end(); ++server)
 		{
-			ss << " Server Name(s):";
+		ss << " Server Name(s):";
+		if (!server->getServerNames().isEmpty())
+		{
 			for (TrieTree<std::string>::const_iterator serverName = server->getServerNames().begin();
 				 serverName != server->getServerNames().end(); ++serverName)
 			{
 				ss << " " << *serverName << std::endl;
 			}
 		}
+		else
+		{
+			ss << " (none)" << std::endl;
+		}
+		}
 	}
 	Logger::debug(ss.str());
+}
+
+const std::vector<Server> &ServerMap::getServersForFd(int fd) const
+{
+	for (std::map<ListeningSocket, std::vector<Server> >::const_iterator it = _serverMap.begin();
+		 it != _serverMap.end(); ++it)
+	{
+		if (it->first.getFd().getFd() == fd)
+		{
+			return it->second;
+		}
+	}
+	static std::vector<Server> empty;
+	return empty;
 }
 
 /* ************************************************************************** */

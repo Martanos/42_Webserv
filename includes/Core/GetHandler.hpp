@@ -230,6 +230,7 @@ static inline void generateDirectoryListing(const std::string &dirPath, const st
 static inline void handler(const HttpRequest &request, HttpResponse &response, const Server *server,
 						   const Location *location)
 {
+	(void)server;
 	try
 	{
 		std::string filePath = request.getUri();

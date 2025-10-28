@@ -18,21 +18,21 @@ namespace StrUtils
 // STRING MANIPULATION
 // ============================================================
 
-std::string toLowerCase(const std::string &str)
+inline std::string toLowerCase(const std::string &str)
 {
 	std::string result = str;
 	std::transform(result.begin(), result.end(), result.begin(), ::tolower);
 	return result;
 }
 
-std::string toUpperCase(const std::string &str)
+inline std::string toUpperCase(const std::string &str)
 {
 	std::string result = str;
 	std::transform(result.begin(), result.end(), result.begin(), ::toupper);
 	return result;
 }
 
-std::string trimLeadingSpaces(const std::string &str)
+inline std::string trimLeadingSpaces(const std::string &str)
 {
 	size_t start = str.find_first_not_of(" \t\r\n");
 	if (start == std::string::npos)
@@ -40,7 +40,7 @@ std::string trimLeadingSpaces(const std::string &str)
 	return str.substr(start);
 }
 
-std::string trimTrailingSpaces(const std::string &str)
+inline std::string trimTrailingSpaces(const std::string &str)
 {
 	size_t end = str.find_last_not_of(" \t\r\n");
 	if (end == std::string::npos)
@@ -48,19 +48,19 @@ std::string trimTrailingSpaces(const std::string &str)
 	return str.substr(0, end + 1);
 }
 
-std::string trimSpaces(const std::string &str)
+inline std::string trimSpaces(const std::string &str)
 {
 	return trimLeadingSpaces(str) + trimTrailingSpaces(str);
 }
 
-template <typename T> std::string toString(T value)
+template <typename T> inline std::string toString(T value)
 {
 	std::stringstream ss;
 	ss << value;
 	return ss.str();
 }
 
-template <typename T> T fromString(const std::string &str)
+template <typename T> inline T fromString(const std::string &str)
 {
 	T value;
 	std::stringstream ss(str);
@@ -70,7 +70,7 @@ template <typename T> T fromString(const std::string &str)
 
 // Split string into a vector of strings using a delimiter
 // preserves everything except the delimiter
-std::vector<std::string> splitString(const std::string &str, char delimiter)
+inline std::vector<std::string> splitString(const std::string &str, char delimiter)
 {
 	std::vector<std::string> parts;
 	std::string current;
@@ -95,19 +95,19 @@ std::vector<std::string> splitString(const std::string &str, char delimiter)
 // ============================================================
 
 // Check if character is a control character (0x00-0x1F or 0x7F)
-bool isControlCharacter(unsigned char c)
+inline bool isControlCharacter(unsigned char c)
 {
 	return (c < 0x20 || c == 0x7F);
 }
 
 // Check if character is valid in a path
-bool isValidPathCharacter(char c)
+inline bool isValidPathCharacter(char c)
 {
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '/' || c == '.' ||
 		   c == '-' || c == '_';
 }
 
-int hexCharToInt(char c)
+inline int hexCharToInt(char c)
 {
 	if (c >= '0' && c <= '9')
 		return c - '0';
@@ -119,17 +119,17 @@ int hexCharToInt(char c)
 }
 
 // RFC 7230 §3.2.6: Token
-bool isValidTokenCharacter(char c)
+inline bool isValidTokenCharacter(char c)
 {
 	return std::string("!#$%&'*+-./^_`|~0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ").find(c) !=
 		   std::string::npos;
 }
 
-bool isValidToken(const std::string &str)
+inline bool isValidToken(const std::string &str)
 {
 	for (size_t i = 0; i < str.size(); ++i)
 	{
-		if (!isValidPathCharacter(str[i]))
+		if (!isValidTokenCharacter(str[i]))
 			return false;
 	}
 	return true;
@@ -140,7 +140,7 @@ bool isValidToken(const std::string &str)
 // ============================================================
 
 // Check if string contains control characters
-bool hasControlCharacters(const std::string &str)
+inline bool hasControlCharacters(const std::string &str)
 {
 	for (size_t i = 0; i < str.size(); ++i)
 	{
@@ -151,7 +151,7 @@ bool hasControlCharacters(const std::string &str)
 }
 
 // Check if string contains only printable ASCII (0x20-0x7E)
-bool isPrintableAscii(const std::string &str)
+inline bool isPrintableAscii(const std::string &str)
 {
 	for (size_t i = 0; i < str.size(); ++i)
 	{
@@ -163,7 +163,7 @@ bool isPrintableAscii(const std::string &str)
 }
 
 // Check if string has consecutive dots
-bool hasConsecutiveDots(const std::string &str)
+inline bool hasConsecutiveDots(const std::string &str)
 {
 	for (size_t i = 0; i < str.length() - 1; ++i)
 	{
@@ -174,7 +174,7 @@ bool hasConsecutiveDots(const std::string &str)
 }
 
 // Find first control character position
-size_t findControlCharacter(const std::string &str)
+inline size_t findControlCharacter(const std::string &str)
 {
 	for (size_t i = 0; i < str.size(); ++i)
 	{
@@ -185,7 +185,7 @@ size_t findControlCharacter(const std::string &str)
 }
 
 // Get human-readable representation of control character
-std::string controlCharToString(unsigned char c)
+inline std::string controlCharToString(unsigned char c)
 {
 	if (!isControlCharacter(c))
 	{
@@ -227,7 +227,7 @@ std::string controlCharToString(unsigned char c)
 }
 
 // Remove control characters from string
-std::string removeControlCharacters(const std::string &str)
+inline std::string removeControlCharacters(const std::string &str)
 {
 	std::string result;
 	result.reserve(str.size());
@@ -245,7 +245,7 @@ std::string removeControlCharacters(const std::string &str)
 // ============================================================
 
 // Decode percent-encoded URL string
-std::string percentDecode(const std::string &input)
+inline std::string percentDecode(const std::string &input)
 {
 	std::string output;
 	output.reserve(input.length()); // Optimize memory allocation
@@ -294,7 +294,7 @@ std::string percentDecode(const std::string &input)
 }
 
 // Normalize multiple slashes to single slash
-std::string normalizeSlashes(const std::string &path)
+inline std::string normalizeSlashes(const std::string &path)
 {
 	std::string result;
 	result.reserve(path.length());
@@ -320,7 +320,7 @@ std::string normalizeSlashes(const std::string &path)
 }
 
 // Remove dot segments (. and ..) from path
-std::string removeDotSegments(const std::string &path)
+inline std::string removeDotSegments(const std::string &path)
 {
 	std::vector<std::string> segments;
 	std::vector<std::string> parts = splitString(path, '/');
@@ -357,7 +357,7 @@ std::string removeDotSegments(const std::string &path)
 }
 
 // Trim trailing slashes from path
-std::string trimTrailingSlashes(const std::string &path)
+inline std::string trimTrailingSlashes(const std::string &path)
 {
 	if (path.empty())
 		return path;
@@ -370,7 +370,7 @@ std::string trimTrailingSlashes(const std::string &path)
 }
 
 // Full URI path sanitization (decode, normalize, remove traversal)
-std::string sanitizeUriPath(const std::string &path)
+inline std::string sanitizeUriPath(const std::string &path)
 {
 	std::string decoded = percentDecode(path);
 	std::string normalized = normalizeSlashes(decoded);
@@ -383,7 +383,7 @@ std::string sanitizeUriPath(const std::string &path)
 }
 
 // Check if sanitized path is safe
-bool isSafePath(const std::string &path)
+inline bool isSafePath(const std::string &path)
 {
 	if (path.find("..") != std::string::npos)
 		return false;
@@ -394,7 +394,7 @@ bool isSafePath(const std::string &path)
 	return true;
 }
 
-bool hasSpaces(const std::string &str)
+inline bool hasSpaces(const std::string &str)
 {
 	for (size_t i = 0; i < str.size(); ++i)
 	{
@@ -409,20 +409,20 @@ bool hasSpaces(const std::string &str)
 // ============================================================
 
 // Basic existence checks
-bool pathExists(const std::string &path)
+inline bool pathExists(const std::string &path)
 {
 	struct stat st;
 	return stat(path.c_str(), &st) == 0;
 }
 
-bool pathExistsNoFollow(const std::string &path)
+inline bool pathExistsNoFollow(const std::string &path)
 {
 	struct stat st;
 	return lstat(path.c_str(), &st) == 0;
 }
 
 // Type checks
-bool isDirectory(const std::string &path)
+inline bool isDirectory(const std::string &path)
 {
 	struct stat st;
 	if (stat(path.c_str(), &st) != 0)
@@ -430,7 +430,7 @@ bool isDirectory(const std::string &path)
 	return S_ISDIR(st.st_mode);
 }
 
-bool isFile(const std::string &path)
+inline bool isFile(const std::string &path)
 {
 	struct stat st;
 	if (stat(path.c_str(), &st) != 0)
@@ -438,7 +438,7 @@ bool isFile(const std::string &path)
 	return S_ISREG(st.st_mode);
 }
 
-bool isSymbolicLink(const std::string &path)
+inline bool isSymbolicLink(const std::string &path)
 {
 	struct stat st;
 	if (lstat(path.c_str(), &st) != 0)
@@ -447,28 +447,28 @@ bool isSymbolicLink(const std::string &path)
 }
 
 // Permission checks
-bool isReadable(const std::string &path)
+inline bool isReadable(const std::string &path)
 {
 	return access(path.c_str(), R_OK) == 0;
 }
 
-bool isWritable(const std::string &path)
+inline bool isWritable(const std::string &path)
 {
 	return access(path.c_str(), W_OK) == 0;
 }
 
-bool isExecutable(const std::string &path)
+inline bool isExecutable(const std::string &path)
 {
 	return access(path.c_str(), X_OK) == 0;
 }
 
 // Path properties
-bool isAbsolutePath(const std::string &path)
+inline bool isAbsolutePath(const std::string &path)
 {
 	return !path.empty() && path[0] == '/';
 }
 
-long getFileSize(const std::string &path)
+inline long getFileSize(const std::string &path)
 {
 	struct stat st;
 	if (stat(path.c_str(), &st) != 0)
@@ -477,7 +477,7 @@ long getFileSize(const std::string &path)
 }
 
 // Path resolution
-std::string getCanonicalPath(const std::string &path)
+inline std::string getCanonicalPath(const std::string &path)
 {
 	char *resolved = realpath(path.c_str(), NULL);
 	if (resolved == NULL)
@@ -489,7 +489,7 @@ std::string getCanonicalPath(const std::string &path)
 }
 
 // Security: Check if path is within allowed directory
-bool isPathWithinDirectory(const std::string &path, const std::string &allowedDir)
+inline bool isPathWithinDirectory(const std::string &path, const std::string &allowedDir)
 {
 	std::string canonicalPath = getCanonicalPath(path);
 	std::string canonicalDir = getCanonicalPath(allowedDir);
@@ -508,7 +508,7 @@ bool isPathWithinDirectory(const std::string &path, const std::string &allowedDi
 // ============================================================
 
 // Validate no control characters
-std::string validateNoControlCharacters(const std::string &str, const std::string &fieldName)
+inline std::string validateNoControlCharacters(const std::string &str, const std::string &fieldName)
 {
 	size_t pos = findControlCharacter(str);
 	if (pos == std::string::npos)
@@ -522,7 +522,7 @@ std::string validateNoControlCharacters(const std::string &str, const std::strin
 }
 
 // Validate directory path (exists, readable)
-std::string validateDirectoryPath(const std::string &path, const std::string &directiveName)
+inline std::string validateDirectoryPath(const std::string &path, const std::string &directiveName)
 {
 	if (path.empty())
 		return directiveName + ": Path cannot be empty";
@@ -552,7 +552,7 @@ std::string validateDirectoryPath(const std::string &path, const std::string &di
 }
 
 // Validate file path (exists, readable)
-std::string validateFilePath(const std::string &path, const std::string &directiveName)
+inline std::string validateFilePath(const std::string &path, const std::string &directiveName)
 {
 	if (path.empty())
 		return directiveName + ": Path cannot be empty";

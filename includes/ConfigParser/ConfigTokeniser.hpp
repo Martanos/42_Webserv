@@ -26,8 +26,8 @@ private:
 	static bool isDigit(unsigned char ch);
 
 	// Non-copyable
-	ConfigTokeniser(ConfigTokeniser const &) = delete;
-	ConfigTokeniser &operator=(ConfigTokeniser const &) = delete;
+	ConfigTokeniser(ConfigTokeniser const &);
+	ConfigTokeniser &operator=(ConfigTokeniser const &);
 
 public:
 	explicit ConfigTokeniser(ConfigFileReader &reader);

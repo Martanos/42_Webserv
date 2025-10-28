@@ -318,4 +318,40 @@ void HttpResponse::setLastModifiedHeader()
 	setHeader(Header("last-modified: " + std::string(buffer) + " GMT"));
 }
 
+void HttpResponse::setBody(const Location *location, const Server *server)
+{
+	(void)location;
+	(void)server;
+	// Generate a simple error page based on status code
+	std::string errorPage = "<html><head><title>" + StrUtils::toString(_statusCode) + " " + _statusMessage + "</title></head>";
+	errorPage += "<body><h1>" + StrUtils::toString(_statusCode) + " " + _statusMessage + "</h1>";
+	errorPage += "<p>Error occurred while processing your request.</p></body></html>";
+	_body = errorPage;
+}
+
+void HttpResponse::sendResponse(const FileDescriptor &clientFd)
+{
+	// Generate the raw response
+	_rawResponse = _version + " " + StrUtils::toString(_statusCode) + " " + _statusMessage + "\r\n";
+	
+	// Add headers
+	for (std::vector<Header>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
+	{
+		_rawResponse += it->getDirective() + ": " + it->getValues()[0] + "\r\n";
+	}
+	
+	// Add empty line before body
+	_rawResponse += "\r\n";
+	
+	// Add body
+	_rawResponse += _body;
+	
+	// Send the response
+	ssize_t bytesSent = send(clientFd.getFd(), _rawResponse.c_str(), _rawResponse.length(), 0);
+	if (bytesSent > 0)
+	{
+		_bytesSent = static_cast<size_t>(bytesSent);
+	}
+}
+
 /* ************************************************************************** */

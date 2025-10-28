@@ -19,7 +19,6 @@ const char *const SINGLETON_HEADERS[] = {
 	"host",			 "content-length",		"content-type", "content-location", "date",		   "etag",
 	"expires",		 "last-modified",		"location",		"server",			"user-agent",  "referer",
 	"authorization", "proxy-authorization", "expect",		"upgrade",			"retry-after", "content-range"};
-static const std::vector<std::string> SUPPORTED_METHODS = {"GET", "POST", "DELETE"};
 static const std::string HTTP_VERSION = "HTTP/1.1";
 static const std::string TEMP_FILE_TEMPLATE = "/tmp/webserv-";
 static const ssize_t MAX_URI_LINE_SIZE = 16384;		 // 16KB
@@ -34,15 +33,11 @@ static const unsigned short DEFAULT_PORT = 80;
 static const bool DEFAULT_AUTOINDEX = false;
 static const bool DEFAULT_KEEP_ALIVE = true;
 
-bool isSupportedMethod(const std::string &method)
+inline bool isSupportedMethod(const std::string &method)
 {
-	for (size_t i = 0; i < sizeof(HTTP::SUPPORTED_METHODS) / sizeof(HTTP::SUPPORTED_METHODS[0]); ++i)
-	{
-		if (SUPPORTED_METHODS[i] == method)
-			return true;
-	}
-	return false;
+	return method == "GET" || method == "POST" || method == "DELETE";
 }
+
 
 } // namespace HTTP
 

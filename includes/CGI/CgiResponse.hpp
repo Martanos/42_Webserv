@@ -1,8 +1,8 @@
 #ifndef CGIRESPONSE_HPP
 #define CGIRESPONSE_HPP
 
-#include "HttpResponse.hpp"
-#include "Logger.hpp"
+#include "../HTTP/HttpResponse.hpp"
+#include "../Global/Logger.hpp"
 #include <map>
 #include <string>
 #include <vector>

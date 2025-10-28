@@ -53,9 +53,9 @@ bool ConfigParser::accept(Token::TokenType type, Token::Token *out)
 void ConfigParser::parseServerBlock(AST::ASTNode &cfg)
 {
 	Token::Token open = expect(Token::TOKEN_OPEN_BRACE, "'{' after server");
-	AST::ASTNode srv(AST::NodeType::SERVER);
-	srv.line = open.line;
-	srv.column = open.column;
+	AST::ASTNode *srv = new AST::ASTNode(AST::SERVER);
+	srv->line = open.line;
+	srv->column = open.column;
 
 	while (true)
 	{
@@ -68,30 +68,30 @@ void ConfigParser::parseServerBlock(AST::ASTNode &cfg)
 		if (t.type == Token::TOKEN_EOF)
 		{
 			std::ostringstream ss;
-			ss << "Unterminated server block starting at " << srv.line << ":" << srv.column;
+			ss << "Unterminated server block starting at " << srv->line << ":" << srv->column;
 			throw std::runtime_error(ss.str());
 		}
 		if (t.type == Token::TOKEN_IDENTIFIER && t.lexeme == "location")
 		{
 			_tok->nextToken(); // consume 'location'
-			AST::ASTNode loc = parseLocation();
-			srv.addChild(&loc);
+			AST::ASTNode *loc = parseLocation();
+			srv->addChild(loc);
 			continue;
 		}
-		AST::ASTNode d = parseDirective();
-		srv.addChild(&d);
+		AST::ASTNode *d = parseDirective();
+		srv->addChild(d);
 	}
 
-	cfg.addChild(&srv);
+	cfg.addChild(srv);
 }
 
-AST::ASTNode ConfigParser::parseDirective()
+AST::ASTNode *ConfigParser::parseDirective()
 {
 	Token::Token name = expect(Token::TOKEN_IDENTIFIER, "directive name");
-	AST::ASTNode d(AST::NodeType::DIRECTIVE);
-	d.value = name.lexeme;
-	d.line = name.line;
-	d.column = name.column;
+	AST::ASTNode *d = new AST::ASTNode(AST::DIRECTIVE);
+	d->value = name.lexeme;
+	d->line = name.line;
+	d->column = name.column;
 	size_t position = 0;
 
 	// gather args until ';'
@@ -107,25 +107,25 @@ AST::ASTNode ConfigParser::parseDirective()
 		else if (t.type == Token::TOKEN_IDENTIFIER || t.type == Token::TOKEN_NUMBER || t.type == Token::TOKEN_STRING)
 		{
 			Token::Token arg = _tok->nextToken();
-			AST::ASTNode directiveArg(AST::NodeType::ARG, arg.lexeme);
-			directiveArg.position = position;
-			d.addChild(&directiveArg);
+			AST::ASTNode *directiveArg = new AST::ASTNode(AST::ARG, arg.lexeme);
+			directiveArg->position = position;
+			d->addChild(directiveArg);
 			continue;
 		}
 		std::ostringstream ss;
-		ss << "Unexpected token in directive '" << d.value << "': '" << t.lexeme << "' at " << t.line << ":"
+		ss << "Unexpected token in directive '" << d->value << "': '" << t.lexeme << "' at " << t.line << ":"
 		   << t.column;
 		throw std::runtime_error(ss.str());
 	}
 }
 
-AST::ASTNode ConfigParser::parseLocation()
+AST::ASTNode *ConfigParser::parseLocation()
 {
 	Token::Token pathTok = expect(Token::TOKEN_IDENTIFIER, "location path");
-	AST::ASTNode loc(AST::NodeType::LOCATION);
-	loc.value = pathTok.lexeme;
-	loc.line = pathTok.line;
-	loc.column = pathTok.column;
+	AST::ASTNode *loc = new AST::ASTNode(AST::LOCATION);
+	loc->value = pathTok.lexeme;
+	loc->line = pathTok.line;
+	loc->column = pathTok.column;
 
 	Token::Token open = expect(Token::TOKEN_OPEN_BRACE, "'{' after location");
 	while (true)
@@ -139,11 +139,11 @@ AST::ASTNode ConfigParser::parseLocation()
 		if (t.type == Token::TOKEN_EOF)
 		{
 			std::ostringstream ss;
-			ss << "Unterminated location block at " << loc.line << ":" << loc.column;
+			ss << "Unterminated location block at " << loc->line << ":" << loc->column;
 			throw std::runtime_error(ss.str());
 		}
-		AST::ASTNode d = parseDirective();
-		loc.addChild(&d);
+		AST::ASTNode *d = parseDirective();
+		loc->addChild(d);
 	}
 	return loc;
 }
@@ -153,7 +153,7 @@ AST::ASTNode ConfigParser::parseLocation()
 */
 AST::ASTNode ConfigParser::parse()
 {
-	AST::ASTNode cfg(AST::NodeType::CONFIG);
+	AST::ASTNode cfg(AST::CONFIG);
 	while (true)
 	{
 		Token::Token t = _tok->peek(1);
@@ -190,22 +190,22 @@ void ConfigParser::printASTRecursive(const AST::ASTNode &node, int depth) const
 	// Print node type and value
 	switch (node.type)
 	{
-	case AST::NodeType::CONFIG:
+	case AST::CONFIG:
 		std::cout << "CONFIG";
 		break;
-	case AST::NodeType::SERVER:
+	case AST::SERVER:
 		std::cout << "SERVER";
 		break;
-	case AST::NodeType::DIRECTIVE:
+	case AST::DIRECTIVE:
 		std::cout << "DIRECTIVE: " << node.value;
 		break;
-	case AST::NodeType::LOCATION:
+	case AST::LOCATION:
 		std::cout << "LOCATION: " << node.value;
 		break;
-	case AST::NodeType::ARG:
+	case AST::ARG:
 		std::cout << "ARG: " << node.value;
 		break;
-	case AST::NodeType::ERROR:
+	case AST::ERROR:
 		std::cout << "ERROR: " << node.message;
 		break;
 	default:

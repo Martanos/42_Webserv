@@ -36,7 +36,7 @@ public:
 	std::vector<Server> &getServers(const ListeningSocket &key);
 
 	// Mutators
-	const void insertServer(const Server &server);
+	void insertServer(const Server &server);
 
 	// Listening sockets
 	const ListeningSocket &getListeningSocket(int &fd) const;
@@ -44,6 +44,7 @@ public:
 	// Utility Methods
 	bool hasFd(int &fd) const;
 	void printServerMap() const;
+	const std::vector<Server> &getServersForFd(int fd) const;
 };
 
 #endif /* *************************************************** SERVERMANAGER_H                                          \

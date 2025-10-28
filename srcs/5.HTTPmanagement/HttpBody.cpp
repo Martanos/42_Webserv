@@ -1,6 +1,6 @@
 #include "../../includes/HTTP/HttpBody.hpp"
 #include "../../includes/Global/Logger.hpp"
-#include "../../includes/HTTP/Constants.hpp"
+#include "../../includes/HTTP/HTTP.hpp"
 #include "../../includes/HTTP/HttpResponse.hpp"
 #include <algorithm>
 #include <cstdlib>
@@ -58,8 +58,12 @@ HttpBody &HttpBody::operator=(HttpBody const &rhs)
 
 void HttpBody::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 {
+	Logger::debug("HttpBody: parseBuffer called, body type: " + StrUtils::toString(_bodyType) + ", buffer size: " + StrUtils::toString(buffer.size()));
 	if (_bodyType == BODY_TYPE_NO_BODY)
+	{
+		Logger::debug("HttpBody: No body type, marking as complete");
 		_bodyState = BODY_PARSING_COMPLETE;
+	}
 	else if (_bodyType == BODY_TYPE_CHUNKED)
 		_bodyState = _parseChunkedBody(buffer, response);
 	else if (_bodyType == BODY_TYPE_CONTENT_LENGTH)
