@@ -59,7 +59,7 @@ int main(int argc, char **argv)
 		ServerManager serverManager(serverMap);
 
 		// 5. Start the server
-		// serverManager.run();
+		serverManager.run();
 
 		// Log final performance report
 		perfMonitor.logPerformanceReport();
