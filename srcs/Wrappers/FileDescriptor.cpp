@@ -1,6 +1,5 @@
 #include "../../includes/Wrapper/FileDescriptor.hpp"
 #include "../../includes/Global/Logger.hpp"
-#include "../../includes/Global/StrUtils.hpp"
 #include <cerrno>
 #include <cstring>
 #include <dirent.h>
@@ -74,10 +73,10 @@ void FileDescriptor::closeDescriptor()
 		{
 			if (::close(_ctrl->fd) == -1 && errno != EBADF)
 			{
-		std::stringstream ss;
-		ss << __FILE__ << ":" << __LINE__
-		   << ": FileDescriptor: Failed to close file descriptor: " << strerror(errno);
-		Logger::error(ss.str(), __FILE__, __LINE__, __FUNCTION__);
+				std::stringstream ss;
+				ss << __FILE__ << ":" << __LINE__
+				   << ": FileDescriptor: Failed to close file descriptor: " << strerror(errno);
+				Logger::error(ss.str(), __FILE__, __LINE__, __FUNCTION__);
 				throw std::runtime_error(ss.str());
 			}
 		}
@@ -632,10 +631,23 @@ FileDescriptor FileDescriptor::createSocket(int domain, int type, int protocol)
 	int fd = socket(domain, type, protocol);
 	if (fd == -1)
 	{
-		std::stringstream ss;
-		ss << "FileDescriptor: Failed to create socket: " << strerror(errno);
-		Logger::log(Logger::ERROR, ss.str());
-		throw std::runtime_error(ss.str());
+		switch (errno)
+		{
+		case EAFNOSUPPORT:
+			throw std::runtime_error("Address family not supported: " + std::string(strerror(errno)));
+		case EINVAL:
+			throw std::runtime_error("Invalid argument: " + std::string(strerror(errno)));
+		case EMFILE:
+			throw std::runtime_error("File table overflow: " + std::string(strerror(errno)));
+		case ENFILE:
+			throw std::runtime_error("System file table overflow: " + std::string(strerror(errno)));
+		case EPROTONOSUPPORT:
+			throw std::runtime_error("Protocol not supported: " + std::string(strerror(errno)));
+		case ESOCKTNOSUPPORT:
+			throw std::runtime_error("Socket type not supported: " + std::string(strerror(errno)));
+		default:
+			throw std::runtime_error("Failed to create socket: " + std::string(strerror(errno)));
+		}
 	}
 	FileDescriptor newFd(fd);
 	newFd.setNonBlocking();

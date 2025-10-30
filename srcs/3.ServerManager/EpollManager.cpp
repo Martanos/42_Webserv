@@ -62,8 +62,9 @@ void EpollManager::addFd(FileDescriptor fd, uint32_t events)
 	event.events = events;
 	event.data.fd = fd.getFd();
 
-	Logger::debug("EpollManager: Adding fd " + StrUtils::toString(fd.getFd()) + " with events " + StrUtils::toString(events));
-	
+	Logger::debug("EpollManager: Adding fd " + StrUtils::toString(fd.getFd()) + " with events " +
+				  StrUtils::toString(events));
+
 	if (epoll_ctl(_epollFd.getFd(), EPOLL_CTL_ADD, fd.getFd(), &event) == -1)
 	{
 		std::stringstream ss;
@@ -71,7 +72,7 @@ void EpollManager::addFd(FileDescriptor fd, uint32_t events)
 		Logger::log(Logger::ERROR, ss.str());
 		throw std::runtime_error(ss.str());
 	}
-	
+
 	Logger::debug("EpollManager: Successfully added fd " + StrUtils::toString(fd.getFd()) + " to epoll");
 }
 
@@ -81,8 +82,9 @@ void EpollManager::modifyFd(FileDescriptor fd, uint32_t events)
 	event.events = events;
 	event.data.fd = fd.getFd();
 
-	Logger::debug("EpollManager: Modifying fd " + StrUtils::toString(fd.getFd()) + " with events " + StrUtils::toString(events));
-	
+	Logger::debug("EpollManager: Modifying fd " + StrUtils::toString(fd.getFd()) + " with events " +
+				  StrUtils::toString(events));
+
 	if (epoll_ctl(_epollFd.getFd(), EPOLL_CTL_MOD, fd.getFd(), &event) == -1)
 	{
 		std::stringstream ss;
@@ -109,10 +111,8 @@ int EpollManager::wait(std::vector<epoll_event> &events, int timeout)
 		events.resize(128); // Default buffer size
 	}
 
-	Logger::debug("EpollManager: Calling epoll_wait with timeout " + StrUtils::toString(timeout) + "ms");
 	int readyCount = epoll_wait(_epollFd.getFd(), &events[0], events.size(), timeout);
-	Logger::debug("EpollManager: epoll_wait returned " + StrUtils::toString(readyCount) + " events");
-	
+
 	if (readyCount == -1)
 	{
 		if (errno == EINTR)

@@ -1,7 +1,5 @@
 #include "../../includes/Core/GetMethodHandler.hpp"
-#include "../../includes/Global/MimeTypeResolver.hpp"
 #include <dirent.h>
-#include <iomanip>
 
 GetMethodHandler::GetMethodHandler()
 {
@@ -22,8 +20,8 @@ GetMethodHandler &GetMethodHandler::operator=(const GetMethodHandler &other)
 	return *this;
 }
 
-bool GetMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &response, 
-									const Server *server, const Location *location)
+bool GetMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &response, const Server *server,
+									 const Location *location)
 {
 	if (!canHandle(request.getMethod()))
 	{
@@ -32,14 +30,41 @@ bool GetMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &r
 	}
 
 	std::string uri = request.getUri();
-	std::string rootPath = location->hasRoot() ? location->getRoot() : server->getRootPath();
-	std::string filePath = rootPath + uri;
+	std::string filePath = uri;
 
 	Logger::debug("GetMethodHandler: Serving file: " + filePath);
 
 	// Check if it's a directory
 	if (isDirectory(filePath))
 	{
+		// Attempt to serve configured index files before falling back to directory listing
+		if (location->hasIndexes())
+		{
+			const std::vector<std::string> &indexes = location->getIndexes().getAllValues();
+			for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); ++it)
+			{
+				std::string indexPath = filePath + "/" + *it;
+				Logger::debug("GetMethodHandler: Checking location index: " + indexPath);
+				if (fileExists(indexPath))
+				{
+					Logger::debug("GetMethodHandler: Serving location index file: " + indexPath);
+					return serveFile(indexPath, response, server, location);
+				}
+			}
+		}
+
+		const std::vector<std::string> serverIndexes = server->getIndexes().getAllValues();
+		for (std::vector<std::string>::const_iterator it = serverIndexes.begin(); it != serverIndexes.end(); ++it)
+		{
+			std::string indexPath = filePath + "/" + *it;
+			Logger::debug("GetMethodHandler: Checking server index: " + indexPath);
+			if (fileExists(indexPath))
+			{
+				Logger::debug("GetMethodHandler: Serving server index file: " + indexPath);
+				return serveFile(indexPath, response, server, location);
+			}
+		}
+
 		return serveDirectory(filePath, response, server, location);
 	}
 	else if (fileExists(filePath))
@@ -87,8 +112,8 @@ bool GetMethodHandler::canHandle(const std::string &method) const
 	return method == "GET";
 }
 
-bool GetMethodHandler::serveFile(const std::string &filePath, HttpResponse &response, 
-								const Server *server, const Location *location)
+bool GetMethodHandler::serveFile(const std::string &filePath, HttpResponse &response, const Server *server,
+								 const Location *location)
 {
 	(void)server;
 	(void)location;
@@ -115,11 +140,11 @@ bool GetMethodHandler::serveFile(const std::string &filePath, HttpResponse &resp
 	return true;
 }
 
-bool GetMethodHandler::serveDirectory(const std::string &dirPath, HttpResponse &response, 
-									 const Server *server, const Location *location)
+bool GetMethodHandler::serveDirectory(const std::string &dirPath, HttpResponse &response, const Server *server,
+									  const Location *location)
 {
 	// Check if autoindex is enabled
-		if (location->hasAutoIndex())
+	if (location->hasAutoIndex())
 	{
 		std::string listing = generateDirectoryListing(dirPath, "");
 		response.setStatus(200, "OK");
@@ -128,7 +153,7 @@ bool GetMethodHandler::serveDirectory(const std::string &dirPath, HttpResponse &
 		response.setHeader(Header("Content-Length: " + StrUtils::toString(listing.length())));
 		return true;
 	}
-		else if (server->isAutoIndex())
+	else if (server->isAutoIndex())
 	{
 		std::string listing = generateDirectoryListing(dirPath, "");
 		response.setStatus(200, "OK");
@@ -167,7 +192,7 @@ std::string GetMethodHandler::generateDirectoryListing(const std::string &dirPat
 			{
 				if (S_ISDIR(st.st_mode))
 					name += "/";
-				
+
 				html << "<a href=\"" << name << "\">" << name << "</a>\n";
 			}
 		}

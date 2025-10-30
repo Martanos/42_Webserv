@@ -30,6 +30,7 @@ private:
 	// Request line
 	std::string _method;
 	std::string _URI;
+	std::string _rawURI;
 	std::string _version;
 
 	// Query parameters
@@ -48,6 +49,7 @@ public:
 
 	// Accessors
 	const std::string &getURI() const;
+	const std::string &getRawURI() const;
 	const std::string &getVersion() const;
 	const std::string &getMethod() const;
 	size_t getURIsize() const;

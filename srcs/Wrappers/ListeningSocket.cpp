@@ -1,5 +1,6 @@
 #include "../../includes/Wrapper/ListeningSocket.hpp"
 #include "../../includes/Global/Logger.hpp"
+#include "../../includes/Global/StrUtils.hpp"
 #include <cstring>
 #include <netinet/in.h>
 #include <sstream>
@@ -10,6 +11,10 @@
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
+ListeningSocket::ListeningSocket() : _socketAddress(SocketAddress())
+{
+}
+
 ListeningSocket::ListeningSocket(const ListeningSocket &src)
 {
 	*this = src;
@@ -17,17 +22,10 @@ ListeningSocket::ListeningSocket(const ListeningSocket &src)
 
 ListeningSocket::ListeningSocket(const SocketAddress &socketAddress) : _socketAddress(socketAddress)
 {
-	errno = 0;
-	_bindFd =
-		FileDescriptor::createSocket(socketAddress.getFamily(), socketAddress.getFamily(), socketAddress.getPort());
+	_bindFd = FileDescriptor::createSocket(socketAddress.getFamily(), SOCK_STREAM, 0);
 	if (!_bindFd.isValid())
-		throw std::runtime_error("Failed to create socket: " + std::string(strerror(errno)));
-	_bindFd.setReuseAddr();
-	if (::bind(_bindFd.getFd(), reinterpret_cast<const struct sockaddr *>(socketAddress.getSockAddr()),
-			   socketAddress.getSize()) == -1)
-		throw std::runtime_error("Failed to bind socket: " + std::string(strerror(errno)));
-	if (::listen(_bindFd.getFd(), SOMAXCONN) == -1)
-		throw std::runtime_error("Failed to listen on socket: " + std::string(strerror(errno)));
+		throw std::runtime_error("Failed to create socket: current Fd: " + StrUtils::toString(_bindFd.getFd()) +
+								 " error: " + std::string(strerror(errno)));
 }
 
 /*
@@ -61,6 +59,24 @@ std::ostream &operator<<(std::ostream &o, ListeningSocket const &i)
 /*
 ** --------------------------------- METHODS ----------------------------------
 */
+
+void ListeningSocket::bind()
+{
+	errno = 0;
+	if (::bind(_bindFd.getFd(), reinterpret_cast<const struct sockaddr *>(_socketAddress.getSockAddr()),
+			   _socketAddress.getSize()) == -1)
+		throw std::runtime_error("Failed to bind socket: current Fd: " + StrUtils::toString(_bindFd.getFd()) +
+								 " error: " + std::string(strerror(errno)));
+	_bindFd.setReuseAddr();
+}
+
+void ListeningSocket::listen()
+{
+	errno = 0;
+	if (::listen(_bindFd.getFd(), SOMAXCONN) == -1)
+		throw std::runtime_error("Failed to listen on socket: current Fd: " + StrUtils::toString(_bindFd.getFd()) +
+								 " error: " + std::string(strerror(errno)));
+}
 
 void ListeningSocket::accept(SocketAddress &remoteAddr, FileDescriptor &clientFd) const
 {

@@ -58,7 +58,8 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 {
 	PERF_SCOPED_TIMER(http_request_parsing);
 
-	Logger::debug("HttpRequest: parseBuffer called, state: " + StrUtils::toString(_parseState) + ", buffer size: " + StrUtils::toString(holdingBuffer.size()));
+	Logger::debug("HttpRequest: parseBuffer called, state: " + StrUtils::toString(_parseState) +
+				  ", buffer size: " + StrUtils::toString(holdingBuffer.size()));
 
 	// Continue parsing until complete or need more data
 	while (_parseState != PARSING_COMPLETE && _parseState != PARSING_ERROR)
@@ -90,62 +91,62 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 			}
 			break;
 		}
-	case PARSING_HEADERS:
-	{
-		Logger::debug("HttpRequest: Starting headers parsing");
-		_headers.parseBuffer(holdingBuffer, response, _body);
-		Logger::debug("HttpRequest: Headers parsing state: " + StrUtils::toString(_headers.getHeadersState()));
-		switch (_headers.getHeadersState())
+		case PARSING_HEADERS:
 		{
-		case HttpHeaders::HEADERS_PARSING_COMPLETE:
-			Logger::debug("HttpRequest: Headers parsing complete");
-			_parseState = PARSING_BODY;
-			break;
-		case HttpHeaders::HEADERS_PARSING_ERROR:
-			Logger::error("HttpRequest: Headers parsing error", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-			_parseState = PARSING_ERROR;
-			break;
-		case HttpHeaders::HEADERS_PARSING:
-			Logger::debug("HttpRequest: Headers still parsing, need more data");
-			return _parseState;
-		}
-		break;
-	}
-	case PARSING_BODY:
-	{
-		Logger::debug("HttpRequest: Parsing body");
-		if (_server == NULL)
-		{
-			Logger::error("HttpRequest: No server found", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-			response.setStatus(400, "Bad Request");
-			_parseState = PARSING_ERROR;
+			Logger::debug("HttpRequest: Starting headers parsing");
+			_headers.parseBuffer(holdingBuffer, response, _body);
+			Logger::debug("HttpRequest: Headers parsing state: " + StrUtils::toString(_headers.getHeadersState()));
+			switch (_headers.getHeadersState())
+			{
+			case HttpHeaders::HEADERS_PARSING_COMPLETE:
+				Logger::debug("HttpRequest: Headers parsing complete");
+				_parseState = PARSING_BODY;
+				break;
+			case HttpHeaders::HEADERS_PARSING_ERROR:
+				Logger::error("HttpRequest: Headers parsing error", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+				_parseState = PARSING_ERROR;
+				break;
+			case HttpHeaders::HEADERS_PARSING:
+				Logger::debug("HttpRequest: Headers still parsing, need more data");
+				return _parseState;
+			}
 			break;
 		}
-		_body.parseBuffer(holdingBuffer, response);
-		Logger::debug("HttpRequest: Body state: " + StrUtils::toString(_body.getBodyState()));
-		switch (_body.getBodyState())
+		case PARSING_BODY:
 		{
-		case HttpBody::BODY_PARSING_COMPLETE:
-		{
-			Logger::debug("HttpRequest: Body parsing complete");
-			_parseState = PARSING_COMPLETE;
-			Logger::debug("HttpRequest: Transitioned to PARSING_COMPLETE");
+			Logger::debug("HttpRequest: Parsing body");
+			if (_server == NULL)
+			{
+				Logger::error("HttpRequest: No server found", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+				response.setStatus(400, "Bad Request");
+				_parseState = PARSING_ERROR;
+				break;
+			}
+			_body.parseBuffer(holdingBuffer, response);
+			Logger::debug("HttpRequest: Body state: " + StrUtils::toString(_body.getBodyState()));
+			switch (_body.getBodyState())
+			{
+			case HttpBody::BODY_PARSING_COMPLETE:
+			{
+				Logger::debug("HttpRequest: Body parsing complete");
+				_parseState = PARSING_COMPLETE;
+				Logger::debug("HttpRequest: Transitioned to PARSING_COMPLETE");
+				break;
+			}
+			case HttpBody::BODY_PARSING:
+				Logger::debug("HttpRequest: Body parsing in progress");
+				_parseState = PARSING_BODY;
+				break;
+			case HttpBody::BODY_PARSING_ERROR:
+				Logger::error("HttpRequest: Body parsing error", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+				_parseState = PARSING_ERROR;
+				break;
+			}
 			break;
 		}
-		case HttpBody::BODY_PARSING:
-			Logger::debug("HttpRequest: Body parsing in progress");
-			_parseState = PARSING_BODY;
-			break;
-		case HttpBody::BODY_PARSING_ERROR:
-			Logger::error("HttpRequest: Body parsing error", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-			_parseState = PARSING_ERROR;
+		default:
 			break;
 		}
-		break;
-	}
-	default:
-		break;
-	}
 	}
 	// TODO: Log state here
 	Logger::debug("HttpRequest: parseBuffer returning state: " + StrUtils::toString(_parseState));
@@ -217,6 +218,11 @@ std::string HttpRequest::getUri() const
 	return _uri.getURI();
 };
 
+std::string HttpRequest::getRawUri() const
+{
+	return _uri.getRawURI();
+};
+
 std::string HttpRequest::getVersion() const
 {
 	return _uri.getVersion();
@@ -226,12 +232,12 @@ std::map<std::string, std::vector<std::string> > HttpRequest::getHeaders() const
 {
 	std::map<std::string, std::vector<std::string> > result;
 	const std::vector<Header> &headers = _headers.getHeaders();
-	
+
 	for (std::vector<Header>::const_iterator it = headers.begin(); it != headers.end(); ++it)
 	{
 		result[it->getDirective()] = it->getValues();
 	}
-	
+
 	return result;
 };
 
@@ -250,12 +256,12 @@ size_t HttpRequest::getMessageSize() const
 	return _uri.getURIsize() + _headers.getHeadersSize() + _body.getBodySize();
 };
 
-bool HttpRequest::isUsingTempFile()
+bool HttpRequest::isUsingTempFile() const
 {
 	return _body.getIsUsingTempFile();
 };
 
-std::string HttpRequest::getTempFile()
+std::string HttpRequest::getTempFile() const
 {
 	return _body.getTempFilePath();
 };

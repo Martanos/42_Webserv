@@ -45,6 +45,7 @@ public:
 	bool hasFd(int &fd) const;
 	void printServerMap() const;
 	const std::vector<Server> &getServersForFd(int fd) const;
+	bool empty() const;
 };
 
 #endif /* *************************************************** SERVERMANAGER_H                                          \

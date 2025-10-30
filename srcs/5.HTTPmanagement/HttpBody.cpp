@@ -18,6 +18,7 @@ HttpBody::HttpBody()
 	_expectedBodySize = 0;
 	_tempFile = FileManager();
 	_isUsingTempFile = false;
+	_rawBodySize = 0;
 }
 
 HttpBody::HttpBody(HttpBody const &src)
@@ -46,6 +47,7 @@ HttpBody &HttpBody::operator=(HttpBody const &rhs)
 		_chunkState = rhs._chunkState;
 		_expectedBodySize = rhs._expectedBodySize;
 		_rawBody = rhs._rawBody;
+		_rawBodySize = rhs._rawBodySize;
 		_tempFile = rhs._tempFile;
 		_isUsingTempFile = rhs._isUsingTempFile;
 	}
@@ -58,7 +60,8 @@ HttpBody &HttpBody::operator=(HttpBody const &rhs)
 
 void HttpBody::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 {
-	Logger::debug("HttpBody: parseBuffer called, body type: " + StrUtils::toString(_bodyType) + ", buffer size: " + StrUtils::toString(buffer.size()));
+	Logger::debug("HttpBody: parseBuffer called, body type: " + StrUtils::toString(_bodyType) +
+				  ", buffer size: " + StrUtils::toString(buffer.size()));
 	if (_bodyType == BODY_TYPE_NO_BODY)
 	{
 		Logger::debug("HttpBody: No body type, marking as complete");
@@ -310,12 +313,12 @@ size_t HttpBody::getRawBodySize() const
 	return _rawBody.size();
 }
 
-bool HttpBody::getIsUsingTempFile()
+bool HttpBody::getIsUsingTempFile() const
 {
 	return _isUsingTempFile;
 }
 
-std::string HttpBody::getTempFilePath()
+std::string HttpBody::getTempFilePath() const
 {
 	if (_isUsingTempFile)
 	{
@@ -376,4 +379,5 @@ void HttpBody::reset()
 	_rawBody.clear();
 	_tempFile.reset();
 	_isUsingTempFile = false;
+	_rawBodySize = 0;
 }

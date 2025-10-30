@@ -30,32 +30,36 @@ ServerManager::~ServerManager()
 
 void ServerManager::_addServerFdsToEpoll(ServerMap &serverMap)
 {
-	Logger::debug("ServerManager: Adding server FDs to epoll, serverMap size: " + StrUtils::toString(serverMap.getServerMap().size()));
-	
+	Logger::debug("ServerManager: Adding server FDs to epoll, serverMap size: " +
+				  StrUtils::toString(serverMap.getServerMap().size()));
+
 	for (std::map<ListeningSocket, std::vector<Server> >::const_iterator it = serverMap.getServerMap().begin();
 		 it != serverMap.getServerMap().end(); ++it)
 	{
-		Logger::debug("ServerManager: Adding server fd: " + StrUtils::toString(it->first.getFd().getFd()) + " to epoll");
+		Logger::debug("ServerManager: Adding server fd: " + StrUtils::toString(it->first.getFd().getFd()) +
+					  " to epoll");
 		_epollManager.addFd(it->first.getFd());
 	}
 	Logger::debug("ServerManager: Added " + StrUtils::toString(serverMap.getServerMap().size()) +
-					" server file descriptors to epoll");
+				  " server file descriptors to epoll");
 }
 
 void ServerManager::_handleEventLoop(int ready_events, std::vector<epoll_event> &events)
 {
 	Logger::debug("ServerManager: Handling " + StrUtils::toString(ready_events) + " events");
-	
+
 	for (int i = 0; i < ready_events; ++i)
 	{
 		int fd = events[i].data.fd;
-		Logger::debug("ServerManager: Processing event for fd: " + StrUtils::toString(fd) + ", events: " + StrUtils::toString(events[i].events));
+		Logger::debug("ServerManager: Processing event for fd: " + StrUtils::toString(fd) +
+					  ", events: " + StrUtils::toString(events[i].events));
 
 		if (_serverMap.hasFd(fd))
 		{
 			// Handle new connection
 			Logger::debug("ServerManager: This is a server fd, handling new connection");
-			Logger::debug("ServerManager: Server fd: " + StrUtils::toString(fd) + ", events: " + StrUtils::toString(events[i].events));
+			Logger::debug("ServerManager: Server fd: " + StrUtils::toString(fd) +
+						  ", events: " + StrUtils::toString(events[i].events));
 			_handleNewConnection(fd);
 		}
 		else if (_isClientFd(fd))
@@ -74,11 +78,11 @@ void ServerManager::_handleEventLoop(int ready_events, std::vector<epoll_event> 
 void ServerManager::_handleNewConnection(int serverFd)
 {
 	Logger::debug("ServerManager: Handling new connection on server fd: " + StrUtils::toString(serverFd));
-	
+
 	// Accept new connection
 	struct sockaddr_in clientAddr;
 	socklen_t clientAddrLen = sizeof(clientAddr);
-	int clientFd = accept(serverFd, (struct sockaddr*)&clientAddr, &clientAddrLen);
+	int clientFd = accept(serverFd, (struct sockaddr *)&clientAddr, &clientAddrLen);
 	Logger::debug("ServerManager: Accepted client fd: " + StrUtils::toString(clientFd));
 
 	if (clientFd == -1)
@@ -105,6 +109,16 @@ void ServerManager::_handleNewConnection(int serverFd)
 	// Set potential servers for this client
 	const std::vector<Server> &potentialServers = _serverMap.getServersForFd(serverFd);
 	client.setPotentialServers(potentialServers);
+	printf("ServerManager: Potential servers: %zu\n", potentialServers.size());
+	for (std::vector<Server>::const_iterator server = potentialServers.begin(); server != potentialServers.end();
+		 ++server)
+	{
+		for (TrieTree<std::string>::const_iterator serverName = server->getServerNames().begin();
+			 serverName != server->getServerNames().end(); ++serverName)
+		{
+			printf("ServerManager: Server name: %s\n", serverName->c_str());
+		}
+	}
 
 	// Add client to epoll
 	_epollManager.addFd(clientFdObj);
@@ -123,7 +137,7 @@ void ServerManager::_handleClientEvent(int clientFd, epoll_event event)
 			break;
 		}
 	}
-	
+
 	if (it == _clients.end())
 		return;
 
@@ -208,6 +222,9 @@ void ServerManager::run()
 {
 	Logger::info("ServerManager: Starting server manager");
 
+	if (_serverMap.empty())
+		throw std::runtime_error("ServerManager: No servers to run");
+	_serverMap.printServerMap();
 	// Add server file descriptors to epoll
 	_addServerFdsToEpoll(_serverMap);
 
@@ -218,15 +235,8 @@ void ServerManager::run()
 	// Main event loop
 	while (serverRunning)
 	{
-		Logger::debug("ServerManager: Waiting for events...");
-		std::vector<epoll_event> events(100); // Max 100 events per iteration
+		std::vector<epoll_event> events(100);				 // Max 100 events per iteration
 		int ready_events = _epollManager.wait(events, 1000); // 1 second timeout
-		Logger::debug("ServerManager: Got " + StrUtils::toString(ready_events) + " events");
-		if (ready_events > 0)
-		{
-			Logger::debug("ServerManager: Events received! Processing...");
-		}
-
 		if (ready_events > 0)
 		{
 			_handleEventLoop(ready_events, events);

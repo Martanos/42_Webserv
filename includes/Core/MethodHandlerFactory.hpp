@@ -1,11 +1,12 @@
 #ifndef METHODHANDLERFACTORY_HPP
 #define METHODHANDLERFACTORY_HPP
 
-#include "IMethodHandler.hpp"
-#include "GetMethodHandler.hpp"
-#include "PostMethodHandler.hpp"
-#include "DeleteMethodHandler.hpp"
 #include "../../includes/Global/Logger.hpp"
+#include "DeleteMethodHandler.hpp"
+#include "GetMethodHandler.hpp"
+#include "IMethodHandler.hpp"
+#include "PostMethodHandler.hpp"
+#include "PutMethodHandler.hpp"
 #include <map>
 #include <string>
 
@@ -13,7 +14,7 @@ class MethodHandlerFactory
 {
 public:
 	// Static method to create appropriate handler
-	static IMethodHandler* createHandler(const std::string &method);
+	static IMethodHandler *createHandler(const std::string &method);
 
 	// Static method to check if method is supported
 	static bool isMethodSupported(const std::string &method);
@@ -29,15 +30,16 @@ private:
 	~MethodHandlerFactory();
 
 	// Static map of method to handler creation functions
-	typedef IMethodHandler* (*HandlerCreator)();
+	typedef IMethodHandler *(*HandlerCreator)();
 	static std::map<std::string, HandlerCreator> _handlerCreators;
 	static bool _initialized;
 	static void initializeCreators();
 
 	// Helper functions for creating specific handlers
-	static IMethodHandler* createGetHandler();
-	static IMethodHandler* createPostHandler();
-	static IMethodHandler* createDeleteHandler();
+	static IMethodHandler *createGetHandler();
+	static IMethodHandler *createPostHandler();
+	static IMethodHandler *createDeleteHandler();
+	static IMethodHandler *createPutHandler();
 };
 
 #endif /* METHODHANDLERFACTORY_HPP */

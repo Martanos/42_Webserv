@@ -12,6 +12,13 @@
 
 HttpURI::HttpURI()
 {
+	_uriState = URI_PARSING;
+	_uriSize = 0;
+	_method.clear();
+	_URI.clear();
+	_rawURI.clear();
+	_version.clear();
+	_queryParameters.clear();
 }
 
 HttpURI::HttpURI(const HttpURI &other)
@@ -38,6 +45,7 @@ HttpURI &HttpURI::operator=(const HttpURI &other)
 		_uriState = other._uriState;
 		_method = other._method;
 		_URI = other._URI;
+		_rawURI = other._rawURI;
 		_version = other._version;
 		_queryParameters = other._queryParameters;
 		_uriSize = other._uriSize;
@@ -88,6 +96,8 @@ void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 		response.setStatus(400, "Bad Request");
 		return;
 	}
+
+	_rawURI = _URI;
 
 	// Validate URI
 	if (_URI.empty() || _URI[0] != '/')
@@ -163,6 +173,41 @@ void HttpURI::sanitizeURI(const Server *server, const Location *location)
 	char resolvedPath[PATH_MAX];
 	if (realpath(fullPath.c_str(), resolvedPath) == NULL)
 	{
+		size_t lastSlash = fullPath.find_last_of('/');
+		std::string directoryPath;
+		if (lastSlash != std::string::npos)
+		{
+			directoryPath = fullPath.substr(0, lastSlash);
+		}
+		else
+		{
+			directoryPath = fullPath;
+		}
+
+		if (directoryPath.empty())
+			directoryPath = root;
+
+		if (!directoryPath.empty() && realpath(directoryPath.c_str(), resolvedPath) != NULL)
+		{
+			std::string resolvedDir(resolvedPath);
+			if (resolvedDir.compare(0, root.size(), root) != 0)
+			{
+				_uriState = URI_PARSING_ERROR;
+				Logger::log(Logger::ERROR, "Resolved directory escapes root: " + resolvedDir);
+				return;
+			}
+
+			std::string remainder = (lastSlash == std::string::npos) ? std::string() : fullPath.substr(lastSlash + 1);
+			if (!remainder.empty())
+			{
+				if (!resolvedDir.empty() && resolvedDir[resolvedDir.size() - 1] != '/')
+					resolvedDir += "/";
+				resolvedDir += remainder;
+			}
+			_URI = resolvedDir;
+			return;
+		}
+
 		_uriState = URI_PARSING_ERROR;
 		Logger::log(Logger::ERROR, "Cannot resolve path: " + fullPath);
 		return;
@@ -220,8 +265,14 @@ const std::map<std::string, std::vector<std::string> > &HttpURI::getQueryParamet
 void HttpURI::reset()
 {
 	_uriState = URI_PARSING;
-	_method = "";
-	_URI = "";
-	_version = "";
+	_method.clear();
+	_URI.clear();
+	_rawURI.clear();
+	_version.clear();
 	_queryParameters.clear();
+}
+
+const std::string &HttpURI::getRawURI() const
+{
+	return _rawURI;
 }

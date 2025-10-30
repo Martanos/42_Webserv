@@ -104,7 +104,7 @@ void CGIenv::copyDataFromServer(const Server *server, const Location *location)
 		setEnv("DOCUMENT_ROOT", "/var/www/html"); // Default document root
 
 	// Add custom CGI parameters from location configuration
-		const std::map<std::string, std::string> &cgiParams = std::map<std::string, std::string>(); // Empty map for now
+	const std::map<std::string, std::string> &cgiParams = location->getCgiParams();
 	for (std::map<std::string, std::string>::const_iterator it = cgiParams.begin(); it != cgiParams.end(); ++it)
 	{
 		setEnv(it->first, it->second);
@@ -114,9 +114,11 @@ void CGIenv::copyDataFromServer(const Server *server, const Location *location)
 	setEnv("SERVER_SOFTWARE", "webserv/1.0");
 	setEnv("GATEWAY_INTERFACE", "CGI/1.1");
 
-	// Set client max body size if available
+	// Set client max body size if available (location overrides server)
 	double maxBodySize = server->getClientMaxBodySize();
-		setEnv("SERVER_MAX_BODY_SIZE", StrUtils::toString(static_cast<long>(maxBodySize)));
+	if (location->hasClientMaxBodySize())
+		maxBodySize = location->getClientMaxBodySize();
+	setEnv("SERVER_MAX_BODY_SIZE", StrUtils::toString(static_cast<long>(maxBodySize)));
 }
 
 void CGIenv::setupFromRequest(const HttpRequest &request, const Server *server, const Location *location,
@@ -186,6 +188,23 @@ void CGIenv::setupFromRequest(const HttpRequest &request, const Server *server, 
 
 	// Convert HTTP headers to CGI environment variables
 	setupHttpHeaders(request);
+
+	// Derive SERVER_NAME and SERVER_PORT from Host header when provided
+	std::vector<std::string> hostHeader = request.getHeader("host");
+	if (!hostHeader.empty())
+	{
+		std::string hostValue = hostHeader[0];
+		size_t colonPos = hostValue.find(':');
+		if (colonPos == std::string::npos)
+		{
+			setEnv("SERVER_NAME", hostValue);
+		}
+		else
+		{
+			setEnv("SERVER_NAME", hostValue.substr(0, colonPos));
+			setEnv("SERVER_PORT", hostValue.substr(colonPos + 1));
+		}
+	}
 
 	// Remote address (simplified - would need actual client info)
 	// This should ideally come from the connection context, not server config

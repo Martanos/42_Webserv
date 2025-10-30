@@ -16,6 +16,9 @@ Location::Location(const std::string &path)
 	_redirect = std::pair<int, std::string>();
 	_indexes = TrieTree<std::string>();
 	_cgiPath = std::string();
+	_clientMaxBodySize = -1.0;
+	_cgiParams = std::map<std::string, std::string>();
+	_autoIndex = false;
 
 	// Flags
 	_modified = false;
@@ -49,6 +52,8 @@ Location &Location::operator=(Location const &rhs)
 		_autoIndex = rhs._autoIndex;
 		_indexes = rhs._indexes;
 		_cgiPath = rhs._cgiPath;
+		_clientMaxBodySize = rhs._clientMaxBodySize;
+		_cgiParams = rhs._cgiParams;
 		_modified = rhs._modified;
 	}
 	return *this;
@@ -95,7 +100,7 @@ bool Location::hasStatusPage(const int &status) const
 
 bool Location::hasRedirect() const
 {
-	return _redirect.first != 0 && _redirect.second.empty();
+	return _redirect.first != 0 && !_redirect.second.empty();
 }
 
 bool Location::hasAutoIndex() const
@@ -114,7 +119,17 @@ bool Location::hasIndex(const std::string &index) const
 }
 bool Location::hasCgiPath() const
 {
-	return _cgiPath.empty();
+	return !_cgiPath.empty();
+}
+
+bool Location::hasClientMaxBodySize() const
+{
+	return _clientMaxBodySize >= 0.0;
+}
+
+bool Location::hasCgiParams() const
+{
+	return !_cgiParams.empty();
 }
 
 bool Location::hasModified() const
@@ -164,6 +179,16 @@ const TrieTree<std::string> &Location::getIndexes() const
 const std::string &Location::getCgiPath() const
 {
 	return _cgiPath;
+}
+
+double Location::getClientMaxBodySize() const
+{
+	return _clientMaxBodySize;
+}
+
+const std::map<std::string, std::string> &Location::getCgiParams() const
+{
+	return _cgiParams;
 }
 
 /*
@@ -217,6 +242,18 @@ void Location::insertIndex(const std::string &index)
 void Location::setCgiPath(const std::string &cgiPath)
 {
 	_cgiPath = cgiPath;
+	_modified = true;
+}
+
+void Location::setClientMaxBodySize(double size)
+{
+	_clientMaxBodySize = size;
+	_modified = true;
+}
+
+void Location::setCgiParam(const std::string &key, const std::string &value)
+{
+	_cgiParams[key] = value;
 	_modified = true;
 }
 

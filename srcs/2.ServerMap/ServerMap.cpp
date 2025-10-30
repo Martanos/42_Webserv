@@ -60,8 +60,18 @@ void ServerMap::_buildServerMap()
 			}
 			if (!found)
 			{
-				_serverMap.insert(
-					std::make_pair(ListeningSocket(*socketAddress_it), std::vector<Server>(1, *server_it)));
+				try
+				{
+					ListeningSocket listeningSocket(*socketAddress_it);
+					listeningSocket.bind();
+					listeningSocket.listen();
+					_serverMap.insert(std::make_pair(listeningSocket, std::vector<Server>(1, *server_it)));
+				}
+				catch (const std::exception &e)
+				{
+					Logger::warning("ServerMap: Error adding listening socket: " + std::string(e.what()));
+					continue;
+				}
 			}
 		}
 	}
@@ -96,32 +106,23 @@ const std::map<ListeningSocket, std::vector<Server> > &ServerMap::getServerMap()
 
 void ServerMap::printServerMap() const
 {
-	std::stringstream ss;
 	for (std::map<ListeningSocket, std::vector<Server> >::const_iterator it = _serverMap.begin();
 		 it != _serverMap.end(); ++it)
 	{
-		ss << "ServerMap: Listening socket: fd: " << it->first.getFd()
-		   << ", host: " << it->first.getAddress().getHostString() << ", port: " << it->first.getAddress().getPort()
-		   << " memory address: " << &it->first << std::endl;
-		ss << "Servers:" << std::endl;
+		printf("ServerMap: Listening socket: fd: %d, host: %s, port: %d, memory address: %p\n",
+			   it->first.getFd().getFd(), it->first.getAddress().getHostString().c_str(),
+			   it->first.getAddress().getPort(), &it->first);
+		printf("ServerMap: Servers: %zu\n", it->second.size());
 		for (std::vector<Server>::const_iterator server = it->second.begin(); server != it->second.end(); ++server)
-		{
-		ss << " Server Name(s):";
-		if (!server->getServerNames().isEmpty())
 		{
 			for (TrieTree<std::string>::const_iterator serverName = server->getServerNames().begin();
 				 serverName != server->getServerNames().end(); ++serverName)
 			{
-				ss << " " << *serverName << std::endl;
+				printf("ServerMap: Server name: %s\n", serverName->c_str());
 			}
 		}
-		else
-		{
-			ss << " (none)" << std::endl;
-		}
-		}
+		printf("ServerMap: End of listening socket\n");
 	}
-	Logger::debug(ss.str());
 }
 
 const std::vector<Server> &ServerMap::getServersForFd(int fd) const
@@ -136,6 +137,11 @@ const std::vector<Server> &ServerMap::getServersForFd(int fd) const
 	}
 	static std::vector<Server> empty;
 	return empty;
+}
+
+bool ServerMap::empty() const
+{
+	return _serverMap.empty();
 }
 
 /* ************************************************************************** */

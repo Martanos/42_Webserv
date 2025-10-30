@@ -27,7 +27,7 @@ MethodHandlerFactory::~MethodHandlerFactory()
 	// Private destructor
 }
 
-IMethodHandler* MethodHandlerFactory::createHandler(const std::string &method)
+IMethodHandler *MethodHandlerFactory::createHandler(const std::string &method)
 {
 	if (!_initialized)
 	{
@@ -62,7 +62,7 @@ std::vector<std::string> MethodHandlerFactory::getSupportedMethods()
 	}
 
 	std::vector<std::string> methods;
-	for (std::map<std::string, HandlerCreator>::const_iterator it = _handlerCreators.begin(); 
+	for (std::map<std::string, HandlerCreator>::const_iterator it = _handlerCreators.begin();
 		 it != _handlerCreators.end(); ++it)
 	{
 		methods.push_back(it->first);
@@ -78,24 +78,30 @@ void MethodHandlerFactory::initializeCreators()
 	_handlerCreators["GET"] = &createGetHandler;
 	_handlerCreators["POST"] = &createPostHandler;
 	_handlerCreators["DELETE"] = &createDeleteHandler;
+	_handlerCreators["PUT"] = &createPutHandler;
 
 	_initialized = true;
-	Logger::debug("MethodHandlerFactory: Initialized with " + 
-				  StrUtils::toString(_handlerCreators.size()) + " method handlers");
+	Logger::debug("MethodHandlerFactory: Initialized with " + StrUtils::toString(_handlerCreators.size()) +
+				  " method handlers");
 }
 
 // Helper functions for creating specific handlers
-IMethodHandler* MethodHandlerFactory::createGetHandler()
+IMethodHandler *MethodHandlerFactory::createGetHandler()
 {
 	return new GetMethodHandler();
 }
 
-IMethodHandler* MethodHandlerFactory::createPostHandler()
+IMethodHandler *MethodHandlerFactory::createPostHandler()
 {
 	return new PostMethodHandler();
 }
 
-IMethodHandler* MethodHandlerFactory::createDeleteHandler()
+IMethodHandler *MethodHandlerFactory::createDeleteHandler()
 {
 	return new DeleteMethodHandler();
+}
+
+IMethodHandler *MethodHandlerFactory::createPutHandler()
+{
+	return new PutMethodHandler();
 }

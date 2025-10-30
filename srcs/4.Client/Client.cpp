@@ -182,7 +182,32 @@ void Client::_handleRequest()
 	
 	// Identify if request is handled by the server then route
 	Logger::debug("Client: Getting server for request");
+
+	// Virtual hosting: choose server based on Host header if available
 	Server *server = _request.getServer();
+	if (_potentialServers && !_potentialServers->empty())
+	{
+		const std::vector<std::string> hostHeader = _request.getHeader("host");
+		if (!hostHeader.empty())
+		{
+			std::string hostValue = hostHeader[0];
+			// Extract hostname (strip optional port)
+			size_t colonPos = hostValue.find(':');
+			std::string hostName = (colonPos == std::string::npos) ? hostValue : hostValue.substr(0, colonPos);
+			StrUtils::toLowerCase(hostName);
+			for (std::vector<Server>::const_iterator it = _potentialServers->begin(); it != _potentialServers->end(); ++it)
+			{
+				if (it->hasServerName(hostName))
+				{
+					Logger::debug("Client: Selected virtual host: " + hostName);
+					Server *matched = const_cast<Server *>(&(*it));
+					_request.setServer(matched);
+					server = matched;
+					break;
+				}
+			}
+		}
+	}
 	if (!server)
 	{
 		Logger::error("Client: No server available for request");

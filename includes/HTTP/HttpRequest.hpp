@@ -66,6 +66,7 @@ public:
 	// URI accessors
 	std::string getMethod() const;
 	std::string getUri() const;
+	std::string getRawUri() const;
 	std::string getVersion() const;
 
 	// Headers accessors
@@ -77,8 +78,8 @@ public:
 	HttpBody::BodyType getBodyType() const;
 	size_t getContentLength() const;
 	bool isChunked();
-	bool isUsingTempFile();
-	std::string getTempFile();
+	bool isUsingTempFile() const;
+	std::string getTempFile() const;
 
 	// Server accessors
 	Server *getServer() const;
