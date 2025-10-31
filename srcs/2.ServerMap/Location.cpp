@@ -15,6 +15,7 @@ Location::Location(const std::string &path)
 	_statusPages = std::map<int, std::string>();
 	_redirect = std::pair<int, std::string>();
 	_indexes = TrieTree<std::string>();
+	_autoIndex = false;
 	_cgiPath = std::string();
 
 	// Flags
@@ -72,7 +73,8 @@ std::ostream &operator<<(std::ostream &o, Location const &i)
 	o << std::endl;
 	o << "AutoIndex: " << i.hasAutoIndex() << std::endl;
 	o << "Indexes: ";
-	for (TrieTree<std::string>::const_iterator it = i.getIndexes().begin(); it != i.getIndexes().end(); ++it)
+	std::vector<std::string> indexes = i.getIndexes().getAllKeys();
+	for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); ++it)
 		o << *it << " ";
 	o << std::endl;
 	o << "CgiPath: " << i.getCgiPath() << std::endl;
@@ -96,7 +98,7 @@ bool Location::hasStatusPage(const int &status) const
 
 bool Location::hasRedirect() const
 {
-	return _redirect.first != 0 && _redirect.second.empty();
+	return _redirect.first != 0 && !_redirect.second.empty();
 }
 
 bool Location::hasAutoIndex() const
@@ -115,7 +117,7 @@ bool Location::hasIndex(const std::string &index) const
 }
 bool Location::hasCgiPath() const
 {
-	return _cgiPath.empty();
+	return !_cgiPath.empty();
 }
 
 bool Location::hasModified() const

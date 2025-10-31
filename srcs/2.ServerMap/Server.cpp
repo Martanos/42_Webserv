@@ -102,6 +102,9 @@ std::ostream &operator<<(std::ostream &o, Server const &i)
 		std::vector<Location> locations = i.getLocations().getAllValues();
 		for (std::vector<Location>::const_iterator it = locations.begin(); it != locations.end(); ++it)
 			o << it->getPath() << " ";
+		for (std::vector<Location>::const_iterator it = locations.begin(); it != locations.end(); ++it)
+			o << std::endl
+			  << *it;
 	}
 	o << std::endl;
 	o << "--------------------------------" << std::endl;
