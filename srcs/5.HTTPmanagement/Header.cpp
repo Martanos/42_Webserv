@@ -1,6 +1,6 @@
 #include "../../includes/HTTP/Header.hpp"
-#include "../../includes/Global/StrUtils.hpp"
 #include "../../includes/Global/Logger.hpp"
+#include "../../includes/Global/StrUtils.hpp"
 #include <cstddef>
 
 /*

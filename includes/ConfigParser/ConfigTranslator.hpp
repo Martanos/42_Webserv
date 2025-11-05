@@ -26,8 +26,6 @@ private:
 	void _translateServerIndex(const AST::ASTNode &directive, Server &server);
 	void _translateServerAutoindex(const AST::ASTNode &directive, Server &server);
 	void _translateServerClientMaxBodySize(const AST::ASTNode &directive, Server &server);
-	void _translateServerClientMaxHeadersSize(const AST::ASTNode &directive, Server &server);
-	void _translateServerClientMaxUriSize(const AST::ASTNode &directive, Server &server);
 	void _translateServerErrorPages(const AST::ASTNode &directive, Server &server);
 
 	// Location specific translation helpers

@@ -1,5 +1,7 @@
 #include "../../includes/Wrapper/FileDescriptor.hpp"
 #include "../../includes/Global/Logger.hpp"
+#include "../../includes/Global/StrUtils.hpp"
+#include <arpa/inet.h>
 #include <cerrno>
 #include <cstring>
 #include <dirent.h>
@@ -90,107 +92,93 @@ void FileDescriptor::closeDescriptor()
 *---------------------------------
 */
 
-void FileDescriptor::setNonBlocking()
+bool FileDescriptor::setNonBlocking()
 {
 	int flags = fcntl(_ctrl->fd, F_GETFL, 0);
 	if (flags == -1)
 	{
-		std::stringstream ss;
-		ss << __FILE__ << ":" << __LINE__
-		   << ": FileDescriptor: Failed to get file descriptor flags: " << strerror(errno);
-		Logger::log(Logger::ERROR, ss.str());
-		throw std::runtime_error(ss.str());
+		Logger::error("FileDescriptor: Failed to get file descriptor flags: " + std::string(strerror(errno)), __FILE__,
+					  __LINE__, __PRETTY_FUNCTION__);
+		return false;
 	}
 	flags |= O_NONBLOCK;
 	if (fcntl(_ctrl->fd, F_SETFL, flags) == -1)
 	{
-		std::stringstream ss;
-		ss << __FILE__ << ":" << __LINE__
-		   << ": FileDescriptor: Failed to set file descriptor to non-blocking: " << strerror(errno);
-		Logger::log(Logger::ERROR, ss.str());
-		throw std::runtime_error(ss.str());
+		Logger::error("FileDescriptor: Failed to set file descriptor to non-blocking: " + std::string(strerror(errno)),
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		return false;
 	}
+	return true;
 }
 
-void FileDescriptor::setBlocking()
+bool FileDescriptor::setBlocking()
 {
 	int flags = fcntl(_ctrl->fd, F_GETFL, 0);
 	if (flags == -1)
 	{
-		std::stringstream ss;
-		ss << __FILE__ << ":" << __LINE__
-		   << ": FileDescriptor: Failed to get file descriptor flags: " << strerror(errno);
-		Logger::log(Logger::ERROR, ss.str());
-		throw std::runtime_error(ss.str());
+		Logger::error("FileDescriptor: Failed to get file descriptor flags: " + std::string(strerror(errno)), __FILE__,
+					  __LINE__, __PRETTY_FUNCTION__);
+		return false;
 	}
 	flags &= ~O_NONBLOCK;
 	if (fcntl(_ctrl->fd, F_SETFL, flags) == -1)
 	{
-		std::stringstream ss;
-		ss << __FILE__ << ":" << __LINE__
-		   << ": FileDescriptor: Failed to set file descriptor to blocking: " << strerror(errno);
-		Logger::log(Logger::ERROR, ss.str());
-		throw std::runtime_error(ss.str());
+		Logger::error("FileDescriptor: Failed to set file descriptor to blocking: " + std::string(strerror(errno)),
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		return false;
 	}
+	return true;
 }
 
-void FileDescriptor::setCloseOnExec()
+bool FileDescriptor::setCloseOnExec()
 {
 	int flags = fcntl(_ctrl->fd, F_GETFD, 0);
 	if (flags == -1)
 	{
-		std::stringstream ss;
-		ss << __FILE__ << ":" << __LINE__
-		   << ": FileDescriptor: Failed to get file descriptor flags: " << strerror(errno);
-		Logger::log(Logger::ERROR, ss.str());
-		throw std::runtime_error(ss.str());
+		Logger::error("FileDescriptor: Failed to get file descriptor flags: " + std::string(strerror(errno)), __FILE__,
+					  __LINE__, __PRETTY_FUNCTION__);
+		return false;
 	}
 	flags |= FD_CLOEXEC;
 	if (fcntl(_ctrl->fd, F_SETFD, flags) == -1)
 	{
-		std::stringstream ss;
-		ss << __FILE__ << ":" << __LINE__
-		   << ": FileDescriptor: Failed to set file descriptor to close on exec: " << strerror(errno);
-		Logger::log(Logger::ERROR, ss.str());
-		throw std::runtime_error(ss.str());
+		Logger::error("FileDescriptor: Failed to set file descriptor to close on exec: " + std::string(strerror(errno)),
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		return false;
 	}
+	return true;
 }
 
-void FileDescriptor::unsetCloseOnExec()
+bool FileDescriptor::unsetCloseOnExec()
 {
 	int flags = fcntl(_ctrl->fd, F_GETFD, 0);
 	if (flags == -1)
 	{
-		std::stringstream ss;
-		ss << __FILE__ << ":" << __LINE__
-		   << ": FileDescriptor: Failed to get file descriptor flags: " << strerror(errno);
-		Logger::log(Logger::ERROR, ss.str());
-		throw std::runtime_error(ss.str());
+		Logger::error("FileDescriptor: Failed to get file descriptor flags: " + std::string(strerror(errno)), __FILE__,
+					  __LINE__, __PRETTY_FUNCTION__);
+		return false;
 	}
+	flags &= ~FD_CLOEXEC;
+	if (fcntl(_ctrl->fd, F_SETFD, flags) == -1)
+	{
+		Logger::error("FileDescriptor: Failed to unset file descriptor to close on exec: " +
+						  std::string(strerror(errno)),
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		return false;
+	}
+	return true;
 }
 
-void FileDescriptor::setReuseAddr()
+bool FileDescriptor::setReuseAddr()
 {
 	int opt = 1;
 	if (setsockopt(_ctrl->fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
 	{
-		std::stringstream ss;
-		ss << __FILE__ << ":" << __LINE__ << ": FileDescriptor: Failed to set SO_REUSEADDR: " << strerror(errno);
-		Logger::log(Logger::ERROR, ss.str());
-		throw std::runtime_error(ss.str());
+		Logger::error("FileDescriptor: Failed to set SO_REUSEADDR: " + std::string(strerror(errno)), __FILE__, __LINE__,
+					  __PRETTY_FUNCTION__);
+		return false;
 	}
-}
-
-void FileDescriptor::unsetReuseAddr()
-{
-	int opt = 0;
-	if (setsockopt(_ctrl->fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
-	{
-		std::stringstream ss;
-		ss << __FILE__ << ":" << __LINE__ << ": FileDescriptor: Failed to unset SO_REUSEADDR: " << strerror(errno);
-		Logger::log(Logger::ERROR, ss.str());
-		throw std::runtime_error(ss.str());
-	}
+	return true;
 }
 
 /*
@@ -654,34 +642,28 @@ FileDescriptor FileDescriptor::createSocket(int domain, int type, int protocol)
 	return newFd;
 }
 
-FileDescriptor FileDescriptor::createFromAccept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
+// Facilates the acceptance of a new connection from a listening socket returns the new file descriptor
+// WARNING: overwrites the passed in SocketAddress with information from the accepted connection
+FileDescriptor FileDescriptor::createFromAccept(int sockfd, SocketAddress &remoteAddress)
 {
-	int fd = accept(sockfd, addr, addrlen);
+	errno = 0;
+	struct sockaddr_storage address; // supports both IPv4 and IPv6
+	socklen_t addrlen = sizeof(address);
+
+	int fd = accept(sockfd, (struct sockaddr *)&address, &addrlen);
 	if (fd == -1)
-	{
-		std::stringstream ss;
-		ss << "FileDescriptor: Failed to create socket: " << strerror(errno);
-		Logger::log(Logger::ERROR, ss.str());
-		throw std::runtime_error(ss.str());
-	}
-	FileDescriptor newFd(fd);
-	newFd.setNonBlocking();
-	return newFd;
+		return FileDescriptor();
+	remoteAddress = SocketAddress(address, addrlen);
+	return FileDescriptor(fd);
 }
 
 FileDescriptor FileDescriptor::createFromOpen(const char *pathname, int flags)
 {
+	errno = 0;
 	int fd = open(pathname, flags);
 	if (fd == -1)
-	{
-		std::stringstream ss;
-		ss << "FileDescriptor: Failed to create socket: " << strerror(errno);
-		Logger::log(Logger::ERROR, ss.str());
-		throw std::runtime_error(ss.str());
-	}
-	FileDescriptor newFd(fd);
-	newFd.setNonBlocking();
-	return newFd;
+		return FileDescriptor();
+	return FileDescriptor(fd);
 }
 
 FileDescriptor FileDescriptor::createFromOpen(const char *pathname, int flags, mode_t mode)

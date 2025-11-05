@@ -32,9 +32,8 @@ public:
 
 private:
 	// Objects
-	FileDescriptor _clientFd;  // File descriptor for the client
-	SocketAddress _localAddr;  // Local address of the client (Who am I locally)
-	SocketAddress _remoteAddr; // Remote address of the client (Who sent me)
+	FileDescriptor _clientFd;	  // File descriptor for the client
+	SocketAddress _remoteAddress; // Remote address of the client
 
 	// Request and response caches and buffers
 	HttpRequest _request;					  // Cached request (May be partially processed)
@@ -62,15 +61,12 @@ private:
 
 	// Response processing methods
 	void _handleResponseBuffer();
-
-	// Method handlers
-
-	// TODO: Utility methods
+	void _routeRequest();
 
 public:
 	// Orchestrator methods
 	Client();
-	Client(FileDescriptor socketFd, SocketAddress clientAddr, SocketAddress remoteAddr);
+	Client(FileDescriptor socketFd, SocketAddress remoteAddress);
 	Client(const Client &other);
 	Client &operator=(const Client &other);
 	~Client();

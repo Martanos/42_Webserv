@@ -56,50 +56,49 @@ EpollManager::~EpollManager()
 ** --------------------------------- METHODS ----------------------------------
 */
 
-void EpollManager::addFd(FileDescriptor fd, uint32_t events)
+void EpollManager::addFd(int fd, uint32_t events)
 {
 	epoll_event event;
 	event.events = events;
-	event.data.fd = fd.getFd();
+	event.data.fd = fd;
 
-	Logger::debug("EpollManager: Adding fd " + StrUtils::toString(fd.getFd()) + " with events " +
-				  StrUtils::toString(events));
+	Logger::debug("EpollManager: Adding fd " + StrUtils::toString(fd) + " with events " + StrUtils::toString(events));
 
-	if (epoll_ctl(_epollFd.getFd(), EPOLL_CTL_ADD, fd.getFd(), &event) == -1)
+	if (epoll_ctl(_epollFd.getFd(), EPOLL_CTL_ADD, fd, &event) == -1)
 	{
 		std::stringstream ss;
-		ss << "epoll_ctl ADD failed for fd: " << fd.getFd();
+		ss << "epoll_ctl ADD failed for fd: " << fd;
 		Logger::log(Logger::ERROR, ss.str());
 		throw std::runtime_error(ss.str());
 	}
 
-	Logger::debug("EpollManager: Successfully added fd " + StrUtils::toString(fd.getFd()) + " to epoll");
+	Logger::debug("EpollManager: Successfully added fd " + StrUtils::toString(fd) + " to epoll");
 }
 
-void EpollManager::modifyFd(FileDescriptor fd, uint32_t events)
+void EpollManager::modifyFd(int fd, uint32_t events)
 {
 	epoll_event event;
 	event.events = events;
-	event.data.fd = fd.getFd();
+	event.data.fd = fd;
 
-	Logger::debug("EpollManager: Modifying fd " + StrUtils::toString(fd.getFd()) + " with events " +
+	Logger::debug("EpollManager: Modifying fd " + StrUtils::toString(fd) + " with events " +
 				  StrUtils::toString(events));
 
-	if (epoll_ctl(_epollFd.getFd(), EPOLL_CTL_MOD, fd.getFd(), &event) == -1)
+	if (epoll_ctl(_epollFd.getFd(), EPOLL_CTL_MOD, fd, &event) == -1)
 	{
 		std::stringstream ss;
-		ss << "epoll_ctl MOD failed for fd: " << fd.getFd() << ", errno: " << errno;
+		ss << "epoll_ctl MOD failed for fd: " << fd << ", errno: " << errno;
 		Logger::log(Logger::ERROR, ss.str());
 		throw std::runtime_error(ss.str());
 	}
 }
 
-void EpollManager::removeFd(FileDescriptor fd)
+void EpollManager::removeFd(int fd)
 {
-	if (epoll_ctl(_epollFd.getFd(), EPOLL_CTL_DEL, fd.getFd(), NULL) == -1)
+	if (epoll_ctl(_epollFd.getFd(), EPOLL_CTL_DEL, fd, NULL) == -1)
 	{
 		std::stringstream ss;
-		ss << "epoll_ctl DEL failed for fd: " << fd;
+		ss << "epoll_ctl DEL failed for fd: " << fd << ", errno: " << errno;
 		Logger::log(Logger::ERROR, ss.str());
 	}
 }

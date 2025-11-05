@@ -55,14 +55,13 @@ HttpURI &HttpURI::operator=(const HttpURI &other)
 /*
 ** --------------------------------- METHODS ----------------------------------
 */
-
 void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 {
 	std::vector<char>::iterator it = std::search(buffer.begin(), buffer.end(), HTTP::CRLF, HTTP::CRLF + 2);
 	if (it == buffer.end())
 	{
 		// If it can't be found check that the buffer has not currently exceeded the size limit of a header
-		if (buffer.size() > HTTP::MAX_URI_LINE_SIZE)
+		if (buffer.size() > HTTP::DEFAULT_CLIENT_MAX_REQUEST_LINE_SIZE)
 		{
 			response.setStatus(413, "Request URI Too Large");
 			Logger::log(Logger::ERROR, "URI size limit exceeded");
@@ -75,7 +74,7 @@ void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 
 	// Extract request line up to the CLRF
 	std::string requestLine(buffer.begin(), it);
-	if (requestLine.size() + 2 > HTTP::MAX_URI_LINE_SIZE)
+	if (requestLine.size() + 2 > HTTP::DEFAULT_CLIENT_MAX_REQUEST_LINE_SIZE)
 	{
 		response.setStatus(413, "Request URI Too Large");
 		Logger::log(Logger::ERROR, "URI size limit exceeded");
@@ -120,7 +119,7 @@ void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 	_uriState = URI_PARSING_COMPLETE;
 }
 
-void HttpURI::sanitizeURI(const Server *server, const Location *location)
+void HttpURI::sanitizeURI(const Server *server, const Location *location, HttpResponse &response)
 {
 	std::string path;
 	std::string queryParameters;
@@ -194,6 +193,7 @@ void HttpURI::sanitizeURI(const Server *server, const Location *location)
 			{
 				_uriState = URI_PARSING_ERROR;
 				Logger::log(Logger::ERROR, "Resolved directory escapes root: " + resolvedDir);
+				response.setResponse(403, "Forbidden");
 				return;
 			}
 
@@ -210,6 +210,7 @@ void HttpURI::sanitizeURI(const Server *server, const Location *location)
 
 		_uriState = URI_PARSING_ERROR;
 		Logger::log(Logger::ERROR, "Cannot resolve path: " + fullPath);
+		response.setResponse(404, "Not Found");
 		return;
 	}
 
@@ -217,6 +218,7 @@ void HttpURI::sanitizeURI(const Server *server, const Location *location)
 	{
 		_uriState = URI_PARSING_ERROR;
 		Logger::log(Logger::ERROR, "Resolved path escapes root: " + std::string(resolvedPath));
+		response.setResponse(403, "Forbidden");
 		return;
 	}
 

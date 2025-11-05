@@ -20,9 +20,9 @@ public:
 	~EpollManager();
 	EpollManager &operator=(const EpollManager &);
 
-	void addFd(FileDescriptor fd, uint32_t events = EPOLLIN);
-	void modifyFd(FileDescriptor fd, uint32_t events);
-	void removeFd(FileDescriptor fd);
+	void addFd(int fd, uint32_t events = EPOLLIN);
+	void modifyFd(int fd, uint32_t events);
+	void removeFd(int fd);
 
 	// Wait for events
 	int wait(std::vector<epoll_event> &events, int timeout = -1);

@@ -19,6 +19,13 @@ SocketAddress::SocketAddress(const std::string &host, const unsigned short &port
 	*this = SocketAddress(host, StrUtils::toString(port));
 }
 
+SocketAddress::SocketAddress(const struct sockaddr_storage &storage, socklen_t addrLen)
+	: _addrLen(addrLen), _family(storage.ss_family)
+{
+	std::memcpy(&_storage, &storage, addrLen);
+	_updateCachedValues();
+}
+
 SocketAddress::SocketAddress(const std::string &host, const std::string &port) : _addrLen(0), _family(AF_UNSPEC)
 {
 	std::memset(&_storage, 0, sizeof(_storage));

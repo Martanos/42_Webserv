@@ -54,7 +54,7 @@ void HttpHeaders::parseBuffer(std::vector<char> &buffer, HttpResponse &response,
 	Logger::debug("HttpHeaders: Parsing buffer, size: " + StrUtils::toString(buffer.size()));
 	std::string bufferStr(buffer.begin(), buffer.end());
 	Logger::debug("HttpHeaders: Buffer content: " + bufferStr);
-	
+
 	// Continue parsing headers until we find empty line or run out of data
 	while (_headersState == HEADERS_PARSING && !buffer.empty())
 	{
@@ -63,7 +63,7 @@ void HttpHeaders::parseBuffer(std::vector<char> &buffer, HttpResponse &response,
 		{
 			Logger::debug("HttpHeaders: No CRLF found, waiting for more data");
 			// If it can't be found check that the buffer has not currently exceeded the size limit of a header
-			if (buffer.size() > HTTP::MAX_HEADERS_LINE_SIZE)
+			if (buffer.size() > HTTP::DEFAULT_CLIENT_MAX_HEADERS_SIZE)
 			{
 				response.setStatus(413, "Request Header Too Large");
 				Logger::log(Logger::ERROR, "Header size limit exceeded");
@@ -87,7 +87,7 @@ void HttpHeaders::parseBuffer(std::vector<char> &buffer, HttpResponse &response,
 			Logger::log(Logger::DEBUG, "Headers parsing complete");
 			return;
 		}
-		else if (rawHeader.size() + 2 > HTTP::MAX_HEADERS_LINE_SIZE)
+		else if (rawHeader.size() + 2 > HTTP::DEFAULT_CLIENT_MAX_HEADERS_SIZE)
 		{
 			response.setStatus(413, "Request Line Header Too Large");
 			Logger::log(Logger::ERROR, "Header line size limit exceeded");
@@ -95,7 +95,7 @@ void HttpHeaders::parseBuffer(std::vector<char> &buffer, HttpResponse &response,
 			return;
 		}
 		_rawHeadersSize += rawHeader.size() + 2;
-		if (_rawHeadersSize > HTTP::MAX_HEADERS_SIZE)
+		if (_rawHeadersSize > HTTP::DEFAULT_CLIENT_MAX_HEADERS_SIZE)
 		{
 			response.setStatus(413, "Request headers total size too large");
 			Logger::log(Logger::ERROR, "Header total size limit exceeded");
@@ -152,16 +152,17 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 		std::vector<std::string> headerValues = it->getValues();
 		if (headerName == "content-length")
 		{
-		bool hasTransferEncoding = false;
-		for (std::vector<Header>::const_iterator headerIt = _headers.begin(); headerIt != _headers.end(); ++headerIt)
-		{
-			if (headerIt->getDirective() == "transfer-encoding")
+			bool hasTransferEncoding = false;
+			for (std::vector<Header>::const_iterator headerIt = _headers.begin(); headerIt != _headers.end();
+				 ++headerIt)
 			{
-				hasTransferEncoding = true;
-				break;
+				if (headerIt->getDirective() == "transfer-encoding")
+				{
+					hasTransferEncoding = true;
+					break;
+				}
 			}
-		}
-		if (hasTransferEncoding)
+			if (hasTransferEncoding)
 			{
 				Logger::log(Logger::WARNING, "Content-Length and Transfer-Encoding headers cannot be used together");
 				_headersState = HEADERS_PARSING_ERROR;
@@ -177,21 +178,29 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 				response.setStatus(400, "Bad Request");
 				return;
 			}
-			body.setExpectedBodySize(contentLength);
-			body.setBodyType(HttpBody::BODY_TYPE_CONTENT_LENGTH);
+			if (contentLength > 0)
+			{
+				body.setExpectedBodySize(contentLength);
+				body.setBodyType(HttpBody::BODY_TYPE_CONTENT_LENGTH);
+			}
+			else
+			{
+				body.setBodyType(HttpBody::BODY_TYPE_NO_BODY);
+			}
 		}
 		else if (headerName == "transfer-encoding")
 		{
-		bool hasContentLength = false;
-		for (std::vector<Header>::const_iterator headerIt = _headers.begin(); headerIt != _headers.end(); ++headerIt)
-		{
-			if (headerIt->getDirective() == "content-length")
+			bool hasContentLength = false;
+			for (std::vector<Header>::const_iterator headerIt = _headers.begin(); headerIt != _headers.end();
+				 ++headerIt)
 			{
-				hasContentLength = true;
-				break;
+				if (headerIt->getDirective() == "content-length")
+				{
+					hasContentLength = true;
+					break;
+				}
 			}
-		}
-		if (hasContentLength)
+			if (hasContentLength)
 			{
 				Logger::log(Logger::WARNING, "Content-Length and Transfer-Encoding headers cannot be used together");
 				_headersState = HEADERS_PARSING_ERROR;

@@ -16,7 +16,8 @@ HttpRequest::HttpRequest()
 	_uri = HttpURI();
 	_headers = HttpHeaders();
 	_body = HttpBody();
-	_server = NULL;
+	_potentialServers = NULL;
+	_selectedServer = NULL;
 }
 
 HttpRequest::HttpRequest(const HttpRequest &src)
@@ -44,9 +45,55 @@ HttpRequest &HttpRequest::operator=(const HttpRequest &rhs)
 		_headers = rhs._headers;
 		_body = rhs._body;
 		_parseState = rhs._parseState;
-		_server = rhs._server;
+		_potentialServers = rhs._potentialServers;
+		_selectedServer = rhs._selectedServer;
 	}
 	return *this;
+}
+
+/*
+** --------------------------------- Private utility methods METHODS
+*----------------------------------
+*/
+
+bool HttpRequest::_identifyServer(HttpResponse &response)
+{
+	if (_potentialServers == NULL)
+	{
+		Logger::error("HttpRequest: No potential servers found", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		response.setResponse(500, "Internal Server Error");
+		return false;
+	}
+	const Header *hostHeader = _headers.getHeader("host");
+	if (hostHeader == NULL)
+	{
+		Logger::error("HttpRequest: No host header found", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		response.setResponse(400, "Bad Request");
+		return false;
+	}
+	std::string hostValue = hostHeader->getValues()[0];
+	size_t colonPos = hostValue.find(':');
+	std::string hostName = (colonPos == std::string::npos) ? hostValue : hostValue.substr(0, colonPos);
+	std::string port = (colonPos == std::string::npos) ? "80" : hostValue.substr(colonPos + 1);
+	StrUtils::toLowerCase(hostName);
+	for (std::vector<Server>::const_iterator it = _potentialServers->begin(); it != _potentialServers->end(); ++it)
+	{
+		if (it->hasServerName(hostName))
+		{
+			for (std::vector<SocketAddress>::const_iterator it2 = it->getSocketAddresses().begin();
+				 it2 != it->getSocketAddresses().end(); ++it2)
+			{
+				if (it2->getPort() == static_cast<unsigned short>(std::atoi(port.c_str())))
+				{
+					_selectedServer = const_cast<Server *>(&(*it));
+					return true;
+				}
+			}
+		}
+	}
+	response.setResponse(404, "Not Found");
+	Logger::error("HttpRequest: Server not found for host: " + hostValue, __FILE__, __LINE__, __PRETTY_FUNCTION__);
+	return false;
 }
 
 /*
@@ -62,7 +109,7 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 				  ", buffer size: " + StrUtils::toString(holdingBuffer.size()));
 
 	// Continue parsing until complete or need more data
-	while (_parseState != PARSING_COMPLETE && _parseState != PARSING_ERROR)
+	while (_parseState != PARSING_COMPLETE && _parseState != PARSING_ERROR && !holdingBuffer.empty())
 	{
 		// Delegate to the appropriate parser
 		switch (_parseState)
@@ -99,9 +146,30 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 			switch (_headers.getHeadersState())
 			{
 			case HttpHeaders::HEADERS_PARSING_COMPLETE:
+			{
+				if (!_identifyServer(response))
+				{
+					Logger::error("HttpRequest: Failed to identify server", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+					_parseState = PARSING_ERROR;
+					break;
+				}
 				Logger::debug("HttpRequest: Headers parsing complete");
-				_parseState = PARSING_BODY;
+				switch (_body.getBodyType())
+				{
+				case HttpBody::BODY_TYPE_NO_BODY:
+					_parseState = PARSING_COMPLETE;
+					break;
+				case HttpBody::BODY_TYPE_CONTENT_LENGTH:
+				case HttpBody::BODY_TYPE_CHUNKED:
+					_parseState = PARSING_BODY;
+					break;
+				default:
+					Logger::error("HttpRequest: Invalid body type", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+					_parseState = PARSING_ERROR;
+					break;
+				}
 				break;
+			}
 			case HttpHeaders::HEADERS_PARSING_ERROR:
 				Logger::error("HttpRequest: Headers parsing error", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 				_parseState = PARSING_ERROR;
@@ -115,13 +183,6 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 		case PARSING_BODY:
 		{
 			Logger::debug("HttpRequest: Parsing body");
-			if (_server == NULL)
-			{
-				Logger::error("HttpRequest: No server found", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-				response.setStatus(400, "Bad Request");
-				_parseState = PARSING_ERROR;
-				break;
-			}
 			_body.parseBuffer(holdingBuffer, response);
 			Logger::debug("HttpRequest: Body state: " + StrUtils::toString(_body.getBodyState()));
 			switch (_body.getBodyState())
@@ -148,15 +209,13 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 			break;
 		}
 	}
-	// TODO: Log state here
 	Logger::debug("HttpRequest: parseBuffer returning state: " + StrUtils::toString(_parseState));
 	return _parseState;
 }
 
 void HttpRequest::sanitizeRequest(HttpResponse &response, const Server *server, const Location *location)
 {
-	(void)response;
-	_uri.sanitizeURI(server, location);
+	_uri.sanitizeURI(server, location, response);
 }
 
 /*
@@ -191,9 +250,14 @@ void HttpRequest::setParseState(ParseState parseState)
 {
 	_parseState = parseState;
 }
-void HttpRequest::setServer(Server *server)
+void HttpRequest::setSelectedServer(Server *selectedServer)
 {
-	_server = server;
+	_selectedServer = selectedServer;
+}
+
+void HttpRequest::setPotentialServers(const std::vector<Server> *potentialServers)
+{
+	_potentialServers = potentialServers;
 }
 
 /*
@@ -266,7 +330,12 @@ std::string HttpRequest::getTempFile() const
 	return _body.getTempFilePath();
 };
 
-Server *HttpRequest::getServer() const
+const std::vector<Server> *HttpRequest::getPotentialServers() const
 {
-	return _server;
+	return _potentialServers;
+};
+
+Server *HttpRequest::getSelectedServer() const
+{
+	return _selectedServer;
 };

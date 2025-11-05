@@ -45,7 +45,7 @@ public:
 
 	// Main parsing method
 	void parseBuffer(std::vector<char> &buffer, HttpResponse &response);
-	void sanitizeURI(const Server *server, const Location *location);
+	void sanitizeURI(const Server *server, const Location *location, HttpResponse &response);
 
 	// Accessors
 	const std::string &getURI() const;

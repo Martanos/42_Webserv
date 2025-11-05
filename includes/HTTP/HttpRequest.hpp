@@ -40,7 +40,9 @@ private:
 	ParseState _parseState;
 
 	// External configuration
-	Server *_server;
+	const std::vector<Server> *_potentialServers;
+	Server *_selectedServer;
+	bool _identifyServer(HttpResponse &response);
 
 public:
 	HttpRequest();
@@ -57,7 +59,8 @@ public:
 
 	// Mutators
 	void setParseState(ParseState parseState);
-	void setServer(Server *server);
+	void setPotentialServers(const std::vector<Server> *potentialServers);
+	void setSelectedServer(Server *selectedServer);
 
 	// Request accessors
 	ParseState getParseState() const;
@@ -82,7 +85,8 @@ public:
 	std::string getTempFile() const;
 
 	// Server accessors
-	Server *getServer() const;
+	const std::vector<Server> *getPotentialServers() const;
+	Server *getSelectedServer() const;
 };
 
 // TODO : Add request stream overload

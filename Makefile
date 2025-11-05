@@ -33,7 +33,6 @@ SRC_FILES = main.cpp \
 			MethodHandlers/MethodHandlerFactory.cpp \
 			Wrappers/FileDescriptor.cpp \
 			Wrappers/SocketAddress.cpp \
-			Wrappers/AddrInfo.cpp \
 			Wrappers/FileManager.cpp \
 			Wrappers/Logger.cpp \
 			Wrappers/PerformanceMonitor.cpp \

@@ -82,8 +82,7 @@ void ListeningSocket::accept(SocketAddress &remoteAddr, FileDescriptor &clientFd
 {
 	errno = 0;
 	socklen_t addrLen = remoteAddr.getSize();
-	clientFd = FileDescriptor::createFromAccept(
-		_bindFd.getFd(), reinterpret_cast<struct sockaddr *>(remoteAddr.getSockAddr()), &addrLen);
+	clientFd = FileDescriptor::createFromAccept(_bindFd.getFd(), remoteAddr);
 	if (!clientFd.isValid())
 		throw std::runtime_error("Failed to accept connection: " + std::string(strerror(errno)));
 	// Update the remoteAddr with the actual address length returned by accept

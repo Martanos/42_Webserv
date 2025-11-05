@@ -9,20 +9,6 @@
 #include <string>
 #include <vector>
 
-// Server Constants
-namespace ServerConstants
-{
-const char *const DEFAULT_HOST = "0.0.0.0";
-const unsigned short DEFAULT_PORT = 80;
-const char *const DEFAULT_ROOT = "www/";
-const char *const DEFAULT_INDEX = "index.html";
-const bool DEFAULT_AUTOINDEX = false;
-const size_t DEFAULT_CLIENT_MAX_BODY_SIZE = 1048576; // 1MB
-const bool DEFAULT_KEEP_ALIVE = true;
-
-const char *const SERVER_VERSION = "42_Webserv/1.0";
-} // namespace ServerConstants
-
 // Server configuration object
 class Server
 {
@@ -35,8 +21,6 @@ private:
 	std::string _rootPath;
 	TrieTree<std::string> _indexes;
 	bool _autoIndex;
-	double _clientMaxUriSize;
-	double _clientMaxHeadersSize;
 	double _clientMaxBodySize;
 	std::map<int, std::string> _statusPages;
 	TrieTree<Location> _locations;
@@ -67,8 +51,6 @@ public:
 	const std::vector<SocketAddress> &getSocketAddresses() const;
 	const std::string &getRootPath() const;
 	const TrieTree<std::string> &getIndexes() const;
-	double getClientMaxUriSize() const;
-	double getClientMaxHeadersSize() const;
 	double getClientMaxBodySize() const;
 	const std::string &getStatusPath(int status) const;
 	const std::map<int, std::string> &getStatusPages() const;
@@ -82,8 +64,6 @@ public:
 	void insertLocation(const Location &location);
 	void insertStatusPage(const std::string &path, const std::vector<int> &codes);
 	void setKeepAlive(const bool &keepAlive);
-	void setClientMaxUriSize(const double &clientMaxUriSize);
-	void setClientMaxHeadersSize(const double &clientMaxHeadersSize);
 	void setClientMaxBodySize(const double &clientMaxBodySize);
 	void setRoot(const std::string &root);
 	void setAutoindex(const bool &autoindex);

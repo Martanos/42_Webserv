@@ -4,6 +4,7 @@
 #include "../../includes/HTTP/HttpResponse.hpp"
 #include <algorithm>
 #include <cstdlib>
+#include <sys/ucontext.h>
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -96,7 +97,7 @@ HttpBody::BodyState HttpBody::_parseContentLengthBody(std::vector<char> &buffer,
 			response.setStatus(400, "Bad Request");
 			return BODY_PARSING_ERROR;
 		}
-		else if (_rawBody.size() >= HTTP::MAX_BODY_BUFFER_SIZE) // Flush to temp file
+		else if (_rawBody.size() >= HTTP::DEFAULT_CLIENT_MAX_BODY_SIZE) // Flush to temp file
 		{
 			_isUsingTempFile = true;
 			_tempFile.append(_rawBody, _rawBody.begin(), _rawBody.end());
@@ -134,6 +135,7 @@ HttpBody::BodyState HttpBody::_parseChunkedBody(std::vector<char> &buffer, HttpR
 	{
 		// Chunked size line validation
 		std::vector<char>::iterator it = std::search(buffer.begin(), buffer.end(), HTTP::CRLF, HTTP::CRLF + 2);
+		Logger::debug("HttpBody: Chunk size line search result: " + StrUtils::toString(it - buffer.begin()));
 		if (it == buffer.end())
 		{
 			if (buffer.size() > 18) // Limit hex number size to 16 characters (8 bytes) + 2 for \r\n
@@ -194,7 +196,7 @@ HttpBody::BodyState HttpBody::_parseChunkedBody(std::vector<char> &buffer, HttpR
 		if (!_isUsingTempFile)
 		{
 			_rawBody.insert(_rawBody.end(), buffer.begin(), extractableBytes);
-			if (_rawBodySize >= HTTP::MAX_BODY_BUFFER_SIZE)
+			if (_rawBodySize >= HTTP::DEFAULT_CLIENT_MAX_BODY_SIZE)
 			{
 				_isUsingTempFile = true;
 				_tempFile.append(_rawBody, _rawBody.begin(), _rawBody.end());
@@ -221,7 +223,7 @@ HttpBody::BodyState HttpBody::_parseChunkedBody(std::vector<char> &buffer, HttpR
 		_rawBodySize += it - buffer.begin();
 		if (it == buffer.end())
 		{
-			if (buffer.size() > HTTP::MAX_HEADERS_LINE_SIZE)
+			if (buffer.size() > HTTP::DEFAULT_CLIENT_MAX_HEADERS_SIZE)
 			{
 				Logger::log(Logger::ERROR, "Chunked trailers line too long");
 				response.setStatus(400, "Bad Request");
@@ -235,7 +237,7 @@ HttpBody::BodyState HttpBody::_parseChunkedBody(std::vector<char> &buffer, HttpR
 			_chunkState = CHUNK_COMPLETE;
 			return BODY_PARSING_COMPLETE;
 		}
-		else if (it - buffer.begin() > HTTP::MAX_HEADERS_LINE_SIZE)
+		else if (it - buffer.begin() > HTTP::DEFAULT_CLIENT_MAX_HEADERS_SIZE)
 		{
 			Logger::log(Logger::ERROR, "Chunked trailers line too long");
 			response.setStatus(400, "Bad Request");

@@ -113,10 +113,6 @@ Server ConfigTranslator::_translateServer(const AST::ASTNode &ast)
 				_translateServerAutoindex(**it, server);
 			else if ((*it)->value == "client_max_body_size")
 				_translateServerClientMaxBodySize(**it, server);
-			else if ((*it)->value == "client_max_headers_size")
-				_translateServerClientMaxHeadersSize(**it, server);
-			else if ((*it)->value == "client_max_uri_size")
-				_translateServerClientMaxUriSize(**it, server);
 			else if ((*it)->value == "error_pages")
 				_translateServerErrorPages(**it, server);
 			else
@@ -418,96 +414,6 @@ void ConfigTranslator::_translateServerClientMaxBodySize(const AST::ASTNode &dir
 						  " column: " + StrUtils::toString<int>(directive.column) + " skipping...",
 					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		return;
-	}
-}
-
-// Translate client max headers size directives into server members
-void ConfigTranslator::_translateServerClientMaxHeadersSize(const AST::ASTNode &directive, Server &server)
-{
-	try
-	{
-		std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
-		if (it == directive.children.end())
-		{
-			Logger::warning("No arguments in client max headers size directive" + directive.value +
-								" line: " + StrUtils::toString<int>(directive.line) +
-								" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
-							__FILE__, __LINE__, __PRETTY_FUNCTION__);
-			return;
-		}
-		else if ((*it)->type == AST::ARG)
-		{
-			char *end;
-			double size = strtod((*it)->value.c_str(), &end);
-			if (end == (*it)->value.c_str() || *end != '\0' || size < 0)
-				throw std::runtime_error("Invalid client max headers size: " + (*it)->value);
-			server.setClientMaxHeadersSize(size);
-		}
-		else
-			Logger::warning("Unknown token in client max headers size directive: " + (*it)->value +
-								" line: " + StrUtils::toString<int>((*it)->line) +
-								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
-							__FILE__, __LINE__, __PRETTY_FUNCTION__);
-		while (++it != directive.children.end())
-			Logger::warning("Extra argument in client max headers size directive: " + (*it)->value +
-								" line: " + StrUtils::toString<int>((*it)->line) +
-								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
-							__FILE__, __LINE__, __PRETTY_FUNCTION__);
-	}
-	catch (const std::exception &e)
-	{
-		Logger::warning("Error translating client max headers size directive: " + std::string(e.what()) +
-							" line: " + StrUtils::toString<int>(directive.line) +
-							" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
-						__FILE__, __LINE__, __PRETTY_FUNCTION__);
-	}
-}
-
-// Translate client max uri size directives into server members
-void ConfigTranslator::_translateServerClientMaxUriSize(const AST::ASTNode &directive, Server &server)
-{
-	try
-	{
-		std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
-		if (it == directive.children.end())
-		{
-			Logger::warning("No arguments in client max uri size directive" + directive.value +
-								" line: " + StrUtils::toString<int>(directive.line) +
-								" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
-							__FILE__, __LINE__, __PRETTY_FUNCTION__);
-			return;
-		}
-		else if ((*it)->type == AST::ARG)
-		{
-			char *end;
-			double size = strtod((*it)->value.c_str(), &end);
-			if (end == (*it)->value.c_str() || *end != '\0' || size < 0)
-				Logger::warning("Invalid client max uri size: " + (*it)->value +
-									" line: " + StrUtils::toString<int>((*it)->line) +
-									" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
-								__FILE__, __LINE__, __PRETTY_FUNCTION__);
-			else
-				server.setClientMaxUriSize(size);
-		}
-		else
-			Logger::warning("Unknown token in client max uri size directive: " + (*it)->value +
-								" line: " + StrUtils::toString<int>((*it)->line) +
-								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
-							__FILE__, __LINE__, __PRETTY_FUNCTION__);
-		while (++it != directive.children.end())
-		{
-			Logger::warning("Extra argument in client max uri size directive: " + (*it)->value +
-								" line: " + StrUtils::toString<int>((*it)->line) +
-								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
-							__FILE__, __LINE__, __PRETTY_FUNCTION__);
-		}
-	}
-	catch (const std::exception &e)
-	{
-		Logger::error("Error translating client max uri size directive: " + std::string(e.what()) +
-						  " line: " + StrUtils::toString<int>(directive.line) +
-						  " column: " + StrUtils::toString<int>(directive.column) + " skipping...",
-					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
 }
 

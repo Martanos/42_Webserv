@@ -12,9 +12,7 @@ Server::Server()
 	_rootPath = std::string();
 	_indexes = TrieTree<std::string>();
 	_autoIndex = HTTP::DEFAULT_AUTOINDEX;
-	_clientMaxUriSize = HTTP::MAX_URI_LINE_SIZE;
-	_clientMaxHeadersSize = HTTP::MAX_HEADERS_SIZE;
-	_clientMaxBodySize = HTTP::MAX_BODY_SIZE;
+	_clientMaxBodySize = HTTP::DEFAULT_CLIENT_MAX_BODY_SIZE;
 	_statusPages = std::map<int, std::string>();
 	_locations = TrieTree<Location>();
 	_keepAlive = HTTP::DEFAULT_KEEP_ALIVE;
@@ -50,8 +48,6 @@ Server &Server::operator=(Server const &rhs)
 		_rootPath = rhs._rootPath;
 		_indexes = rhs._indexes;
 		_autoIndex = rhs._autoIndex;
-		_clientMaxUriSize = rhs._clientMaxUriSize;
-		_clientMaxHeadersSize = rhs._clientMaxHeadersSize;
 		_clientMaxBodySize = rhs._clientMaxBodySize;
 		_statusPages = rhs._statusPages;
 		_locations = rhs._locations;
@@ -67,7 +63,8 @@ std::ostream &operator<<(std::ostream &o, Server const &i)
 	o << "Server names: ";
 	if (!i.getServerNames().isEmpty())
 	{
-		for (TrieTree<std::string>::const_iterator it = i.getServerNames().begin(); it != i.getServerNames().end(); ++it)
+		for (TrieTree<std::string>::const_iterator it = i.getServerNames().begin(); it != i.getServerNames().end();
+			 ++it)
 			o << *it << " ";
 	}
 	o << std::endl;
@@ -82,8 +79,6 @@ std::ostream &operator<<(std::ostream &o, Server const &i)
 		o << *it << " ";
 	o << std::endl;
 	o << "Autoindex: " << (i.isAutoIndex() ? "true" : "false") << std::endl;
-	o << "Client max uri size: " << i.getClientMaxUriSize() << std::endl;
-	o << "Client max headers size: " << i.getClientMaxHeadersSize() << std::endl;
 	o << "Client max body size: " << i.getClientMaxBodySize() << std::endl;
 	o << "Keep alive: " << (i.isKeepAlive() ? "true" : "false") << std::endl;
 	o << "Status pages: ";
@@ -177,17 +172,6 @@ double Server::getClientMaxBodySize() const
 {
 	return _clientMaxBodySize;
 }
-
-double Server::getClientMaxHeadersSize() const
-{
-	return _clientMaxHeadersSize;
-}
-
-double Server::getClientMaxUriSize() const
-{
-	return _clientMaxUriSize;
-}
-
 const std::string &Server::getStatusPath(int status) const
 {
 	if (!hasStatusPage(status))
@@ -288,18 +272,6 @@ void Server::setClientMaxBodySize(const double &clientMaxBodySize)
 	_modified = true;
 }
 
-void Server::setClientMaxHeadersSize(const double &clientMaxHeadersSize)
-{
-	_clientMaxHeadersSize = clientMaxHeadersSize;
-	_modified = true;
-}
-
-void Server::setClientMaxUriSize(const double &clientMaxUriSize)
-{
-	_clientMaxUriSize = clientMaxUriSize;
-	_modified = true;
-}
-
 void Server::setRoot(const std::string &root)
 {
 	_rootPath = root;
@@ -319,9 +291,7 @@ void Server::reset()
 	_rootPath = std::string();
 	_indexes.clear();
 	_autoIndex = HTTP::DEFAULT_AUTOINDEX;
-	_clientMaxUriSize = HTTP::MAX_URI_LINE_SIZE;
-	_clientMaxHeadersSize = HTTP::MAX_HEADERS_SIZE;
-	_clientMaxBodySize = HTTP::MAX_BODY_SIZE;
+	_clientMaxBodySize = HTTP::DEFAULT_CLIENT_MAX_BODY_SIZE;
 	_statusPages.clear();
 	_locations.clear();
 	_keepAlive = HTTP::DEFAULT_KEEP_ALIVE;

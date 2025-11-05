@@ -3,6 +3,7 @@
 #include "../../includes/Core/MethodHandlerFactory.hpp"
 #include "../../includes/Global/Logger.hpp"
 #include "../../includes/Global/StrUtils.hpp"
+#include "../../includes/HTTP/HTTP.hpp"
 #include "../../includes/HTTP/HttpRequest.hpp"
 #include "../../includes/HTTP/HttpResponse.hpp"
 #include <cstdio>
@@ -23,8 +24,7 @@
 Client::Client()
 {
 	_clientFd = FileDescriptor();
-	_localAddr = SocketAddress();
-	_remoteAddr = SocketAddress();
+	_remoteAddress = SocketAddress();
 	_request = HttpRequest();
 	_response = HttpResponse();
 	_responseBuffer = std::deque<HttpResponse>();
@@ -46,11 +46,10 @@ Client::Client(const Client &src)
 	*this = src;
 }
 
-Client::Client(FileDescriptor socketFd, SocketAddress clientAddr, SocketAddress remoteAddr)
+Client::Client(FileDescriptor socketFd, SocketAddress remoteAddress)
 {
 	_clientFd = socketFd;
-	_localAddr = clientAddr;
-	_remoteAddr = remoteAddr;
+	_remoteAddress = remoteAddress;
 	_request = HttpRequest();
 	_response = HttpResponse();
 	_responseBuffer = std::deque<HttpResponse>();
@@ -83,8 +82,7 @@ Client &Client::operator=(const Client &rhs)
 	if (this != &rhs)
 	{
 		_clientFd = rhs._clientFd;
-		_localAddr = rhs._localAddr;
-		_remoteAddr = rhs._remoteAddr;
+		_remoteAddress = rhs._remoteAddress;
 		_request = rhs._request;
 		_response = rhs._response;
 		_responseBuffer = rhs._responseBuffer;
@@ -104,132 +102,80 @@ Client &Client::operator=(const Client &rhs)
 
 void Client::handleEvent(epoll_event event)
 {
-	if (event.events & EPOLLIN)
+	_response.reset();
+	switch (event.events)
 	{
+	case EPOLLIN:
 		_handleBuffer();
-	}
-	else if (event.events & EPOLLOUT)
-	{
+		break;
+	case EPOLLOUT:
 		_handleResponseBuffer();
-	}
-	else if (event.events & (EPOLLERR | EPOLLHUP))
-	{
+		break;
+	case EPOLLERR | EPOLLHUP:
 		_state = CLIENT_DISCONNECTED;
+		break;
+	default:
+		Logger::debug("Client: Unknown event: " + StrUtils::toString(event.events));
+		_state = CLIENT_DISCONNECTED;
+		break;
 	}
+	updateActivity(); // base last activity time off of when event handled
 }
 
 void Client::_handleBuffer()
 {
-	Logger::debug("Client: Reading from socket fd: " + StrUtils::toString(_clientFd.getFd()));
 	ssize_t bytesRead = recv(_clientFd.getFd(), &_receiveBuffer[0], _receiveBuffer.size(), 0);
-	Logger::debug("Client: Read " + StrUtils::toString(bytesRead) + " bytes");
-	
 	if (bytesRead <= 0)
 	{
-		Logger::debug("Client: Connection closed or error, disconnecting");
+		Logger::warning("Client: " + _remoteAddress.getHostString() + ":" + _remoteAddress.getPortString() +
+						" disconnected or error occurred : " + std::string(strerror(errno)));
 		_state = CLIENT_DISCONNECTED;
 		return;
 	}
-	
 	_holdingBuffer.insert(_holdingBuffer.end(), _receiveBuffer.begin(), _receiveBuffer.begin() + bytesRead);
-	Logger::debug("Client: Total buffer size: " + StrUtils::toString(_holdingBuffer.size()));
-	
 	// Debug: Print the raw request
 	std::string rawRequest(_holdingBuffer.begin(), _holdingBuffer.end());
-	Logger::debug("Client: Raw request: " + rawRequest);
-	
+	Logger::debug("Client: " + _remoteAddress.getHostString() + ":" + _remoteAddress.getPortString() +
+				  " current buffer: " + rawRequest);
+
 	_handleRequest();
 }
 
 void Client::_handleRequest()
 {
-	Logger::debug("Client: Handling request, buffer size: " + StrUtils::toString(_holdingBuffer.size()));
-	
-	// Set the server for this request before parsing
-	if (_potentialServers && !_potentialServers->empty())
-	{
-		Logger::debug("Client: Setting server from potential servers, count: " + StrUtils::toString(_potentialServers->size()));
-		Server *serverPtr = const_cast<Server*>(&_potentialServers->front());
-		std::stringstream ss;
-		ss << "Client: Server pointer: " << serverPtr;
-		Logger::debug(ss.str());
-		_request.setServer(serverPtr);
-	}
-	else
-	{
-		_response.setStatus(500, "Internal Server Error");
-		_response.setBody(NULL, NULL);
-		_response.setHeader(Header("Content-Type: text/html"));
-		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
-		_responseBuffer.push_back(_response);
-		_state = CLIENT_PROCESSING_RESPONSES;
-		return;
-	}
-	
-	// Parse the HTTP request from the buffer
+	// Refresh current potential servers
+	if (_request.getPotentialServers() == NULL)
+		_request.setPotentialServers(_potentialServers);
 	HttpRequest::ParseState parseState = _request.parseBuffer(_holdingBuffer, _response);
-	Logger::debug("Client: Parse state: " + StrUtils::toString(parseState));
-	
-	// If parsing is not complete, wait for more data
-	if (parseState != HttpRequest::PARSING_COMPLETE)
+	switch (parseState)
 	{
-		if (parseState == HttpRequest::PARSING_ERROR)
-		{
-			_state = CLIENT_DISCONNECTED;
-		}
-		return;
-	}
-	
-	// Identify if request is handled by the server then route
-	Logger::debug("Client: Getting server for request");
-
-	// Virtual hosting: choose server based on Host header if available
-	Server *server = _request.getServer();
-	if (_potentialServers && !_potentialServers->empty())
+	case HttpRequest::PARSING_COMPLETE:
+		_routeRequest();
+		break;
+	case HttpRequest::PARSING_ERROR:
 	{
-		const std::vector<std::string> hostHeader = _request.getHeader("host");
-		if (!hostHeader.empty())
-		{
-			std::string hostValue = hostHeader[0];
-			// Extract hostname (strip optional port)
-			size_t colonPos = hostValue.find(':');
-			std::string hostName = (colonPos == std::string::npos) ? hostValue : hostValue.substr(0, colonPos);
-			StrUtils::toLowerCase(hostName);
-			for (std::vector<Server>::const_iterator it = _potentialServers->begin(); it != _potentialServers->end(); ++it)
-			{
-				if (it->hasServerName(hostName))
-				{
-					Logger::debug("Client: Selected virtual host: " + hostName);
-					Server *matched = const_cast<Server *>(&(*it));
-					_request.setServer(matched);
-					server = matched;
-					break;
-				}
-			}
-		}
-	}
-	if (!server)
-	{
-		Logger::error("Client: No server available for request");
-		_response.setStatus(500, "Internal Server Error");
-		_response.setBody(NULL, NULL);
-		_response.setHeader(Header("Content-Type: text/html"));
-		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
 		_responseBuffer.push_back(_response);
 		_state = CLIENT_PROCESSING_RESPONSES;
 		return;
 	}
-	
+	default:
+		break;
+	}
+}
+
+void Client::_routeRequest()
+{
 	Logger::debug("Client: Got server, getting location for URI: " + _request.getUri());
 	const Location *location = NULL;
 	try
 	{
-		location = server->getLocation(_request.getUri());
-		Logger::debug("Client: Location lookup complete");
+		location = _request.getSelectedServer()->getLocation(_request.getUri());
+		Logger::debug("Client: Matched location: " + location->getPath() + " for URI: " + _request.getUri());
 	}
 	catch (const std::exception &e)
 	{
-		Logger::error("Client: Exception during location lookup: " + std::string(e.what()));
+		Logger::error("Client: Exception during location lookup: " + std::string(e.what()) +
+					  " for URI: " + _request.getUri());
 		_response.setStatus(500, "Internal Server Error");
 		_response.setBody(NULL, NULL);
 		_response.setHeader(Header("Content-Type: text/html"));
@@ -238,21 +184,11 @@ void Client::_handleRequest()
 		_state = CLIENT_PROCESSING_RESPONSES;
 		return;
 	}
-	catch (...)
-	{
-		Logger::error("Client: Unknown exception during location lookup");
-		_response.setStatus(500, "Internal Server Error");
-		_response.setBody(NULL, NULL);
-		_response.setHeader(Header("Content-Type: text/html"));
-		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
-		_responseBuffer.push_back(_response);
-		_state = CLIENT_PROCESSING_RESPONSES;
-		return;
-	}
-	if (!location) // 1. Verify location can be found on server (returns Null if exact match / longest prefix match is not found)
+	if (!location) // 1. Verify location can be found on server (returns Null if exact match / longest prefix match is
+				   // not found)
 	{
 		_response.setStatus(404, "Not Found");
-		_response.setBody(NULL, _request.getServer());
+		_response.setBody(NULL, _request.getSelectedServer());
 		_response.setHeader(Header("Content-Type: text/html"));
 		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
 		_responseBuffer.push_back(_response);
@@ -263,7 +199,7 @@ void Client::_handleRequest()
 					   _request.getMethod()) == location->getAllowedMethods().end()) // 2. Verify method is allowed
 	{
 		_response.setStatus(405, "Method Not Allowed");
-		_response.setBody(location, _request.getServer());
+		_response.setBody(location, _request.getSelectedServer());
 		_response.setHeader(Header("Content-Type: text/html"));
 		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
 		_responseBuffer.push_back(_response);
@@ -272,43 +208,59 @@ void Client::_handleRequest()
 	}
 
 	// 3. Once location is found sanitize the request (can only be done after location is found)
-	_request.sanitizeRequest(_response, _request.getServer(), location);
-	
+	_request.sanitizeRequest(_response, _request.getSelectedServer(), location);
+
 	// Use method handlers
 	IMethodHandler *handler = MethodHandlerFactory::createHandler(_request.getMethod());
 	if (handler)
 	{
-		handler->handleRequest(_request, _response, _request.getServer(), location);
+		Logger::debug("Client: Created handler for method: " + _request.getMethod());
+		handler->handleRequest(_request, _response, _request.getSelectedServer(), location);
 		delete handler;
 	}
 	else
 	{
+		Logger::error("Client: Failed to create handler for method: " + _request.getMethod());
 		_response.setStatus(405, "Method Not Allowed");
-		_response.setBody(location, _request.getServer());
+		_response.setBody(location, _request.getSelectedServer());
 		_response.setHeader(Header("Content-Type: text/html"));
 		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
 	}
-	
+
 	// Add response to response buffer and prepare for sending
 	_responseBuffer.push_back(_response);
+	_response
 	_state = CLIENT_PROCESSING_RESPONSES;
 }
 
+// Write up to 4096 worth of response to the client each time this is called
 void Client::_handleResponseBuffer()
 {
-	if (_responseBuffer.empty())
+	ssize_t totalBytesSent = 0;
+	while (totalBytesSent < HTTP::DEFAULT_SEND_SIZE && !_responseBuffer.empty())
 	{
-		_state = CLIENT_DISCONNECTED;
-		return;
-	}
-	
-	HttpResponse &response = _responseBuffer.front();
-	response.sendResponse(_clientFd);
-	_responseBuffer.pop_front();
-	
-	if (_responseBuffer.empty())
-	{
-		_state = CLIENT_DISCONNECTED;
+		HttpResponse &response = _responseBuffer.front();
+		response.sendResponse(_clientFd, totalBytesSent);
+		switch (response.getState())
+		{
+		case HttpResponse::RESPONSE_SENDING_COMPLETE:
+			Logger::debug("Client: Response sent completely for client: " + _remoteAddress.getHostString() + ":" +
+						  _remoteAddress.getPortString());
+			_responseBuffer.pop_front();
+			if (_keepAlive)
+				_state = CLIENT_WAITING_FOR_REQUEST;
+			else
+				_state = CLIENT_DISCONNECTED;
+			break;
+		case HttpResponse::RESPONSE_SENDING_ERROR:
+			Logger::error("Client: Response sending error for client: " + _remoteAddress.getHostString() + ":" +
+						  _remoteAddress.getPortString());
+			_responseBuffer.pop_front();
+			_state = CLIENT_DISCONNECTED;
+			return;
+		default:
+			break;
+		}
 	}
 }
 
@@ -336,14 +288,9 @@ int Client::getSocketFd() const
 	return _clientFd.getFd();
 }
 
-const SocketAddress &Client::getLocalAddr() const
-{
-	return _localAddr;
-}
-
 const SocketAddress &Client::getRemoteAddr() const
 {
-	return _remoteAddr;
+	return _remoteAddress;
 }
 
 const std::vector<Server> &Client::getPotentialServers() const
