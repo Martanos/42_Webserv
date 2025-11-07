@@ -147,8 +147,8 @@ void ServerManager::run()
 	// Main event loop
 	while (serverRunning)
 	{
-		std::vector<epoll_event> events(100);				 // Max 100 events per iteration
-		int ready_events = _epollManager.wait(events, 1000); // 1 second timeout
+		std::vector<epoll_event> events(100);			   // Max 100 events per iteration
+		int ready_events = _epollManager.wait(events, 30); // 1 second timeout
 		if (ready_events > 0)
 		{
 			_handleEventLoop(ready_events, events);

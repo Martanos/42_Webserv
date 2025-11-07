@@ -1,5 +1,4 @@
 #include "../../includes/Core/PutMethodHandler.hpp"
-#include "../../includes/HTTP/HttpBody.hpp"
 #include <cerrno>
 #include <cstring>
 #include <fstream>

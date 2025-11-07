@@ -372,7 +372,6 @@ void HttpResponse::sendResponse(const FileDescriptor &clientFd, ssize_t &totalBy
 			// Translate response data into a http string format assume content type and length are set if needed
 			_rawResponse = _version + " " + StrUtils::toString(_statusCode) + " " + _statusMessage + "\r\n";
 			_version.clear();
-			_statusCode = 0;
 			_statusMessage.clear();
 			for (std::vector<Header>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
 			{

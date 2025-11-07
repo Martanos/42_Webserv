@@ -1,6 +1,5 @@
 #include "../../includes/CGI/CgiHandler.hpp"
 #include "../../includes/Global/StrUtils.hpp"
-#include <algorithm>
 #include <sys/stat.h>
 
 /*
@@ -193,7 +192,7 @@ CgiHandler::ExecutionResult CgiHandler::executeCgiScript(const std::string &scri
 	}
 }
 
-CgiHandler::ExecutionResult CgiHandler::processResponse(const std::string &output, const std::string &error, 
+CgiHandler::ExecutionResult CgiHandler::processResponse(const std::string &output, const std::string &error,
 														HttpResponse &response, const Server *server)
 {
 	(void)server;

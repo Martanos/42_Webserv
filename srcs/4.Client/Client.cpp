@@ -102,44 +102,49 @@ Client &Client::operator=(const Client &rhs)
 
 void Client::handleEvent(epoll_event event)
 {
-	switch (event.events)
-	{
-	case EPOLLIN:
+
+	if (event.events & EPOLLIN)
 		_handleBuffer();
-		break;
-	case EPOLLOUT:
+	if (event.events & EPOLLOUT)
 		_handleResponseBuffer();
-		break;
-	case EPOLLERR | EPOLLHUP:
+	if (event.events & EPOLLERR)
+	{
+		Logger::error("Client: Error event occurred for client: " + _remoteAddress.getHostString() + ":" +
+					  _remoteAddress.getPortString());
 		_state = DISCONNECTED;
-		break;
-	default:
-		Logger::debug("Client: Unknown event: " + StrUtils::toString(event.events));
-		_state = DISCONNECTED;
-		break;
 	}
-	Logger::debug("Client: Event handled: " + StrUtils::toString(event.events), __FILE__, __LINE__,
-				  __PRETTY_FUNCTION__);
+	if (event.events & EPOLLHUP)
+	{
+		Logger::error("Client: Hang-up event occurred for client: " + _remoteAddress.getHostString() + ":" +
+					  _remoteAddress.getPortString());
+		_state = DISCONNECTED;
+	}
 	updateActivity(); // base last activity time off of when event handled
 }
 
 void Client::_handleBuffer()
 {
-	// Ingest up to 4096 bytes of data from the incoming socket buffer
-	ssize_t bytesRead = recv(_clientFd.getFd(), &_receiveBuffer[0], _receiveBuffer.size(), 0);
-	if (bytesRead <= 0)
+	while (true)
 	{
-		Logger::warning("Client: " + _remoteAddress.getHostString() + ":" + _remoteAddress.getPortString() +
-						" disconnected or error occurred : " + std::string(strerror(errno)));
-		_state = DISCONNECTED;
-		return;
+		ssize_t bytesRead = recv(_clientFd.getFd(), &_receiveBuffer[0], _receiveBuffer.size(), 0);
+		if (bytesRead > 0)
+		{
+			_holdingBuffer.insert(_holdingBuffer.end(), _receiveBuffer.begin(), _receiveBuffer.begin() + bytesRead);
+		}
+		else if (bytesRead == 0)
+		{
+			Logger::warning("Client: " + _remoteAddress.getHostString() + ":" + _remoteAddress.getPortString() +
+							" disconnected");
+			_state = DISCONNECTED;
+			return;
+		}
+		else // No idea if EGAIN or something else due to project restrictions just have to assume its EGAIN and process
+			 // as normal
+		{
+			break;
+		}
 	}
-	// Attach new data to the holding buffer
-	_holdingBuffer.insert(_holdingBuffer.end(), _receiveBuffer.begin(), _receiveBuffer.begin() + bytesRead);
-	// Debug: Print the raw request
-	Logger::debug("Client: " + _remoteAddress.getHostString() + ":" + _remoteAddress.getPortString() +
-				  " current buffer: " + std::string(_holdingBuffer.begin(), _holdingBuffer.end()));
-
+	Logger::debug("Client _holdingBuffer: " + std::string(_holdingBuffer.begin(), _holdingBuffer.end()));
 	// Parse the request
 	_handleRequest();
 }
@@ -267,6 +272,11 @@ void Client::_handleResponseBuffer()
 	HttpResponse &response = _responseBuffer.front();
 	while (totalBytesSent < HTTP::DEFAULT_SEND_SIZE && !_responseBuffer.empty())
 	{
+		Logger::warning(
+			"Client: Sending response for client with status code: " + StrUtils::toString(response.getStatusCode()) +
+				" and status message: " + response.getStatusMessage() +
+				" for client: " + _remoteAddress.getHostString() + ":" + _remoteAddress.getPortString(),
+			__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		response.sendResponse(_clientFd, totalBytesSent);
 		switch (response.getSendingState())
 		{
