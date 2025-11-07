@@ -44,7 +44,8 @@ HttpResponse &HttpResponse::operator=(HttpResponse const &rhs)
 		_streamBody = rhs._streamBody;
 		_bodyFileDescriptor = rhs._bodyFileDescriptor;
 		_rawResponse = rhs._rawResponse;
-		_httpResponseState = rhs._httpResponseState;
+		_sendingState = rhs._sendingState;
+		_responseType = rhs._responseType;
 	}
 	return *this;
 }
@@ -83,12 +84,6 @@ void HttpResponse::_setVersionHeader()
 ** --------------------------------- METHODS ----------------------------------
 */
 
-void HttpResponse::setStatus(int code, const std::string &message)
-{
-	_statusCode = code;
-	_statusMessage = message;
-}
-
 // Replaces a header if it exists else inserts it
 void HttpResponse::setHeader(const Header &header)
 {
@@ -124,62 +119,60 @@ void HttpResponse::setBody(const std::string &body)
 	setHeader(Header("content-length: " + StrUtils::toString(body.length())));
 }
 
-// TODO: consolidate setting response into multiple functions types of responses:
-// 1. setSuccessResponse
-// 2. setErrorResponse
-// 3. setRedirectResponse
-// 4. setFileResponse
-// 5. setCGIResponse
-
-// Used when location and server have not been identified
-void HttpResponse::setResponse(int statusCode, const std::string &statusMessage)
+// Used for responses with no custom body
+void HttpResponse::setResponseDefaultBody(int statusCode, const std::string &statusMessage, const Server *server,
+										  const Location *location)
 {
-	setStatus(statusCode, statusMessage);
-	_body = DefaultStatusMap::getStatusBody(statusCode);
-}
-
-// Used when access to body is not known yet
-void HttpResponse::setResponse(int statusCode, const std::string &statusMessage, const Server *server,
-							   const Location *location, const std::string &filePath)
-{
-	setStatus(statusCode, statusMessage);
+	_statusCode = statusCode;
+	_statusMessage = statusMessage;
+	_body = DefaultStatusMap::getStatusBody(_statusCode);
+	_streamBody = false;
+	setHeader(Header("content-type: " + HTTP_RESPONSE_DEFAULT::CONTENT_TYPE));
+	setHeader(Header("content-length: " + StrUtils::toString(_body.length())));
 	if (location && location->hasStatusPage(_statusCode))
 	{
-		std::string statusPagePath = filePath + location->getStatusPages().find(_statusCode)->second;
+		std::string statusPagePath = location->getRoot() + location->getStatusPages().find(_statusCode)->second;
 		statusPagePath = FileUtils::normalizePath(statusPagePath);
 		if (FileUtils::isFileReadable(statusPagePath))
 		{
 			_bodyFileDescriptor = FileDescriptor::createFromOpen(statusPagePath.c_str(), O_RDONLY);
 			_streamBody = true;
 		}
-		else
-			_body = DefaultStatusMap::getStatusBody(_statusCode);
 	}
 	else if (server && server->hasStatusPage(_statusCode))
 	{
-		std::string statusPagePath = filePath + server->getStatusPages().find(_statusCode)->second;
+		std::string statusPagePath = server->getRootPath() + server->getStatusPages().find(_statusCode)->second;
 		statusPagePath = FileUtils::normalizePath(statusPagePath);
 		if (FileUtils::isFileReadable(statusPagePath))
 		{
 			_bodyFileDescriptor = FileDescriptor::createFromOpen(statusPagePath.c_str(), O_RDONLY);
 			_streamBody = true;
 		}
-		else
-			_body = DefaultStatusMap::getStatusBody(_statusCode);
 	}
-	else
-		_body = DefaultStatusMap::getStatusBody(_statusCode);
 }
-
-// Used when the body is already known
-void HttpResponse::setResponse(int statusCode, const std::string &statusMessage, const std::string &body,
-							   const std::string &contentType)
+// Used when custom body is in memory
+void HttpResponse::setResponseCustomBody(int statusCode, const std::string &statusMessage, const std::string &body,
+										 const std::string &contentType)
 {
-	setStatus(statusCode, statusMessage);
+	_statusCode = statusCode;
+	_statusMessage = statusMessage;
 	_body = body;
 	_streamBody = false;
 	setHeader(Header("content-type: " + contentType));
 	setHeader(Header("content-length: " + StrUtils::toString(body.length())));
+}
+
+// Used when custom body is a file path
+// Make sure path is absolute root + filePath sanitized and has undergone validation
+void HttpResponse::setResponseFile(int statusCode, const std::string &statusMessage, const std::string &filePath,
+								   const std::string &contentType)
+{
+	_statusCode = statusCode;
+	_statusMessage = statusMessage;
+	_bodyFileDescriptor = FileDescriptor::createFromOpen(filePath.c_str(), O_RDONLY);
+	_streamBody = true;
+	setHeader(Header("content-type: " + contentType));
+	setHeader(Header("content-length: " + StrUtils::toString(_bodyFileDescriptor.getFileSize())));
 }
 
 // Used when a redirect is needed
@@ -187,7 +180,7 @@ void HttpResponse::setRedirectResponse(const std::string &redirectPath)
 {
 	setStatus(301, "Moved Permanently");
 	setHeader(Header("location: " + redirectPath));
-	setResponse(301, "Moved Permanently", "", "text/html");
+	setResponseFile(301, "Moved Permanently", redirectPath, "text/html");
 }
 
 // Formats the response into a HTTP 1.1 compliant format
@@ -228,7 +221,8 @@ void HttpResponse::reset()
 	_body = "";
 	_streamBody = false;
 	_bodyFileDescriptor = FileDescriptor();
-	_httpResponseState = RESPONSE_FORMATTING_MESSAGE;
+	_sendingState = RESPONSE_FORMATTING_MESSAGE;
+	_responseType = SUCCESS;
 	_getDateHeader();
 	_setServerHeader();
 	_setVersionHeader();
@@ -275,9 +269,14 @@ std::string HttpResponse::getRawResponse() const
 	return _rawResponse;
 }
 
-HttpResponse::HttpResponseState HttpResponse::getState() const
+HttpResponse::SendingState HttpResponse::getSendingState() const
 {
-	return _httpResponseState;
+	return _sendingState;
+}
+
+HttpResponse::ResponseType HttpResponse::getResponseType() const
+{
+	return _responseType;
 }
 /*
 ** --------------------------------- Mutator ---------------------------------
@@ -352,96 +351,86 @@ void HttpResponse::setBody(const Location *location, const Server *server)
 
 void HttpResponse::sendResponse(const FileDescriptor &clientFd, ssize_t &totalBytesSent)
 {
-	totalBytesSent = 0;
-	while (_httpResponseState != RESPONSE_SENDING_COMPLETE && _httpResponseState != RESPONSE_SENDING_ERROR)
+	while (_sendingState != RESPONSE_SENDING_COMPLETE && _sendingState != RESPONSE_SENDING_ERROR &&
+		   totalBytesSent < HTTP::DEFAULT_SEND_SIZE)
 	{
-		switch (_httpResponseState)
+		switch (_sendingState)
 		{
 		case RESPONSE_FORMATTING_MESSAGE:
 		{
 			// Translate response data into a http string format assume content type and length are set if needed
 			_rawResponse = _version + " " + StrUtils::toString(_statusCode) + " " + _statusMessage + "\r\n";
+			_version.clear();
+			_statusCode = 0;
+			_statusMessage.clear();
 			for (std::vector<Header>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
 			{
 				_rawResponse += it->getDirective() + ": " + it->getValues()[0] + "\r\n";
 			}
 			_rawResponse += "\r\n";
+			_headers.clear();
 			// Append body if its already in memory
 			if (!_streamBody)
+			{
 				_rawResponse += _body;
-			_httpResponseState = RESPONSE_SENDING_MESSAGE;
+				_body.clear();
+			}
+			_sendingState = RESPONSE_SENDING_MESSAGE;
 			break;
 		}
 		case RESPONSE_SENDING_MESSAGE:
 		{
-			std::string bytesToSend = _rawResponse.substr(0, HTTP::DEFAULT_SEND_SIZE);
+			ssize_t sendBufferSize = HTTP::DEFAULT_SEND_SIZE - totalBytesSent;
+			if (sendBufferSize == 0)
+				return;
+			std::string bytesToSend = _rawResponse.substr(0, sendBufferSize);
 			ssize_t bytesSent = send(clientFd.getFd(), bytesToSend.c_str(), bytesToSend.length(), 0);
 			if (bytesSent > 0)
 			{
 				totalBytesSent += bytesSent;
 				_rawResponse = _rawResponse.substr(bytesSent);
+				if (_rawResponse.empty() && !_streamBody)
+					_sendingState = RESPONSE_SENDING_COMPLETE;
+				else if (_rawResponse.empty() && _streamBody) // Case body is being streamed, still more to send
+					_sendingState = RESPONSE_SENDING_BODY;
 			}
 			else
-			{
-				_httpResponseState = RESPONSE_SENDING_ERROR;
-				Logger::error("HttpResponse: Failed to send message for client: " +
-							  StrUtils::toString(clientFd.getFd()) + ": " + strerror(errno));
-				return;
-			}
-
-			// Determine next steps
-			if (totalBytesSent == HTTP::DEFAULT_SEND_SIZE && !_rawResponse.empty())
-				return; // Case sent 4096 bytes, still more to send
-			else if (totalBytesSent == HTTP::DEFAULT_SEND_SIZE && _rawResponse.empty() && !_streamBody)
-			{
-				// Case sent 4096 bytes, no more to send, no body to send
-				_httpResponseState = RESPONSE_SENDING_COMPLETE;
-				break;
-			}
-			else if (_streamBody && _bodyFileDescriptor.isOpen()) // Case body is being streamed, still more to send
-			{
-				_httpResponseState = RESPONSE_SENDING_BODY;
-				break;
-			}
+				_sendingState = RESPONSE_SENDING_ERROR;
 			break;
 		}
 		case RESPONSE_SENDING_BODY:
 		{
-			if (totalBytesSent == HTTP::DEFAULT_SEND_SIZE)
-				return; // Case sent 4096 bytes, still more to send
+			// SafeGuard should never occur
+			if (!_bodyFileDescriptor.isOpen())
+			{
+				_sendingState = RESPONSE_SENDING_ERROR;
+				Logger::error("HttpResponse: Body file descriptor is not open for client: " +
+								  StrUtils::toString(clientFd.getFd()) + ": " + strerror(errno),
+							  __FILE__, __LINE__, __PRETTY_FUNCTION__);
+				return;
+			}
 			std::string buffer;
-			buffer.resize(HTTP::DEFAULT_SEND_SIZE - totalBytesSent); // Read the remaining bytes needed to send
+			ssize_t sendBufferSize = HTTP::DEFAULT_SEND_SIZE - totalBytesSent;
+			if (sendBufferSize == 0)
+				return;
+			buffer.resize(sendBufferSize); // Read the remaining bytes needed to send
 			ssize_t bytesRead = _bodyFileDescriptor.readFile(buffer);
 			if (bytesRead < 0)
-			{
-				_httpResponseState = RESPONSE_SENDING_ERROR;
-				Logger::error("HttpResponse: Failed to read body for client: " + StrUtils::toString(clientFd.getFd()) +
-							  ": " + strerror(errno));
-				return;
-			}
+				_sendingState = RESPONSE_SENDING_ERROR;
 			else if (bytesRead == 0)
+				_sendingState = RESPONSE_SENDING_COMPLETE;
+			else if (bytesRead > 0)
 			{
-				_httpResponseState = RESPONSE_SENDING_COMPLETE;
-				return;
-			}
-			ssize_t bytesSent = send(clientFd.getFd(), buffer.c_str(), buffer.length(), 0);
-			if (bytesSent > 0)
-			{
-				_httpResponseState = RESPONSE_SENDING_MESSAGE;
-			}
-			else if (bytesSent == 0)
-				_httpResponseState = RESPONSE_SENDING_COMPLETE;
-			else
-			{
-				_httpResponseState = RESPONSE_SENDING_ERROR;
-				Logger::error("HttpResponse: Failed to send body for client: " + StrUtils::toString(clientFd.getFd()) +
-							  ": " + strerror(errno));
-				return;
+				ssize_t bytesSent = send(clientFd.getFd(), buffer.c_str(), buffer.length(), 0);
+				if (bytesSent > 0)
+					totalBytesSent += bytesSent;
+				else
+					_sendingState = RESPONSE_SENDING_ERROR;
 			}
 			break;
 		}
 		default:
-			break;
+			return;
 		}
 	}
 }

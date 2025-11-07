@@ -24,10 +24,9 @@ class Client
 public:
 	enum ClientState
 	{
-		CLIENT_WAITING_FOR_REQUEST = 0,
-		CLIENT_PROCESSING_REQUESTS = 1,
-		CLIENT_PROCESSING_RESPONSES = 2,
-		CLIENT_DISCONNECTED = 3
+		WAITING_FOR_EPOLLIN = 0,  // Ready to process incoming data
+		WAITING_FOR_EPOLLOUT = 1, // Ready to send outgoing data
+		DISCONNECTED = 2		  // Client has been disconnected
 	};
 
 private:

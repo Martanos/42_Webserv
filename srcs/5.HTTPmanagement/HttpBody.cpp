@@ -84,7 +84,7 @@ HttpBody::BodyState HttpBody::_parseContentLengthBody(std::vector<char> &buffer,
 		if (bytes_needed < 0)
 		{
 			Logger::log(Logger::ERROR, "Body size exceeds expected size");
-			response.setStatus(400, "Bad Request");
+			response.setResponseDefaultBody(400, "Body size exceeds expected size", NULL, NULL);
 			return BODY_PARSING_ERROR;
 		}
 		ssize_t bytes_to_copy = std::min(bytes_needed, static_cast<ssize_t>(buffer.size()));
@@ -94,7 +94,7 @@ HttpBody::BodyState HttpBody::_parseContentLengthBody(std::vector<char> &buffer,
 		if (_rawBodySize > _expectedBodySize)
 		{
 			Logger::log(Logger::ERROR, "Body size exceeds expected size");
-			response.setStatus(400, "Bad Request");
+			response.setResponseDefaultBody(400, "Body size exceeds expected size", NULL, NULL);
 			return BODY_PARSING_ERROR;
 		}
 		else if (_rawBody.size() >= HTTP::DEFAULT_CLIENT_MAX_BODY_SIZE) // Flush to temp file
@@ -110,7 +110,7 @@ HttpBody::BodyState HttpBody::_parseContentLengthBody(std::vector<char> &buffer,
 		if (bytes_needed < 0)
 		{
 			Logger::log(Logger::ERROR, "Body size exceeds expected size");
-			response.setStatus(400, "Bad Request");
+			response.setResponseDefaultBody(400, "Body size exceeds expected size", NULL, NULL);
 			return BODY_PARSING_ERROR;
 		}
 		else
@@ -140,8 +140,9 @@ HttpBody::BodyState HttpBody::_parseChunkedBody(std::vector<char> &buffer, HttpR
 		{
 			if (buffer.size() > 18) // Limit hex number size to 16 characters (8 bytes) + 2 for \r\n
 			{
-				Logger::log(Logger::ERROR, "Chunked size line too long");
-				response.setStatus(400, "Bad Request");
+				Logger::log(Logger::ERROR, "Chunked transfer encoding size string exceeded limit");
+				response.setResponseDefaultBody(400, "Chunked transfer encoding size string exceeded limit", NULL,
+												NULL);
 				return BODY_PARSING_ERROR;
 			}
 			return BODY_PARSING;
@@ -152,13 +153,13 @@ HttpBody::BodyState HttpBody::_parseChunkedBody(std::vector<char> &buffer, HttpR
 		if (sizeLine.empty())
 		{
 			Logger::log(Logger::ERROR, "Empty chunk size line");
-			response.setStatus(400, "Bad Request");
+			response.setResponseDefaultBody(400, "Empty chunk size line", NULL, NULL);
 			return BODY_PARSING_ERROR;
 		}
 		else if (sizeLine.size() + 2 > 18) // 16 characters (8 bytes) + 2 for \r\n
 		{
-			Logger::log(Logger::ERROR, "Chunked size line too long");
-			response.setStatus(400, "Bad Request");
+			Logger::log(Logger::ERROR, "Chunked transfer encoding size string exceeded limit");
+			response.setResponseDefaultBody(400, "Chunked transfer encoding size string exceeded limit", NULL, NULL);
 			return BODY_PARSING_ERROR;
 		}
 		_expectedBodySize = _parseHexSize(sizeLine);
@@ -171,7 +172,7 @@ HttpBody::BodyState HttpBody::_parseChunkedBody(std::vector<char> &buffer, HttpR
 		{
 			_chunkState = CHUNK_ERROR;
 			Logger::log(Logger::ERROR, "Invalid chunk size: " + sizeLine);
-			response.setStatus(400, "Bad Request");
+			response.setResponseDefaultBody(400, "Invalid chunk size: " + sizeLine, NULL, NULL);
 			return BODY_PARSING_ERROR;
 		}
 		_chunkState = CHUNK_DATA;
@@ -189,7 +190,7 @@ HttpBody::BodyState HttpBody::_parseChunkedBody(std::vector<char> &buffer, HttpR
 		if (_expectedBodySize < 0)
 		{
 			Logger::log(Logger::ERROR, "Body size exceeds expected size");
-			response.setStatus(400, "Bad Request");
+			response.setResponseDefaultBody(400, "Body size exceeds expected size", NULL, NULL);
 			return BODY_PARSING_ERROR;
 		}
 
@@ -225,8 +226,8 @@ HttpBody::BodyState HttpBody::_parseChunkedBody(std::vector<char> &buffer, HttpR
 		{
 			if (buffer.size() > HTTP::DEFAULT_CLIENT_MAX_HEADERS_SIZE)
 			{
-				Logger::log(Logger::ERROR, "Chunked trailers line too long");
-				response.setStatus(400, "Bad Request");
+				Logger::log(Logger::ERROR, "Chunked transfer encoding trailers line too long");
+				response.setResponseDefaultBody(400, "Chunked transfer encoding trailers line too long", NULL, NULL);
 				return BODY_PARSING_ERROR;
 			}
 			return BODY_PARSING;
@@ -239,8 +240,8 @@ HttpBody::BodyState HttpBody::_parseChunkedBody(std::vector<char> &buffer, HttpR
 		}
 		else if (it - buffer.begin() > HTTP::DEFAULT_CLIENT_MAX_HEADERS_SIZE)
 		{
-			Logger::log(Logger::ERROR, "Chunked trailers line too long");
-			response.setStatus(400, "Bad Request");
+			Logger::log(Logger::ERROR, "Chunked transfer encoding trailers line too long");
+			response.setResponseDefaultBody(400, "Chunked transfer encoding trailers line too long", NULL, NULL);
 			return BODY_PARSING_ERROR;
 		}
 		buffer.erase(buffer.begin(), it + 2); // Clear the buffer up to the CRLF

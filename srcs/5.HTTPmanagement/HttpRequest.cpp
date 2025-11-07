@@ -61,14 +61,14 @@ bool HttpRequest::_identifyServer(HttpResponse &response)
 	if (_potentialServers == NULL)
 	{
 		Logger::error("HttpRequest: No potential servers found", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-		response.setResponse(500, "Internal Server Error");
+		response.setResponseDefaultBody(500, "Internal Server Error", NULL, NULL);
 		return false;
 	}
 	const Header *hostHeader = _headers.getHeader("host");
 	if (hostHeader == NULL)
 	{
 		Logger::error("HttpRequest: No host header found", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-		response.setResponse(400, "Bad Request");
+		response.setResponseDefaultBody(400, "No host header found", NULL, NULL);
 		return false;
 	}
 	std::string hostValue = hostHeader->getValues()[0];
@@ -91,8 +91,9 @@ bool HttpRequest::_identifyServer(HttpResponse &response)
 			}
 		}
 	}
-	response.setResponse(404, "Not Found");
-	Logger::error("HttpRequest: Server not found for host: " + hostValue, __FILE__, __LINE__, __PRETTY_FUNCTION__);
+	response.setResponseDefaultBody(404, "Matching server configuration not found", NULL, NULL);
+	Logger::error("HttpRequest: Matching server configuration not found for host: " + hostValue, __FILE__, __LINE__,
+				  __PRETTY_FUNCTION__);
 	return false;
 }
 

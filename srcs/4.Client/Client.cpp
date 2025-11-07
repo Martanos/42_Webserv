@@ -37,7 +37,7 @@ Client::Client()
 	}
 	_receiveBuffer = std::vector<char>(static_cast<size_t>(pageSize)); // Is about 4KB depending on the system
 	_potentialServers = NULL;
-	_state = CLIENT_WAITING_FOR_REQUEST;
+	_state = WAITING_FOR_EPOLLIN;
 	_lastActivity = time(NULL);
 }
 
@@ -61,7 +61,7 @@ Client::Client(FileDescriptor socketFd, SocketAddress remoteAddress)
 	}
 	_receiveBuffer = std::vector<char>(static_cast<size_t>(pageSize));
 	_potentialServers = NULL;
-	_state = CLIENT_WAITING_FOR_REQUEST;
+	_state = WAITING_FOR_EPOLLIN;
 	_lastActivity = time(NULL);
 }
 
@@ -102,7 +102,6 @@ Client &Client::operator=(const Client &rhs)
 
 void Client::handleEvent(epoll_event event)
 {
-	_response.reset();
 	switch (event.events)
 	{
 	case EPOLLIN:
@@ -112,11 +111,11 @@ void Client::handleEvent(epoll_event event)
 		_handleResponseBuffer();
 		break;
 	case EPOLLERR | EPOLLHUP:
-		_state = CLIENT_DISCONNECTED;
+		_state = DISCONNECTED;
 		break;
 	default:
 		Logger::debug("Client: Unknown event: " + StrUtils::toString(event.events));
-		_state = CLIENT_DISCONNECTED;
+		_state = DISCONNECTED;
 		break;
 	}
 	updateActivity(); // base last activity time off of when event handled
@@ -124,42 +123,56 @@ void Client::handleEvent(epoll_event event)
 
 void Client::_handleBuffer()
 {
+	// Ingest up to 4096 bytes of data from the incoming socket buffer
 	ssize_t bytesRead = recv(_clientFd.getFd(), &_receiveBuffer[0], _receiveBuffer.size(), 0);
 	if (bytesRead <= 0)
 	{
 		Logger::warning("Client: " + _remoteAddress.getHostString() + ":" + _remoteAddress.getPortString() +
 						" disconnected or error occurred : " + std::string(strerror(errno)));
-		_state = CLIENT_DISCONNECTED;
+		_state = DISCONNECTED;
 		return;
 	}
+	// Attach new data to the holding buffer
 	_holdingBuffer.insert(_holdingBuffer.end(), _receiveBuffer.begin(), _receiveBuffer.begin() + bytesRead);
 	// Debug: Print the raw request
-	std::string rawRequest(_holdingBuffer.begin(), _holdingBuffer.end());
 	Logger::debug("Client: " + _remoteAddress.getHostString() + ":" + _remoteAddress.getPortString() +
-				  " current buffer: " + rawRequest);
+				  " current buffer: " + std::string(_holdingBuffer.begin(), _holdingBuffer.end()));
 
+	// Parse the request
 	_handleRequest();
 }
 
 void Client::_handleRequest()
 {
-	// Refresh current potential servers
-	if (_request.getPotentialServers() == NULL)
-		_request.setPotentialServers(_potentialServers);
-	HttpRequest::ParseState parseState = _request.parseBuffer(_holdingBuffer, _response);
-	switch (parseState)
+	while (!_holdingBuffer.empty())
 	{
-	case HttpRequest::PARSING_COMPLETE:
-		_routeRequest();
-		break;
-	case HttpRequest::PARSING_ERROR:
-	{
-		_responseBuffer.push_back(_response);
-		_state = CLIENT_PROCESSING_RESPONSES;
-		return;
-	}
-	default:
-		break;
+		// Set/refresh current potential servers if not set for the request yet
+		if (_request.getPotentialServers() == NULL)
+			_request.setPotentialServers(_potentialServers);
+		HttpRequest::ParseState parseState = _request.parseBuffer(_holdingBuffer, _response);
+		switch (parseState)
+		{
+		case HttpRequest::PARSING_COMPLETE:
+			_routeRequest();
+			_responseBuffer.push_back(_response);
+			_response.reset();
+			_request.reset();
+			// Set state to waiting for epollout here as we know we have responses ready
+			_state = WAITING_FOR_EPOLLOUT;
+			break;
+		case HttpRequest::PARSING_ERROR:
+			// Any errors here are considered fatal and denote an immediate disconnect
+			_responseBuffer.push_back(_response);
+			_state = WAITING_FOR_EPOLLOUT;
+			return;
+		case HttpRequest::PARSING_URI:
+		case HttpRequest::PARSING_HEADERS:
+		case HttpRequest::PARSING_BODY:
+			// Ending on any of these states means we need more data to complete the request
+			return;
+		default:
+			break;
+		}
 	}
 }
 
@@ -180,8 +193,6 @@ void Client::_routeRequest()
 		_response.setBody(NULL, NULL);
 		_response.setHeader(Header("Content-Type: text/html"));
 		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
-		_responseBuffer.push_back(_response);
-		_state = CLIENT_PROCESSING_RESPONSES;
 		return;
 	}
 	if (!location) // 1. Verify location can be found on server (returns Null if exact match / longest prefix match is
@@ -191,8 +202,6 @@ void Client::_routeRequest()
 		_response.setBody(NULL, _request.getSelectedServer());
 		_response.setHeader(Header("Content-Type: text/html"));
 		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
-		_responseBuffer.push_back(_response);
-		_state = CLIENT_PROCESSING_RESPONSES;
 		return;
 	}
 	else if (std::find(location->getAllowedMethods().begin(), location->getAllowedMethods().end(),
@@ -203,7 +212,6 @@ void Client::_routeRequest()
 		_response.setHeader(Header("Content-Type: text/html"));
 		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
 		_responseBuffer.push_back(_response);
-		_state = CLIENT_PROCESSING_RESPONSES;
 		return;
 	}
 
@@ -226,38 +234,67 @@ void Client::_routeRequest()
 		_response.setHeader(Header("Content-Type: text/html"));
 		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
 	}
-
-	// Add response to response buffer and prepare for sending
-	_responseBuffer.push_back(_response);
-	_response
-	_state = CLIENT_PROCESSING_RESPONSES;
 }
 
 // Write up to 4096 worth of response to the client each time this is called
+// Highlevel consideration is to flush the response buffer so EPOLLOUT takes priority over EPOLLIN
 void Client::_handleResponseBuffer()
 {
+	errno = 0;
 	ssize_t totalBytesSent = 0;
+	// SafeGuard should never occur
+	if (_responseBuffer.empty())
+	{
+		Logger::error("Client: Response buffer is empty while handling response buffer for client: " +
+						  _remoteAddress.getHostString() + ":" + _remoteAddress.getPortString(),
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		_state = WAITING_FOR_EPOLLIN;
+		return;
+	}
+	HttpResponse &response = _responseBuffer.front();
 	while (totalBytesSent < HTTP::DEFAULT_SEND_SIZE && !_responseBuffer.empty())
 	{
-		HttpResponse &response = _responseBuffer.front();
 		response.sendResponse(_clientFd, totalBytesSent);
-		switch (response.getState())
+		switch (response.getSendingState())
 		{
 		case HttpResponse::RESPONSE_SENDING_COMPLETE:
-			Logger::debug("Client: Response sent completely for client: " + _remoteAddress.getHostString() + ":" +
-						  _remoteAddress.getPortString());
-			_responseBuffer.pop_front();
-			if (_keepAlive)
-				_state = CLIENT_WAITING_FOR_REQUEST;
-			else
-				_state = CLIENT_DISCONNECTED;
+		{
+			switch (response.getResponseType())
+			{
+			case HttpResponse::SUCCESS:
+			case HttpResponse::ERROR:
+				_responseBuffer.pop_front();  // Clear response from buffer when its done
+				if (!_responseBuffer.empty()) // If the response buffer is not empty set the next response to send
+				{
+					response = _responseBuffer.front();
+					_state = WAITING_FOR_EPOLLOUT;
+				}
+				else
+					_state = WAITING_FOR_EPOLLIN; // else ready to continue processing data
+				if (!_keepAlive)
+					_state = DISCONNECTED; // If keep alive is false however then we disconnect the client
+				break;
+			case HttpResponse::FATAL_ERROR:
+				_state = DISCONNECTED;
+				return;
+			}
 			break;
-		case HttpResponse::RESPONSE_SENDING_ERROR:
-			Logger::error("Client: Response sending error for client: " + _remoteAddress.getHostString() + ":" +
-						  _remoteAddress.getPortString());
-			_responseBuffer.pop_front();
-			_state = CLIENT_DISCONNECTED;
+		}
+		case HttpResponse::RESPONSE_SENDING_ERROR: // Fatal error encountered sending the response immediately
+												   // disconnect the client
+			Logger::error(
+				"Client: Fatal error encountered while sending response for client: " + _remoteAddress.getHostString() +
+					":" + _remoteAddress.getPortString() + ": " + strerror(errno),
+				__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			_state = DISCONNECTED;
 			return;
+		case HttpResponse::RESPONSE_SENDING_MESSAGE:
+		case HttpResponse::RESPONSE_SENDING_BODY:
+		{
+			// In the middle of sending the response only ends here if 4096 bytes where reached
+			_state = WAITING_FOR_EPOLLOUT;
+			break;
+		}
 		default:
 			break;
 		}

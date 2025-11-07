@@ -63,7 +63,7 @@ void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 		// If it can't be found check that the buffer has not currently exceeded the size limit of a header
 		if (buffer.size() > HTTP::DEFAULT_CLIENT_MAX_REQUEST_LINE_SIZE)
 		{
-			response.setStatus(413, "Request URI Too Large");
+			response.setResponseDefaultBody(413, "Request URI Too Large", NULL, NULL);
 			Logger::log(Logger::ERROR, "URI size limit exceeded");
 			_uriState = URI_PARSING_ERROR;
 		}
@@ -76,7 +76,7 @@ void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 	std::string requestLine(buffer.begin(), it);
 	if (requestLine.size() + 2 > HTTP::DEFAULT_CLIENT_MAX_REQUEST_LINE_SIZE)
 	{
-		response.setStatus(413, "Request URI Too Large");
+		response.setResponseDefaultBody(413, "Request URI Too Large", NULL, NULL);
 		Logger::log(Logger::ERROR, "URI size limit exceeded");
 		_uriState = URI_PARSING_ERROR;
 		return;
@@ -92,7 +92,7 @@ void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 	{
 		Logger::log(Logger::ERROR, "Invalid request line: " + requestLine);
 		_uriState = URI_PARSING_ERROR;
-		response.setStatus(400, "Bad Request");
+		response.setResponseDefaultBody(400, "Invalid request line: " + requestLine, NULL, NULL);
 		return;
 	}
 
@@ -103,7 +103,7 @@ void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 	{
 		Logger::log(Logger::ERROR, "Invalid URI: " + _URI);
 		_uriState = URI_PARSING_ERROR;
-		response.setStatus(400, "Bad Request");
+		response.setResponseDefaultBody(400, "Invalid URI: " + _URI, NULL, NULL);
 		return;
 	}
 
@@ -112,7 +112,7 @@ void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 	{
 		Logger::log(Logger::ERROR, "Unsupported HTTP version: " + _version);
 		_uriState = URI_PARSING_ERROR;
-		response.setStatus(505, "HTTP Version Not Supported");
+		response.setResponseDefaultBody(505, "HTTP Version Not Supported: " + _version, NULL, NULL);
 		return;
 	}
 
@@ -193,7 +193,7 @@ void HttpURI::sanitizeURI(const Server *server, const Location *location, HttpRe
 			{
 				_uriState = URI_PARSING_ERROR;
 				Logger::log(Logger::ERROR, "Resolved directory escapes root: " + resolvedDir);
-				response.setResponse(403, "Forbidden");
+				response.setResponseDefaultBody(403, "Forbidden", NULL, NULL);
 				return;
 			}
 
@@ -210,7 +210,7 @@ void HttpURI::sanitizeURI(const Server *server, const Location *location, HttpRe
 
 		_uriState = URI_PARSING_ERROR;
 		Logger::log(Logger::ERROR, "Cannot resolve path: " + fullPath);
-		response.setResponse(404, "Not Found");
+		response.setResponseDefaultBody(404, "Not Found", NULL, NULL);
 		return;
 	}
 
@@ -218,7 +218,7 @@ void HttpURI::sanitizeURI(const Server *server, const Location *location, HttpRe
 	{
 		_uriState = URI_PARSING_ERROR;
 		Logger::log(Logger::ERROR, "Resolved path escapes root: " + std::string(resolvedPath));
-		response.setResponse(403, "Forbidden");
+		response.setResponseDefaultBody(403, "Forbidden", NULL, NULL);
 		return;
 	}
 
