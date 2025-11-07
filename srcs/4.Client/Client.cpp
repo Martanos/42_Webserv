@@ -1,5 +1,4 @@
 #include "../../includes/Core/Client.hpp"
-#include "../../includes/Core/GetHandler.hpp"
 #include "../../includes/Core/MethodHandlerFactory.hpp"
 #include "../../includes/Global/Logger.hpp"
 #include "../../includes/Global/StrUtils.hpp"
@@ -7,7 +6,6 @@
 #include "../../includes/HTTP/HttpRequest.hpp"
 #include "../../includes/HTTP/HttpResponse.hpp"
 #include <cstdio>
-#include <sstream>
 #include <sys/epoll.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
@@ -23,6 +21,7 @@
 
 Client::Client()
 {
+	_keepAlive = HTTP::DEFAULT_KEEP_ALIVE;
 	_clientFd = FileDescriptor();
 	_remoteAddress = SocketAddress();
 	_request = HttpRequest();
@@ -48,6 +47,7 @@ Client::Client(const Client &src)
 
 Client::Client(FileDescriptor socketFd, SocketAddress remoteAddress)
 {
+	_keepAlive = HTTP::DEFAULT_KEEP_ALIVE;
 	_clientFd = socketFd;
 	_remoteAddress = remoteAddress;
 	_request = HttpRequest();
@@ -118,6 +118,8 @@ void Client::handleEvent(epoll_event event)
 		_state = DISCONNECTED;
 		break;
 	}
+	Logger::debug("Client: Event handled: " + StrUtils::toString(event.events), __FILE__, __LINE__,
+				  __PRETTY_FUNCTION__);
 	updateActivity(); // base last activity time off of when event handled
 }
 
@@ -178,7 +180,11 @@ void Client::_handleRequest()
 
 void Client::_routeRequest()
 {
-	Logger::debug("Client: Got server, getting location for URI: " + _request.getUri());
+	// cahnge settings depending on found server
+	if (_request.getSelectedServer()->isKeepAlive())
+		_keepAlive = true;
+	else
+		_keepAlive = false;
 	const Location *location = NULL;
 	try
 	{
@@ -189,34 +195,40 @@ void Client::_routeRequest()
 	{
 		Logger::error("Client: Exception during location lookup: " + std::string(e.what()) +
 					  " for URI: " + _request.getUri());
-		_response.setStatus(500, "Internal Server Error");
-		_response.setBody(NULL, NULL);
-		_response.setHeader(Header("Content-Type: text/html"));
-		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
+		_response.setResponseDefaultBody(500, "Exception during location lookup: " + std::string(e.what()), NULL, NULL,
+										 HttpResponse::FATAL_ERROR);
 		return;
 	}
-	if (!location) // 1. Verify location can be found on server (returns Null if exact match / longest prefix match is
-				   // not found)
+	if (!location) // 1. Verify location can be found on server (returns Null if exact match / longest prefix match
+				   // is not found)
 	{
-		_response.setStatus(404, "Not Found");
-		_response.setBody(NULL, _request.getSelectedServer());
-		_response.setHeader(Header("Content-Type: text/html"));
-		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
+		_response.setResponseDefaultBody(404, "No location found for URI: " + _request.getUri(),
+										 _request.getSelectedServer(), NULL, HttpResponse::ERROR);
 		return;
 	}
 	else if (std::find(location->getAllowedMethods().begin(), location->getAllowedMethods().end(),
 					   _request.getMethod()) == location->getAllowedMethods().end()) // 2. Verify method is allowed
 	{
-		_response.setStatus(405, "Method Not Allowed");
-		_response.setBody(location, _request.getSelectedServer());
-		_response.setHeader(Header("Content-Type: text/html"));
-		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
-		_responseBuffer.push_back(_response);
+		Logger::debug("Client: Method not allowed for URI: " + _request.getUri(), __FILE__, __LINE__,
+					  __PRETTY_FUNCTION__);
+		_response.setResponseDefaultBody(405, "Method Not Allowed", _request.getSelectedServer(), location,
+										 HttpResponse::ERROR);
 		return;
 	}
 
 	// 3. Once location is found sanitize the request (can only be done after location is found)
 	_request.sanitizeRequest(_response, _request.getSelectedServer(), location);
+	switch (_request.getParseState())
+	{
+	case HttpRequest::PARSING_COMPLETE:
+		break;
+	case HttpRequest::PARSING_ERROR:
+		return;
+	default:
+		break;
+	}
+
+	Logger::debug("Client: sanitized request URI: " + _request.getUri(), __FILE__, __LINE__, __PRETTY_FUNCTION__);
 
 	// Use method handlers
 	IMethodHandler *handler = MethodHandlerFactory::createHandler(_request.getMethod());
@@ -229,10 +241,8 @@ void Client::_routeRequest()
 	else
 	{
 		Logger::error("Client: Failed to create handler for method: " + _request.getMethod());
-		_response.setStatus(405, "Method Not Allowed");
-		_response.setBody(location, _request.getSelectedServer());
-		_response.setHeader(Header("Content-Type: text/html"));
-		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
+		_response.setResponseDefaultBody(500, "Failed to create handler for method: " + _request.getMethod(),
+										 _request.getSelectedServer(), location, HttpResponse::FATAL_ERROR);
 	}
 }
 
@@ -240,6 +250,9 @@ void Client::_routeRequest()
 // Highlevel consideration is to flush the response buffer so EPOLLOUT takes priority over EPOLLIN
 void Client::_handleResponseBuffer()
 {
+	Logger::debug("Client: Handling response buffer for client: " + _remoteAddress.getHostString() + ":" +
+					  _remoteAddress.getPortString(),
+				  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	errno = 0;
 	ssize_t totalBytesSent = 0;
 	// SafeGuard should never occur

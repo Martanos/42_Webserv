@@ -63,8 +63,8 @@ void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 		// If it can't be found check that the buffer has not currently exceeded the size limit of a header
 		if (buffer.size() > HTTP::DEFAULT_CLIENT_MAX_REQUEST_LINE_SIZE)
 		{
-			response.setResponseDefaultBody(413, "Request URI Too Large", NULL, NULL);
-			Logger::log(Logger::ERROR, "URI size limit exceeded");
+			response.setResponseDefaultBody(413, "Request URI Too Large", NULL, NULL, HttpResponse::FATAL_ERROR);
+			Logger::debug("URI size limit exceeded", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			_uriState = URI_PARSING_ERROR;
 		}
 		else
@@ -76,8 +76,8 @@ void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 	std::string requestLine(buffer.begin(), it);
 	if (requestLine.size() + 2 > HTTP::DEFAULT_CLIENT_MAX_REQUEST_LINE_SIZE)
 	{
-		response.setResponseDefaultBody(413, "Request URI Too Large", NULL, NULL);
-		Logger::log(Logger::ERROR, "URI size limit exceeded");
+		response.setResponseDefaultBody(413, "Request URI Too Large", NULL, NULL, HttpResponse::FATAL_ERROR);
+		Logger::debug("URI size limit exceeded", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		_uriState = URI_PARSING_ERROR;
 		return;
 	}
@@ -90,9 +90,10 @@ void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 
 	if (!(stream >> _method >> _URI >> _version))
 	{
-		Logger::log(Logger::ERROR, "Invalid request line: " + requestLine);
+		Logger::debug("Invalid request line: " + requestLine, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		_uriState = URI_PARSING_ERROR;
-		response.setResponseDefaultBody(400, "Invalid request line: " + requestLine, NULL, NULL);
+		response.setResponseDefaultBody(400, "Invalid request line: " + requestLine, NULL, NULL,
+										HttpResponse::FATAL_ERROR);
 		return;
 	}
 
@@ -101,18 +102,19 @@ void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 	// Validate URI
 	if (_URI.empty() || _URI[0] != '/')
 	{
-		Logger::log(Logger::ERROR, "Invalid URI: " + _URI);
+		Logger::debug("Invalid URI: " + _URI, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		_uriState = URI_PARSING_ERROR;
-		response.setResponseDefaultBody(400, "Invalid URI: " + _URI, NULL, NULL);
+		response.setResponseDefaultBody(400, "Invalid URI: " + _URI, NULL, NULL, HttpResponse::FATAL_ERROR);
 		return;
 	}
 
 	// Validate version
 	if (_version != "HTTP/1.1")
 	{
-		Logger::log(Logger::ERROR, "Unsupported HTTP version: " + _version);
+		Logger::debug("Unsupported HTTP version: " + _version, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		_uriState = URI_PARSING_ERROR;
-		response.setResponseDefaultBody(505, "HTTP Version Not Supported: " + _version, NULL, NULL);
+		response.setResponseDefaultBody(505, "HTTP Version Not Supported: " + _version, NULL, NULL,
+										HttpResponse::FATAL_ERROR);
 		return;
 	}
 
@@ -192,8 +194,9 @@ void HttpURI::sanitizeURI(const Server *server, const Location *location, HttpRe
 			if (resolvedDir.compare(0, root.size(), root) != 0)
 			{
 				_uriState = URI_PARSING_ERROR;
-				Logger::log(Logger::ERROR, "Resolved directory escapes root: " + resolvedDir);
-				response.setResponseDefaultBody(403, "Forbidden", NULL, NULL);
+				Logger::debug("Resolved directory escapes root: " + resolvedDir, __FILE__, __LINE__,
+							  __PRETTY_FUNCTION__);
+				response.setResponseDefaultBody(403, "Forbidden", NULL, NULL, HttpResponse::FATAL_ERROR);
 				return;
 			}
 
@@ -209,16 +212,17 @@ void HttpURI::sanitizeURI(const Server *server, const Location *location, HttpRe
 		}
 
 		_uriState = URI_PARSING_ERROR;
-		Logger::log(Logger::ERROR, "Cannot resolve path: " + fullPath);
-		response.setResponseDefaultBody(404, "Not Found", NULL, NULL);
+		Logger::debug("Cannot resolve path: " + fullPath, __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		response.setResponseDefaultBody(404, "Not Found", NULL, NULL, HttpResponse::FATAL_ERROR);
 		return;
 	}
 
 	if (std::string(resolvedPath).compare(0, root.size(), root) != 0)
 	{
 		_uriState = URI_PARSING_ERROR;
-		Logger::log(Logger::ERROR, "Resolved path escapes root: " + std::string(resolvedPath));
-		response.setResponseDefaultBody(403, "Forbidden", NULL, NULL);
+		Logger::debug("Resolved path escapes root: " + std::string(resolvedPath), __FILE__, __LINE__,
+					  __PRETTY_FUNCTION__);
+		response.setResponseDefaultBody(403, "Forbidden", NULL, NULL, HttpResponse::FATAL_ERROR);
 		return;
 	}
 

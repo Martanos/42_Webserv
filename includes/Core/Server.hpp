@@ -20,7 +20,8 @@ private:
 	// Main members
 	std::string _rootPath;
 	TrieTree<std::string> _indexes;
-	bool _autoIndex;
+	bool _hasAutoIndex;
+	bool _autoIndexValue;
 	double _clientMaxBodySize;
 	std::map<int, std::string> _statusPages;
 	TrieTree<Location> _locations;
@@ -41,7 +42,8 @@ public:
 	bool hasIndex(const std::string &index) const;
 	bool hasLocation(const std::string &path) const;
 	bool hasStatusPage(int status) const;
-	bool isAutoIndex() const;
+	bool hasAutoIndex() const; // Line exists
+	bool isAutoIndex() const;  // Line value
 	bool isKeepAlive() const;
 	bool isModified() const;
 	bool hasRootPath() const;

@@ -371,6 +371,18 @@ int FileDescriptor::getFd() const
 	return _ctrl ? _ctrl->fd : -1;
 }
 
+size_t FileDescriptor::getFileSize() const
+{
+	if (_ctrl == NULL || _ctrl->fd == -1)
+		return 0;
+
+	struct stat fileStat;
+	if (fstat(_ctrl->fd, &fileStat) != 0)
+		return 0;
+
+	return static_cast<size_t>(fileStat.st_size);
+}
+
 /*
 ** --------------------------------- FILE OPERATIONS
 *---------------------------------
@@ -668,11 +680,12 @@ FileDescriptor FileDescriptor::createFromOpen(const char *pathname, int flags)
 
 FileDescriptor FileDescriptor::createFromOpen(const char *pathname, int flags, mode_t mode)
 {
+	errno = 0;
 	int fd = open(pathname, flags, mode);
 	if (fd == -1)
 	{
 		std::stringstream ss;
-		ss << "FileDescriptor: Failed to create socket: " << strerror(errno);
+		ss << "FileDescriptor: Failed to create file descriptor from open: " << strerror(errno);
 		Logger::log(Logger::ERROR, ss.str());
 		throw std::runtime_error(ss.str());
 	}

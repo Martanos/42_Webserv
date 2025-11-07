@@ -121,10 +121,11 @@ void HttpResponse::setBody(const std::string &body)
 
 // Used for responses with no custom body
 void HttpResponse::setResponseDefaultBody(int statusCode, const std::string &statusMessage, const Server *server,
-										  const Location *location)
+										  const Location *location, ResponseType responseType)
 {
 	_statusCode = statusCode;
 	_statusMessage = statusMessage;
+	_responseType = responseType;
 	_body = DefaultStatusMap::getStatusBody(_statusCode);
 	_streamBody = false;
 	setHeader(Header("content-type: " + HTTP_RESPONSE_DEFAULT::CONTENT_TYPE));
@@ -152,10 +153,11 @@ void HttpResponse::setResponseDefaultBody(int statusCode, const std::string &sta
 }
 // Used when custom body is in memory
 void HttpResponse::setResponseCustomBody(int statusCode, const std::string &statusMessage, const std::string &body,
-										 const std::string &contentType)
+										 const std::string &contentType, ResponseType responseType)
 {
 	_statusCode = statusCode;
 	_statusMessage = statusMessage;
+	_responseType = responseType;
 	_body = body;
 	_streamBody = false;
 	setHeader(Header("content-type: " + contentType));
@@ -165,10 +167,12 @@ void HttpResponse::setResponseCustomBody(int statusCode, const std::string &stat
 // Used when custom body is a file path
 // Make sure path is absolute root + filePath sanitized and has undergone validation
 void HttpResponse::setResponseFile(int statusCode, const std::string &statusMessage, const std::string &filePath,
-								   const std::string &contentType)
+								   const std::string &contentType, ResponseType responseType)
 {
 	_statusCode = statusCode;
+	_responseType = responseType;
 	_statusMessage = statusMessage;
+	Logger::debug("HttpResponse: Setting response file: " + filePath, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	_bodyFileDescriptor = FileDescriptor::createFromOpen(filePath.c_str(), O_RDONLY);
 	_streamBody = true;
 	setHeader(Header("content-type: " + contentType));
@@ -176,11 +180,12 @@ void HttpResponse::setResponseFile(int statusCode, const std::string &statusMess
 }
 
 // Used when a redirect is needed
-void HttpResponse::setRedirectResponse(const std::string &redirectPath)
+void HttpResponse::setRedirectResponse(const std::string &redirectPath, ResponseType responseType)
 {
+	_responseType = responseType;
 	setStatus(301, "Moved Permanently");
 	setHeader(Header("location: " + redirectPath));
-	setResponseFile(301, "Moved Permanently", redirectPath, "text/html");
+	setResponseFile(301, "Moved Permanently", redirectPath, "text/html", responseType);
 }
 
 // Formats the response into a HTTP 1.1 compliant format
@@ -290,6 +295,12 @@ void HttpResponse::setStatusCode(int code)
 void HttpResponse::setStatusMessage(const std::string &message)
 {
 	_statusMessage = message;
+}
+
+void HttpResponse::setStatus(int code, const std::string &message)
+{
+	setStatusCode(code);
+	setStatusMessage(message);
 }
 
 void HttpResponse::setVersion(const std::string &version)

@@ -18,7 +18,7 @@ Location::Location(const std::string &path)
 	_cgiPath = std::string();
 	_clientMaxBodySize = -1.0;
 	_cgiParams = std::map<std::string, std::string>();
-	_autoIndex = false;
+	_hasAutoIndex = false;
 
 	// Flags
 	_modified = false;
@@ -49,7 +49,8 @@ Location &Location::operator=(Location const &rhs)
 		_root = rhs._root;
 		_allowedMethods = rhs._allowedMethods;
 		_redirect = rhs._redirect;
-		_autoIndex = rhs._autoIndex;
+		_hasAutoIndex = rhs._hasAutoIndex;
+		_autoIndexValue = rhs._autoIndexValue;
 		_indexes = rhs._indexes;
 		_cgiPath = rhs._cgiPath;
 		_clientMaxBodySize = rhs._clientMaxBodySize;
@@ -105,9 +106,13 @@ bool Location::hasRedirect() const
 
 bool Location::hasAutoIndex() const
 {
-	return _autoIndex;
+	return _hasAutoIndex;
 }
 
+bool Location::isAutoIndex() const
+{
+	return _autoIndexValue;
+}
 bool Location::hasIndexes() const
 {
 	return _indexes.size() > 0;
@@ -229,7 +234,8 @@ void Location::setRedirect(const std::pair<int, std::string> &redirect)
 
 void Location::setAutoIndex(const bool &autoIndex)
 {
-	_autoIndex = autoIndex;
+	_autoIndexValue = autoIndex;
+	_hasAutoIndex = true;
 	_modified = true;
 }
 

@@ -21,12 +21,12 @@ PostMethodHandler &PostMethodHandler::operator=(const PostMethodHandler &other)
 	return *this;
 }
 
-bool PostMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &response, 
-									 const Server *server, const Location *location)
+bool PostMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &response, const Server *server,
+									  const Location *location)
 {
 	if (!canHandle(request.getMethod()))
 	{
-		response.setStatus(405, "Method Not Allowed");
+		response.setResponseDefaultBody(405, "Method Not Allowed", server, location, HttpResponse::ERROR);
 		return false;
 	}
 
@@ -49,8 +49,8 @@ bool PostMethodHandler::canHandle(const std::string &method) const
 	return method == "POST";
 }
 
-bool PostMethodHandler::handleCgiRequest(const HttpRequest &request, HttpResponse &response, 
-										const Server *server, const Location *location)
+bool PostMethodHandler::handleCgiRequest(const HttpRequest &request, HttpResponse &response, const Server *server,
+										 const Location *location)
 {
 	Logger::debug("PostMethodHandler: Handling CGI request");
 
@@ -59,41 +59,41 @@ bool PostMethodHandler::handleCgiRequest(const HttpRequest &request, HttpRespons
 
 	switch (result)
 	{
-		case CgiHandler::SUCCESS:
-			Logger::debug("PostMethodHandler: CGI execution successful");
-			return true;
-		case CgiHandler::ERROR_INVALID_SCRIPT_PATH:
-			response.setStatus(404, "Not Found");
-			break;
-		case CgiHandler::ERROR_SCRIPT_NOT_FOUND:
-			response.setStatus(404, "Not Found");
-			break;
-		case CgiHandler::ERROR_EXECUTION_FAILED:
-			response.setStatus(500, "Internal Server Error");
-			break;
-		case CgiHandler::ERROR_RESPONSE_PARSING_FAILED:
-			response.setStatus(500, "Internal Server Error");
-			break;
-		case CgiHandler::ERROR_TIMEOUT:
-			response.setStatus(504, "Gateway Timeout");
-			break;
-		default:
-			response.setStatus(500, "Internal Server Error");
-			break;
+	case CgiHandler::SUCCESS:
+		Logger::debug("PostMethodHandler: CGI execution successful");
+		return true;
+	case CgiHandler::ERROR_INVALID_SCRIPT_PATH:
+		response.setResponseDefaultBody(404, "Not Found", server, location, HttpResponse::ERROR);
+		break;
+	case CgiHandler::ERROR_SCRIPT_NOT_FOUND:
+		response.setResponseDefaultBody(404, "Not Found", server, location, HttpResponse::ERROR);
+		break;
+	case CgiHandler::ERROR_EXECUTION_FAILED:
+		response.setResponseDefaultBody(500, "Internal Server Error", server, location, HttpResponse::ERROR);
+		break;
+	case CgiHandler::ERROR_RESPONSE_PARSING_FAILED:
+		response.setResponseDefaultBody(500, "Internal Server Error", server, location, HttpResponse::ERROR);
+		break;
+	case CgiHandler::ERROR_TIMEOUT:
+		response.setResponseDefaultBody(504, "Gateway Timeout", server, location, HttpResponse::ERROR);
+		break;
+	default:
+		response.setResponseDefaultBody(500, "Internal Server Error", server, location, HttpResponse::ERROR);
+		break;
 	}
 
 	return false;
 }
 
-bool PostMethodHandler::handleFileUpload(const HttpRequest &request, HttpResponse &response, 
-										const Server *server, const Location *location)
+bool PostMethodHandler::handleFileUpload(const HttpRequest &request, HttpResponse &response, const Server *server,
+										 const Location *location)
 {
 	Logger::debug("PostMethodHandler: Handling file upload");
 
 	// Check if upload is allowed
-		if (true) // Always allow uploads for now
+	if (true) // Always allow uploads for now
 	{
-		response.setStatus(403, "Forbidden");
+		response.setResponseDefaultBody(403, "Forbidden", server, location, HttpResponse::ERROR);
 		return false;
 	}
 
@@ -101,7 +101,7 @@ bool PostMethodHandler::handleFileUpload(const HttpRequest &request, HttpRespons
 	std::string uploadPath = getUploadPath(server, location);
 	if (uploadPath.empty())
 	{
-		response.setStatus(500, "Internal Server Error");
+		response.setResponseDefaultBody(500, "Internal Server Error", server, location, HttpResponse::ERROR);
 		return false;
 	}
 
@@ -112,17 +112,16 @@ bool PostMethodHandler::handleFileUpload(const HttpRequest &request, HttpRespons
 	// Save the uploaded content
 	if (!saveUploadedFile(filePath, request.getBodyData()))
 	{
-		response.setStatus(500, "Internal Server Error");
+		response.setResponseDefaultBody(500, "Internal Server Error", server, location, HttpResponse::ERROR);
 		return false;
 	}
 
 	// Return success response
-	response.setStatus(201, "Created");
-	response.setBody("File uploaded successfully: " + filename);
-		response.setHeader(Header("Content-Type: text/plain"));
-	response.setHeader(Header("Location: /uploads/" + filename));
+	response.setResponseCustomBody(201, "Created", "File uploaded successfully: " + filename, "text/plain",
+								   HttpResponse::SUCCESS);
 
-	Logger::debug("PostMethodHandler: File uploaded successfully: " + filePath);
+	Logger::debug("PostMethodHandler: File uploaded successfully: " + filePath, __FILE__, __LINE__,
+				  __PRETTY_FUNCTION__);
 	return true;
 }
 
@@ -139,8 +138,7 @@ bool PostMethodHandler::isCgiRequest(const std::string &uri, const Location *loc
 	std::string extension = uri.substr(dotPos + 1);
 	StrUtils::toLowerCase(extension);
 
-	return (extension == "php" || extension == "py" || extension == "cgi" || 
-			extension == "pl" || extension == "sh");
+	return (extension == "php" || extension == "py" || extension == "cgi" || extension == "pl" || extension == "sh");
 }
 
 std::string PostMethodHandler::getUploadPath(const Server *server, const Location *location)
@@ -149,7 +147,7 @@ std::string PostMethodHandler::getUploadPath(const Server *server, const Locatio
 	// For now, use a simple upload directory
 	// In a real implementation, this would be configurable
 	std::string uploadDir = server->getRootPath() + "/uploads";
-	
+
 	// Create upload directory if it doesn't exist
 	struct stat st;
 	if (stat(uploadDir.c_str(), &st) != 0)
@@ -169,7 +167,8 @@ bool PostMethodHandler::saveUploadedFile(const std::string &filePath, const std:
 	std::ofstream file(filePath.c_str(), std::ios::binary);
 	if (!file.is_open())
 	{
-		Logger::error("PostMethodHandler: Failed to open file for writing: " + filePath);
+		Logger::error("PostMethodHandler: Failed to open file for writing: " + filePath, __FILE__, __LINE__,
+					  __PRETTY_FUNCTION__);
 		return false;
 	}
 

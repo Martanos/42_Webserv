@@ -16,7 +16,8 @@ private:
 	std::vector<std::string> _allowedMethods;
 	TrieTree<std::string> _indexes;
 	std::map<int, std::string> _statusPages;
-	bool _autoIndex;
+	bool _hasAutoIndex;
+	bool _autoIndexValue;
 	std::pair<int, std::string> _redirect;
 	std::string _cgiPath;
 	double _clientMaxBodySize;
@@ -35,7 +36,8 @@ public:
 	bool hasAllowedMethod(const std::string &allowedMethod) const;
 	bool hasStatusPage(const int &status) const;
 	bool hasRedirect() const;
-	bool hasAutoIndex() const;
+	bool hasAutoIndex() const; // Line exists
+	bool isAutoIndex() const;  // Line value
 	bool hasIndex(const std::string &index) const;
 	bool hasIndexes() const;
 	bool hasCgiPath() const;
@@ -54,7 +56,6 @@ public:
 	const std::string &getCgiPath() const;
 	double getClientMaxBodySize() const;
 	const std::map<std::string, std::string> &getCgiParams() const;
-
 
 	// Mutators
 	void setPath(const std::string &path);

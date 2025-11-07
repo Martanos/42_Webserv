@@ -63,9 +63,20 @@ void Header::_parseRawHeader()
 
 	// Extract raw values by iterating through till first ; or end of string
 	size_t valuesStart = colonPos + 1;
-	size_t valuesEnd = _rawHeader.find_first_of(";");
-
-	// If no ; is found, set valuesEnd to end of string
+	size_t valuesEnd = std::string::npos;
+	bool inComment = false;
+	for (std::string::iterator it = _rawHeader.begin(); it != _rawHeader.end(); ++it)
+	{
+		if (*it == '(')
+			inComment = true;
+		else if (*it == ')')
+			inComment = false;
+		else if (*it == ';' && !inComment)
+		{
+			valuesEnd = it - _rawHeader.begin();
+			break;
+		}
+	}
 	bool hasParameters = true;
 	if (valuesEnd == std::string::npos)
 	{
@@ -123,8 +134,8 @@ void Header::_parseRawHeader()
 				if (!StrUtils::hasControlCharacters(value))
 					throw std::invalid_argument("Parameter value has control characters");
 			}
-			else if (!StrUtils::isValidToken(value))
-				throw std::invalid_argument("Parameter value is not a valid token");
+			// else if (!StrUtils::isValidToken(value))
+			// 	throw std::invalid_argument("Parameter value is not a valid token");
 			_parameters.push_back(std::make_pair(key, value));
 		}
 	}

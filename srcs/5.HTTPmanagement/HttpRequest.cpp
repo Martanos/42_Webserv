@@ -12,12 +12,7 @@
 
 HttpRequest::HttpRequest()
 {
-	_parseState = PARSING_URI;
-	_uri = HttpURI();
-	_headers = HttpHeaders();
-	_body = HttpBody();
-	_potentialServers = NULL;
-	_selectedServer = NULL;
+	reset();
 }
 
 HttpRequest::HttpRequest(const HttpRequest &src)
@@ -61,14 +56,14 @@ bool HttpRequest::_identifyServer(HttpResponse &response)
 	if (_potentialServers == NULL)
 	{
 		Logger::error("HttpRequest: No potential servers found", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-		response.setResponseDefaultBody(500, "Internal Server Error", NULL, NULL);
+		response.setResponseDefaultBody(500, "Internal Server Error", NULL, NULL, HttpResponse::FATAL_ERROR);
 		return false;
 	}
 	const Header *hostHeader = _headers.getHeader("host");
 	if (hostHeader == NULL)
 	{
 		Logger::error("HttpRequest: No host header found", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-		response.setResponseDefaultBody(400, "No host header found", NULL, NULL);
+		response.setResponseDefaultBody(400, "No host header found", NULL, NULL, HttpResponse::FATAL_ERROR);
 		return false;
 	}
 	std::string hostValue = hostHeader->getValues()[0];
@@ -91,8 +86,9 @@ bool HttpRequest::_identifyServer(HttpResponse &response)
 			}
 		}
 	}
-	response.setResponseDefaultBody(404, "Matching server configuration not found", NULL, NULL);
-	Logger::error("HttpRequest: Matching server configuration not found for host: " + hostValue, __FILE__, __LINE__,
+	response.setResponseDefaultBody(404, "Matching server configuration not found", NULL, NULL,
+									HttpResponse::FATAL_ERROR);
+	Logger::debug("HttpRequest: Matching server configuration not found for host: " + hostValue, __FILE__, __LINE__,
 				  __PRETTY_FUNCTION__);
 	return false;
 }
@@ -196,9 +192,9 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 				break;
 			}
 			case HttpBody::BODY_PARSING:
-				Logger::debug("HttpRequest: Body parsing in progress");
+				Logger::debug("HttpRequest: Body parsing incomplete, need more data");
 				_parseState = PARSING_BODY;
-				break;
+				return _parseState;
 			case HttpBody::BODY_PARSING_ERROR:
 				Logger::error("HttpRequest: Body parsing error", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 				_parseState = PARSING_ERROR;
@@ -217,6 +213,16 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 void HttpRequest::sanitizeRequest(HttpResponse &response, const Server *server, const Location *location)
 {
 	_uri.sanitizeURI(server, location, response);
+	switch (_uri.getURIState())
+	{
+	case HttpURI::URI_PARSING_COMPLETE:
+		break;
+	case HttpURI::URI_PARSING_ERROR:
+		_parseState = PARSING_ERROR;
+		break;
+	default:
+		break;
+	}
 }
 
 /*
@@ -235,11 +241,12 @@ const std::vector<std::string> HttpRequest::getHeader(const std::string &name) c
 // Enhanced reset method
 void HttpRequest::reset()
 {
+	_parseState = PARSING_URI;
+	_potentialServers = NULL;
+	_selectedServer = NULL;
+	_uri.reset();
 	_headers.reset();
 	_body.reset();
-	_body.setExpectedBodySize(0);
-	_body.setBodyType(HttpBody::BODY_TYPE_NO_BODY);
-	_parseState = PARSING_URI;
 }
 
 /*

@@ -65,8 +65,8 @@ void HttpHeaders::parseBuffer(std::vector<char> &buffer, HttpResponse &response,
 			// If it can't be found check that the buffer has not currently exceeded the size limit of a header
 			if (buffer.size() > HTTP::DEFAULT_CLIENT_MAX_HEADERS_SIZE)
 			{
-				response.setResponseDefaultBody(413, "Request Header Too Large", NULL, NULL);
-				Logger::log(Logger::ERROR, "Header size limit exceeded");
+				response.setResponseDefaultBody(413, "Request Header Too Large", NULL, NULL, HttpResponse::FATAL_ERROR);
+				Logger::debug("Header size limit exceeded", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 				_headersState = HEADERS_PARSING_ERROR;
 			}
 			else
@@ -89,16 +89,18 @@ void HttpHeaders::parseBuffer(std::vector<char> &buffer, HttpResponse &response,
 		}
 		else if (rawHeader.size() + 2 > HTTP::DEFAULT_CLIENT_MAX_HEADERS_SIZE)
 		{
-			response.setResponseDefaultBody(413, "Request Line Header Too Large", NULL, NULL);
-			Logger::log(Logger::ERROR, "Header line size limit exceeded");
+			response.setResponseDefaultBody(413, "Request Line Header Too Large", NULL, NULL,
+											HttpResponse::FATAL_ERROR);
+			Logger::debug("Header line size limit exceeded", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			_headersState = HEADERS_PARSING_ERROR;
 			return;
 		}
 		_rawHeadersSize += rawHeader.size() + 2;
 		if (_rawHeadersSize > HTTP::DEFAULT_CLIENT_MAX_HEADERS_SIZE)
 		{
-			response.setResponseDefaultBody(413, "Request headers total size too large", NULL, NULL);
-			Logger::log(Logger::ERROR, "Header total size limit exceeded");
+			response.setResponseDefaultBody(413, "Request headers total size too large", NULL, NULL,
+											HttpResponse::FATAL_ERROR);
+			Logger::debug("Header total size limit exceeded", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			_headersState = HEADERS_PARSING_ERROR;
 			return;
 		}
@@ -123,9 +125,11 @@ void HttpHeaders::parseHeaderLine(const std::string &rawHeader, HttpResponse &re
 			{
 				if (isSingletonHeader(header.getDirective()))
 				{
-					Logger::log(Logger::WARNING, "Singleton header " + header.getDirective() + " found multiple times");
+					Logger::debug("Singleton header " + header.getDirective() + " found multiple times", __FILE__,
+								  __LINE__, __PRETTY_FUNCTION__);
 					_headersState = HEADERS_PARSING_ERROR;
-					response.setResponseDefaultBody(400, "Duplicate singleton header found", NULL, NULL);
+					response.setResponseDefaultBody(400, "Duplicate singleton header found", NULL, NULL,
+													HttpResponse::FATAL_ERROR);
 					return;
 				}
 				it->merge(header);
@@ -137,7 +141,8 @@ void HttpHeaders::parseHeaderLine(const std::string &rawHeader, HttpResponse &re
 	catch (const std::exception &e)
 	{
 		Logger::log(Logger::ERROR, "Error parsing header: " + std::string(e.what()));
-		response.setResponseDefaultBody(400, "Error parsing header: " + std::string(e.what()), NULL, NULL);
+		response.setResponseDefaultBody(400, "Error parsing header: " + std::string(e.what()), NULL, NULL,
+										HttpResponse::FATAL_ERROR);
 		_headersState = HEADERS_PARSING_ERROR;
 	}
 }
@@ -164,19 +169,23 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 			}
 			if (hasTransferEncoding)
 			{
-				Logger::log(Logger::WARNING, "Content-Length and Transfer-Encoding headers cannot be used together");
+				Logger::debug("Content-Length and Transfer-Encoding headers cannot be used together", __FILE__,
+							  __LINE__, __PRETTY_FUNCTION__);
 				_headersState = HEADERS_PARSING_ERROR;
-				response.setResponseDefaultBody(
-					400, "Content-Length and Transfer-Encoding headers cannot be used together", NULL, NULL);
+				response.setResponseDefaultBody(400,
+												"Content-Length and Transfer-Encoding headers cannot be used together",
+												NULL, NULL, HttpResponse::FATAL_ERROR);
 				return;
 			}
 			char *endPtr;
 			ssize_t contentLength = std::strtol(headerValues[0].c_str(), &endPtr, 10);
 			if (*endPtr != '\0' || contentLength < 0)
 			{
-				Logger::log(Logger::WARNING, "Invalid Content-Length header: " + headerValues[0]);
+				Logger::debug("Invalid Content-Length header: " + headerValues[0], __FILE__, __LINE__,
+							  __PRETTY_FUNCTION__);
 				_headersState = HEADERS_PARSING_ERROR;
-				response.setResponseDefaultBody(400, "Invalid Content-Length header: " + headerValues[0], NULL, NULL);
+				response.setResponseDefaultBody(400, "Invalid Content-Length header: " + headerValues[0], NULL, NULL,
+												HttpResponse::FATAL_ERROR);
 				return;
 			}
 			if (contentLength > 0)
@@ -203,10 +212,12 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 			}
 			if (hasContentLength)
 			{
-				Logger::log(Logger::WARNING, "Content-Length and Transfer-Encoding headers cannot be used together");
+				Logger::debug("Content-Length and Transfer-Encoding headers cannot be used together", __FILE__,
+							  __LINE__, __PRETTY_FUNCTION__);
 				_headersState = HEADERS_PARSING_ERROR;
-				response.setResponseDefaultBody(
-					400, "Content-Length and Transfer-Encoding headers cannot be used together", NULL, NULL);
+				response.setResponseDefaultBody(400,
+												"Content-Length and Transfer-Encoding headers cannot be used together",
+												NULL, NULL, HttpResponse::FATAL_ERROR);
 				return;
 			}
 			// As per requirements, only chunked is supported
@@ -216,10 +227,11 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 			}
 			else
 			{
-				Logger::log(Logger::WARNING, "Invalid Transfer-Encoding header: " + headerValues[0]);
+				Logger::debug("Invalid Transfer-Encoding header: " + headerValues[0], __FILE__, __LINE__,
+							  __PRETTY_FUNCTION__);
 				_headersState = HEADERS_PARSING_ERROR;
-				response.setResponseDefaultBody(400, "Invalid Transfer-Encoding header: " + headerValues[0], NULL,
-												NULL);
+				response.setResponseDefaultBody(400, "Invalid Transfer-Encoding header: " + headerValues[0], NULL, NULL,
+												HttpResponse::FATAL_ERROR);
 				return;
 			}
 		}
@@ -235,9 +247,10 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 			}
 			else
 			{
-				Logger::log(Logger::WARNING, "Invalid Transfer-Encoding header: " + headerValues[0]);
+				Logger::debug("Invalid Connection header: " + headerValues[0], __FILE__, __LINE__, __PRETTY_FUNCTION__);
 				_headersState = HEADERS_PARSING_ERROR;
-				response.setResponseDefaultBody(400, "Invalid Connection header: " + headerValues[0], NULL, NULL);
+				response.setResponseDefaultBody(400, "Invalid Connection header: " + headerValues[0], NULL, NULL,
+												HttpResponse::FATAL_ERROR);
 				return;
 			}
 		}
@@ -247,18 +260,19 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 			// Host header is required for HTTP/1.1
 			if (headerValues.empty())
 			{
-				Logger::log(Logger::WARNING, "Empty Host header");
+				Logger::debug("Empty Host header", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 				_headersState = HEADERS_PARSING_ERROR;
-				response.setResponseDefaultBody(400, "Empty Host header", NULL, NULL);
+				response.setResponseDefaultBody(400, "Empty Host header", NULL, NULL, HttpResponse::FATAL_ERROR);
 				return;
 			}
 		}
 	}
 	if (!hostFound)
 	{
-		Logger::log(Logger::WARNING, "Host header is required for this server");
+		Logger::debug("Host header is required for this server", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		_headersState = HEADERS_PARSING_ERROR;
-		response.setResponseDefaultBody(400, "Host header is required for this server", NULL, NULL);
+		response.setResponseDefaultBody(400, "Host header is required for this server", NULL, NULL,
+										HttpResponse::FATAL_ERROR);
 		return;
 	}
 }

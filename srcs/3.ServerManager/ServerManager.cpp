@@ -108,26 +108,21 @@ void ServerManager::_handleClientEvent(Client &client, epoll_event event)
 	client.handleEvent(event);
 	switch (client.getCurrentState())
 	{
-	case Client::CLIENT_WAITING_FOR_REQUEST:
+	case Client::WAITING_FOR_EPOLLIN:
 	{
-		Logger::debug("ServerManager: Client is waiting for request, modifying epoll for EPOLLIN");
+		Logger::debug("ServerManager: Client is waiting for EPOLLIN, modifying epoll for EPOLLIN");
 		_epollManager.modifyFd(client.getSocketFd(), EPOLLIN);
 		break;
 	}
-	case Client::CLIENT_PROCESSING_REQUESTS:
+	case Client::WAITING_FOR_EPOLLOUT:
 	{
-		Logger::debug("ServerManager: Client is processing request, modifying epoll for EPOLLIN");
-		_epollManager.modifyFd(client.getSocketFd(), EPOLLIN);
-		break;
-	}
-	case Client::CLIENT_PROCESSING_RESPONSES:
-	{
-		Logger::debug("ServerManager: Client has response ready, modifying epoll for EPOLLOUT");
+		Logger::debug("ServerManager: Client is waiting for EPOLLOUT, modifying epoll for EPOLLOUT");
 		_epollManager.modifyFd(client.getSocketFd(), EPOLLOUT);
 		break;
 	}
-	case Client::CLIENT_DISCONNECTED:
+	case Client::DISCONNECTED:
 	{
+		Logger::debug("ServerManager: Client is disconnected, removing from epoll and clients map");
 		_epollManager.removeFd(client.getSocketFd());
 		_clients.erase(client.getSocketFd());
 		break;
@@ -158,14 +153,20 @@ void ServerManager::run()
 		{
 			_handleEventLoop(ready_events, events);
 		}
+		std::vector<int> timedOutClients;
 		for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
 		{
 			if (it->second.isTimedOut())
 			{
-				Logger::debug("ServerManager: Client timed out, removing from epoll and clients map");
-				_epollManager.removeFd(it->first);
-				_clients.erase(it);
+				timedOutClients.push_back(it->first);
 			}
+		}
+		for (std::vector<int>::iterator it = timedOutClients.begin(); it != timedOutClients.end(); ++it)
+		{
+			Logger::debug("ServerManager: Client timed out, removing from epoll and clients map");
+			Logger::debug("ServerManager: Client fd: " + StrUtils::toString(*it));
+			_epollManager.removeFd(*it);
+			_clients.erase(*it);
 		}
 	}
 

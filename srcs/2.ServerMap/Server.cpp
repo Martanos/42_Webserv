@@ -11,7 +11,8 @@ Server::Server()
 	_sockets = std::vector<SocketAddress>();
 	_rootPath = std::string();
 	_indexes = TrieTree<std::string>();
-	_autoIndex = HTTP::DEFAULT_AUTOINDEX;
+	_autoIndexValue = HTTP::DEFAULT_AUTOINDEX;
+	_hasAutoIndex = false;
 	_clientMaxBodySize = HTTP::DEFAULT_CLIENT_MAX_BODY_SIZE;
 	_statusPages = std::map<int, std::string>();
 	_locations = TrieTree<Location>();
@@ -47,7 +48,8 @@ Server &Server::operator=(Server const &rhs)
 		_sockets = rhs._sockets;
 		_rootPath = rhs._rootPath;
 		_indexes = rhs._indexes;
-		_autoIndex = rhs._autoIndex;
+		_hasAutoIndex = rhs._hasAutoIndex;
+		_autoIndexValue = rhs._autoIndexValue;
 		_clientMaxBodySize = rhs._clientMaxBodySize;
 		_statusPages = rhs._statusPages;
 		_locations = rhs._locations;
@@ -129,9 +131,14 @@ bool Server::hasRootPath() const
 	return !_rootPath.empty();
 }
 
+bool Server::hasAutoIndex() const
+{
+	return _hasAutoIndex;
+}
+
 bool Server::isAutoIndex() const
 {
-	return _autoIndex;
+	return _autoIndexValue;
 }
 
 bool Server::isKeepAlive() const
@@ -280,7 +287,8 @@ void Server::setRoot(const std::string &root)
 
 void Server::setAutoindex(const bool &autoindex)
 {
-	_autoIndex = autoindex;
+	_autoIndexValue = autoindex;
+	_hasAutoIndex = true;
 	_modified = true;
 }
 
@@ -290,7 +298,8 @@ void Server::reset()
 	_sockets.clear();
 	_rootPath = std::string();
 	_indexes.clear();
-	_autoIndex = HTTP::DEFAULT_AUTOINDEX;
+	_hasAutoIndex = false;
+	_autoIndexValue = HTTP::DEFAULT_AUTOINDEX;
 	_clientMaxBodySize = HTTP::DEFAULT_CLIENT_MAX_BODY_SIZE;
 	_statusPages.clear();
 	_locations.clear();

@@ -49,10 +49,7 @@ bool PutMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &r
 		if (baseRoot.empty())
 		{
 			Logger::log(Logger::ERROR, "PutMethodHandler: Unable to determine base root for PUT request");
-			response.setStatus(500, "Internal Server Error");
-			response.setBody("Internal Server Error");
-			response.setHeader(Header("Content-Type: text/plain"));
-			response.setHeader(Header("Content-Length: " + StrUtils::toString(response.getBody().length())));
+			response.setResponseDefaultBody(500, "Internal Server Error", server, location, HttpResponse::ERROR);
 			return false;
 		}
 
@@ -75,38 +72,28 @@ bool PutMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &r
 	if (!_ensureDirectory(filePath))
 	{
 		Logger::log(Logger::ERROR, "PutMethodHandler: Failed to ensure directory for path: " + filePath);
-		response.setStatus(500, "Internal Server Error");
-		response.setBody("Internal Server Error");
-		response.setHeader(Header("Content-Type: text/plain"));
-		response.setHeader(Header("Content-Length: " + StrUtils::toString(response.getBody().length())));
+		response.setResponseDefaultBody(500, "Internal Server Error", server, location, HttpResponse::ERROR);
 		return false;
 	}
 
 	if (!_writeBodyToFile(request, filePath))
 	{
 		Logger::log(Logger::ERROR, "PutMethodHandler: Failed to write file: " + filePath);
-		response.setStatus(500, "Internal Server Error");
-		response.setBody("Internal Server Error");
-		response.setHeader(Header("Content-Type: text/plain"));
-		response.setHeader(Header("Content-Length: " + StrUtils::toString(response.getBody().length())));
+		response.setResponseDefaultBody(500, "Internal Server Error", server, location, HttpResponse::ERROR);
 		return false;
 	}
 
 	if (existed)
 	{
-		response.setStatus(204, "No Content");
-		response.setBody("");
-		response.setHeader(Header("Content-Length: 0"));
+		response.setResponseCustomBody(204, "No Content", "", "text/plain", HttpResponse::SUCCESS);
 	}
 	else
 	{
-		response.setStatus(201, "Created");
-		response.setBody("Created");
-		response.setHeader(Header("Content-Type: text/plain"));
-		response.setHeader(Header("Content-Length: " + StrUtils::toString(response.getBody().length())));
+		response.setResponseCustomBody(201, "Created", "", "text/plain", HttpResponse::SUCCESS);
 	}
 
-	Logger::debug("PutMethodHandler: Successfully handled PUT for path: " + filePath);
+	Logger::debug("PutMethodHandler: Successfully handled PUT for path: " + filePath, __FILE__, __LINE__,
+				  __PRETTY_FUNCTION__);
 	return true;
 }
 

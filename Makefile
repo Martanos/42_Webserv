@@ -35,6 +35,7 @@ SRC_FILES = main.cpp \
 			Wrappers/SocketAddress.cpp \
 			Wrappers/FileManager.cpp \
 			Wrappers/Logger.cpp \
+			Wrappers/MimeTypeResolver.cpp \
 			Wrappers/PerformanceMonitor.cpp \
 			Wrappers/ListeningSocket.cpp \
 			cgiexec/CgiEnv.cpp \

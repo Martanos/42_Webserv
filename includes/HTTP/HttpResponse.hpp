@@ -96,12 +96,12 @@ public:
 
 	// Methods
 	void setResponseDefaultBody(int statusCode, const std::string &statusMessage, const Server *server,
-								const Location *location);
+								const Location *location, ResponseType responseType);
 	void setResponseCustomBody(int statusCode, const std::string &statusMessage, const std::string &body,
-							   const std::string &contentType);
+							   const std::string &contentType, ResponseType responseType);
 	void setResponseFile(int statusCode, const std::string &statusMessage, const std::string &filePath,
-						 const std::string &contentType);
-	void setRedirectResponse(const std::string &redirectPath);
+						 const std::string &contentType, ResponseType responseType);
+	void setRedirectResponse(const std::string &redirectPath, ResponseType responseType);
 	std::string toString() const;
 	void sendResponse(const FileDescriptor &clientSocketFd, ssize_t &totalBytesSent);
 	void reset();
