@@ -1,11 +1,11 @@
 #include "../../includes/CGI/CgiEnv.hpp"
-#include "../../includes/HTTP/HttpRequest.hpp"
 #include "../../includes/Core/Location.hpp"
-#include "../../includes/Global/Logger.hpp"
 #include "../../includes/Core/Server.hpp"
+#include "../../includes/Global/Logger.hpp"
 #include "../../includes/Global/StrUtils.hpp"
+#include "../../includes/HTTP/HttpRequest.hpp"
+#include "../../includes/Wrapper/SocketAddress.hpp"
 #include <cstdlib>
-#include <sstream>
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -46,7 +46,7 @@ CGIenv &CGIenv::operator=(const CGIenv &rhs)
 
 void CGIenv::setEnv(const std::string &key, const std::string &value)
 {
-	_envVariables[key] = value;
+	_envVariables.insert(std::make_pair(key, value));
 }
 
 std::string CGIenv::getEnv(const std::string &key) const
@@ -67,73 +67,45 @@ void CGIenv::printEnv() const
 	}
 }
 
-void CGIenv::copyDataFromServer(const Server *server, const Location *location)
+void CGIenv::_transposeData(const HttpRequest &request, const Server *server, const Location *location)
 {
-	if (!server || !location)
-	{
-		Logger::log(Logger::ERROR, "CGIenv::copyDataFromServer: Invalid server or location pointer");
-		return;
-	}
-
 	// Server information
-		const std::string &serverName = "localhost"; // Default server name
-	if (!serverName.empty())
-		setEnv("SERVER_NAME", serverName);
-	else
-		setEnv("SERVER_NAME", "localhost");
+	setEnv("SERVER_NAME", request.getSelectedServerHost());
+	setEnv("SERVER_PORT", request.getSelectedServerPort());
+	setEnv("REMOTE_ADDR", request.getRemoteAddress()->getHost());
+	setEnv("REMOTE_PORT", request.getRemoteAddress()->getPortString());
 
-	// Get port from server configuration
-		unsigned short port = 80; // Default port
-		setEnv("SERVER_PORT", StrUtils::toString(port));
-
-	// Server host information
-		const std::string &host = "127.0.0.1"; // Default host
-	if (!host.empty())
-		setEnv("SERVER_ADDR", host);
-	else
-		setEnv("SERVER_ADDR", "127.0.0.1");
-
-	// Document root from location or server
-	std::string root = location->getRoot();
-	if (root.empty())
-			root = server->getRootPath();
-
-	if (!root.empty())
-		setEnv("DOCUMENT_ROOT", root);
-	else
-		setEnv("DOCUMENT_ROOT", "/var/www/html"); // Default document root
-
-	// Add custom CGI parameters from location configuration
-	const std::map<std::string, std::string> &cgiParams = location->getCgiParams();
-	for (std::map<std::string, std::string>::const_iterator it = cgiParams.begin(); it != cgiParams.end(); ++it)
-	{
-		setEnv(it->first, it->second);
-	}
+	// Request information
+	setEnv("REQUEST_URI", request.getRawUri());
+	setEnv("REQUEST_METHOD", request.getMethod());
+	setEnv("REQUEST_PATH", request.getSelectedLocation()->getPath());
+	setEnv("QUERY_STRING", request.getQueryString());
 
 	// Add additional server-specific environment variables
 	setEnv("SERVER_SOFTWARE", "webserv/1.0");
+	setEnv("SERVER_PROTOCOL", "HTTP/1.1");
 	setEnv("GATEWAY_INTERFACE", "CGI/1.1");
 
-	// Set client max body size if available (location overrides server)
-	double maxBodySize = server->getClientMaxBodySize();
-	if (location->hasClientMaxBodySize())
-		maxBodySize = location->getClientMaxBodySize();
-	setEnv("SERVER_MAX_BODY_SIZE", StrUtils::toString(static_cast<long>(maxBodySize)));
+	// TODO: Implement PATH_INFO and SCRIPT_NAME
+
+	// Translate HTTP headers to CGI environment variables
+	const std::map<std::string, std::vector<std::string> > &headers = request.getHeaders();
+
+	for (std::map<std::string, std::vector<std::string> >::const_iterator it = headers.begin(); it != headers.end();
+		 ++it)
+	{
+		if (!it->second.empty())
+		{
+			// Convert header name to CGI format: HTTP_HEADER_NAME
+			std::string cgiHeaderName = "HTTP_" + convertHeaderNameToCgi(it->first);
+			setEnv(cgiHeaderName, it->second[0]); // Use first value if multiple
+		}
+	}
 }
 
 void CGIenv::setupFromRequest(const HttpRequest &request, const Server *server, const Location *location,
 							  const std::string &scriptPath)
 {
-	// Basic CGI environment variables from HTTP standard
-	setEnv("REQUEST_METHOD", request.getMethod());
-	setEnv("SERVER_SOFTWARE", "webserv/1.0");
-	setEnv("SERVER_PROTOCOL", "HTTP/1.1");
-	setEnv("GATEWAY_INTERFACE", "CGI/1.1");
-
-	// Request URI and script information (derived from HttpRequest)
-	std::string uri = request.getUri();
-	setEnv("REQUEST_URI", uri);
-
 	// Parse SCRIPT_NAME and PATH_INFO (requires location context but derived
 	// from URI)
 	if (location)
@@ -159,17 +131,6 @@ void CGIenv::setupFromRequest(const HttpRequest &request, const Server *server, 
 	// Script filename (provided parameter)
 	setEnv("SCRIPT_FILENAME", scriptPath);
 
-	// Query string (parsed from URI)
-	size_t queryPos = uri.find('?');
-	if (queryPos != std::string::npos)
-	{
-		setEnv("QUERY_STRING", uri.substr(queryPos + 1));
-	}
-	else
-	{
-		setEnv("QUERY_STRING", "");
-	}
-
 	// Content information from HTTP headers
 	if (request.getMethod() == "POST")
 	{
@@ -179,7 +140,7 @@ void CGIenv::setupFromRequest(const HttpRequest &request, const Server *server, 
 			setEnv("CONTENT_TYPE", contentType[0]);
 		}
 
-			setEnv("CONTENT_LENGTH", StrUtils::toString(request.getBodyData().length()));
+		setEnv("CONTENT_LENGTH", StrUtils::toString(request.getBodyData().length()));
 	}
 	else
 	{
@@ -203,31 +164,6 @@ void CGIenv::setupFromRequest(const HttpRequest &request, const Server *server, 
 		{
 			setEnv("SERVER_NAME", hostValue.substr(0, colonPos));
 			setEnv("SERVER_PORT", hostValue.substr(colonPos + 1));
-		}
-	}
-
-	// Remote address (simplified - would need actual client info)
-	// This should ideally come from the connection context, not server config
-	setEnv("REMOTE_ADDR", "127.0.0.1");
-	setEnv("REMOTE_HOST", "localhost");
-
-	// Suppress unused parameter warnings
-	(void)server;
-}
-
-void CGIenv::setupHttpHeaders(const HttpRequest &request)
-{
-	// Get all headers from the request
-	const std::map<std::string, std::vector<std::string> > &headers = request.getHeaders();
-
-	for (std::map<std::string, std::vector<std::string> >::const_iterator it = headers.begin(); it != headers.end();
-		 ++it)
-	{
-		if (!it->second.empty())
-		{
-			// Convert header name to CGI format: HTTP_HEADER_NAME
-			std::string cgiHeaderName = "HTTP_" + convertHeaderNameToCgi(it->first);
-			setEnv(cgiHeaderName, it->second[0]); // Use first value if multiple
 		}
 	}
 }

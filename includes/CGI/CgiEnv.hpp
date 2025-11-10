@@ -1,20 +1,21 @@
 #ifndef CGIENV_HPP
 #define CGIENV_HPP
 
-#include "../ConfigParser/ServerConfig.hpp"
-
+#include "../Core/Location.hpp"
+#include "../Core/Server.hpp"
+#include "../HTTP/HttpRequest.hpp"
 #include <cstring>
-#include <iostream>
 #include <map>
 #include <string>
 
-// Forward declarations
-class HttpRequest;
-class Server;
-class Location;
-
+// Initializes and manages the environment variables for the CGI process
 class CGIenv
 {
+private:
+	std::map<std::string, std::string> _envVariables;
+
+	void _transposeData(const HttpRequest &request, const Server *server, const Location *location);
+
 public:
 	CGIenv();
 	CGIenv(const CGIenv &other);
@@ -25,7 +26,6 @@ public:
 	void setEnv(const std::string &key, const std::string &value);
 	std::string getEnv(const std::string &key) const;
 	void printEnv() const;
-	void copyDataFromServer(const Server *server, const Location *location);
 
 	// New methods for CGI execution
 	void setupFromRequest(const HttpRequest &request, const Server *server, const Location *location,
@@ -40,9 +40,6 @@ public:
 	// Utility methods
 	size_t getEnvCount() const;
 	bool hasEnv(const std::string &key) const;
-
-private:
-	std::map<std::string, std::string> _envVariables;
 };
 
 #endif

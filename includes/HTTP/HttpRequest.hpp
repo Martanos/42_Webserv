@@ -42,6 +42,10 @@ private:
 	// External configuration
 	const std::vector<Server> *_potentialServers;
 	Server *_selectedServer;
+	std::string _selectedServerHost;
+	std::string _selectedServerPort;
+	Location *_selectedLocation;
+	SocketAddress *_remoteAddress;
 	bool _identifyServer(HttpResponse &response);
 
 public:
@@ -61,6 +65,8 @@ public:
 	void setParseState(ParseState parseState);
 	void setPotentialServers(const std::vector<Server> *potentialServers);
 	void setSelectedServer(Server *selectedServer);
+	void setSelectedLocation(const Location *selectedLocation);
+	void setRemoteAddress(const SocketAddress *remoteAddress);
 
 	// Request accessors
 	ParseState getParseState() const;
@@ -71,6 +77,8 @@ public:
 	std::string getUri() const;
 	std::string getRawUri() const;
 	std::string getVersion() const;
+	std::string getQueryString() const;
+	const std::map<std::string, std::vector<std::string> > &getQueryParameters() const;
 
 	// Headers accessors
 	std::map<std::string, std::vector<std::string> > getHeaders() const;
@@ -87,8 +95,11 @@ public:
 	// Server accessors
 	const std::vector<Server> *getPotentialServers() const;
 	Server *getSelectedServer() const;
-};
 
-// TODO : Add request stream overload
+	Location *getSelectedLocation() const;
+	SocketAddress *getRemoteAddress() const;
+	const std::string &getSelectedServerHost() const;
+	const std::string &getSelectedServerPort() const;
+};
 
 #endif /* HTTPREQUEST_HPP */

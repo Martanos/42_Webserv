@@ -51,6 +51,7 @@ Client::Client(FileDescriptor socketFd, SocketAddress remoteAddress)
 	_clientFd = socketFd;
 	_remoteAddress = remoteAddress;
 	_request = HttpRequest();
+	_request.setRemoteAddress(&_remoteAddress);
 	_response = HttpResponse();
 	_responseBuffer = std::deque<HttpResponse>();
 	long pageSize = sysconf(_SC_PAGESIZE);
@@ -184,7 +185,7 @@ void Client::_handleRequest()
 
 void Client::_routeRequest()
 {
-	// cahnge settings depending on found server
+	// change keep alive setting depending on found server
 	if (_request.getSelectedServer()->isKeepAlive())
 		_keepAlive = true;
 	else
@@ -193,6 +194,7 @@ void Client::_routeRequest()
 	try
 	{
 		location = _request.getSelectedServer()->getLocation(_request.getUri());
+		_request.setSelectedLocation(location);
 		Logger::debug("Client: Matched location: " + location->getPath() + " for URI: " + _request.getUri());
 	}
 	catch (const std::exception &e)

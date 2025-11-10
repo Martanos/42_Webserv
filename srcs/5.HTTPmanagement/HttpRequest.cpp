@@ -68,17 +68,17 @@ bool HttpRequest::_identifyServer(HttpResponse &response)
 	}
 	std::string hostValue = hostHeader->getValues()[0];
 	size_t colonPos = hostValue.find(':');
-	std::string hostName = (colonPos == std::string::npos) ? hostValue : hostValue.substr(0, colonPos);
-	std::string port = (colonPos == std::string::npos) ? "80" : hostValue.substr(colonPos + 1);
-	StrUtils::toLowerCase(hostName);
+	_selectedServerHost = (colonPos == std::string::npos) ? hostValue : hostValue.substr(0, colonPos);
+	_selectedServerPort = (colonPos == std::string::npos) ? "80" : hostValue.substr(colonPos + 1);
+	StrUtils::toLowerCase(_selectedServerHost);
 	for (std::vector<Server>::const_iterator it = _potentialServers->begin(); it != _potentialServers->end(); ++it)
 	{
-		if (it->hasServerName(hostName))
+		if (it->hasServerName(_selectedServerHost))
 		{
 			for (std::vector<SocketAddress>::const_iterator it2 = it->getSocketAddresses().begin();
 				 it2 != it->getSocketAddresses().end(); ++it2)
 			{
-				if (it2->getPort() == static_cast<unsigned short>(std::atoi(port.c_str())))
+				if (it2->getPortString() == _selectedServerPort)
 				{
 					_selectedServer = const_cast<Server *>(&(*it));
 					return true;
@@ -247,6 +247,9 @@ void HttpRequest::reset()
 	_uri.reset();
 	_headers.reset();
 	_body.reset();
+	_selectedLocation = NULL;
+	_selectedServerHost = "127.0.0.1";
+	_selectedServerPort = "80";
 }
 
 /*
@@ -268,15 +271,34 @@ void HttpRequest::setPotentialServers(const std::vector<Server> *potentialServer
 	_potentialServers = potentialServers;
 }
 
+void HttpRequest::setSelectedLocation(const Location *selectedLocation)
+{
+	_selectedLocation = const_cast<Location *>(selectedLocation);
+}
+
+void HttpRequest::setRemoteAddress(const SocketAddress *remoteAddress)
+{
+	_remoteAddress = const_cast<SocketAddress *>(remoteAddress);
+}
+
 /*
 ** --------------------------------- ACCESSOR METHODS
 *----------------------------------
 */
 
-// TODO: change to reference
 HttpRequest::ParseState HttpRequest::getParseState() const
 {
 	return _parseState;
+};
+
+const std::map<std::string, std::vector<std::string> > &HttpRequest::getQueryParameters() const
+{
+	return _uri.getQueryParameters();
+};
+
+std::string HttpRequest::getQueryString() const
+{
+	return _uri.getQueryString();
 };
 
 // URI accessors
@@ -346,4 +368,24 @@ const std::vector<Server> *HttpRequest::getPotentialServers() const
 Server *HttpRequest::getSelectedServer() const
 {
 	return _selectedServer;
+};
+
+Location *HttpRequest::getSelectedLocation() const
+{
+	return _selectedLocation;
+};
+
+SocketAddress *HttpRequest::getRemoteAddress() const
+{
+	return _remoteAddress;
+};
+
+const std::string &HttpRequest::getSelectedServerHost() const
+{
+	return _selectedServerHost;
+};
+
+const std::string &HttpRequest::getSelectedServerPort() const
+{
+	return _selectedServerPort;
 };

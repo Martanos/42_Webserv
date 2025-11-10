@@ -24,6 +24,15 @@ private:
 	std::map<std::string, std::string> _cgiParams;
 
 	// Flags
+	bool _hasRootDirective;
+	bool _hasAutoIndexDirective;
+	bool _hasCgiPathDirective;
+	bool _hasClientMaxBodySizeDirective;
+	bool _hasCgiParamsDirective;
+	bool _hasRedirectDirective;
+	bool _hasStatusPagesDirective;
+	bool _hasIndexesDirective;
+	bool _hasAllowedMethodsDirective;
 	bool _modified;
 
 public:

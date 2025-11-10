@@ -19,6 +19,7 @@ HttpURI::HttpURI()
 	_rawURI.clear();
 	_version.clear();
 	_queryParameters.clear();
+	_queryString.clear();
 }
 
 HttpURI::HttpURI(const HttpURI &other)
@@ -48,6 +49,7 @@ HttpURI &HttpURI::operator=(const HttpURI &other)
 		_rawURI = other._rawURI;
 		_version = other._version;
 		_queryParameters = other._queryParameters;
+		_queryString = other._queryString;
 		_uriSize = other._uriSize;
 	}
 	return *this;
@@ -124,14 +126,12 @@ void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 void HttpURI::sanitizeURI(const Server *server, const Location *location, HttpResponse &response)
 {
 	std::string path;
-	std::string queryParameters;
-
 	// 1. Seperate the URI into the path and the query parameters
 	size_t queryPos = _URI.find('?');
 	if (queryPos != std::string::npos)
 	{
 		path = _URI.substr(0, queryPos);
-		queryParameters = _URI.substr(queryPos + 1);
+		_queryString = _URI.substr(queryPos + 1);
 	}
 	else
 	{
@@ -140,7 +140,7 @@ void HttpURI::sanitizeURI(const Server *server, const Location *location, HttpRe
 
 	// 2. Seperate query parameters into tokens
 	std::string token;
-	std::istringstream stream(queryParameters);
+	std::istringstream stream(_queryString);
 	while (getline(stream, token, '&'))
 	{
 		// Seperate into key and value
@@ -264,6 +264,11 @@ const std::map<std::string, std::vector<std::string> > &HttpURI::getQueryParamet
 	return _queryParameters;
 }
 
+const std::string &HttpURI::getQueryString() const
+{
+	return _queryString;
+}
+
 /*
 ** --------------------------------- METHODS ----------------------------------
 */
@@ -276,6 +281,7 @@ void HttpURI::reset()
 	_rawURI.clear();
 	_version.clear();
 	_queryParameters.clear();
+	_queryString.clear();
 }
 
 const std::string &HttpURI::getRawURI() const

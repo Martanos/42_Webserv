@@ -34,6 +34,7 @@ private:
 	std::string _version;
 
 	// Query parameters
+	std::string _queryString;
 	std::map<std::string, std::vector<std::string> > _queryParameters;
 
 public:
@@ -54,6 +55,7 @@ public:
 	const std::string &getMethod() const;
 	size_t getURIsize() const;
 	const std::map<std::string, std::vector<std::string> > &getQueryParameters() const;
+	const std::string &getQueryString() const;
 	URIState getURIState() const;
 
 	// Methods
