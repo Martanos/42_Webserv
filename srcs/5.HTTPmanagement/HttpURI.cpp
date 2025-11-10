@@ -167,7 +167,7 @@ void HttpURI::sanitizeURI(const Server *server, const Location *location, HttpRe
 		root = server->getRootPath();
 
 	std::string fullPath = root;
-	if (!root.empty() && root[root.size() - 1] != '/')
+	if (!root.empty() && root[root.size() - 1] != '/' && path[0] != '/')
 		fullPath += "/";
 	fullPath += path;
 

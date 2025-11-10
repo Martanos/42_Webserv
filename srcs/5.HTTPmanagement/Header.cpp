@@ -126,15 +126,18 @@ void Header::_parseRawHeader()
 			std::string value = parameters[i].substr(equalSignPos + 1);
 			if (value.empty())
 				throw std::invalid_argument("Empty parameter value");
+			// Loop through values to check if they are quoted
 			else if (value[0] == '\"' && value[value.length() - 1] == '\"')
 			{
+				// remove the quotes from the value
 				value = value.substr(1, value.length() - 2);
+				printf("Value after removing quotes: %s\n", value.c_str());
+				// decode the value
 				value = StrUtils::percentDecode(value);
-				if (!StrUtils::hasControlCharacters(value))
+				// check if the value has control characters
+				if (StrUtils::hasControlCharacters(value))
 					throw std::invalid_argument("Parameter value has control characters");
 			}
-			// else if (!StrUtils::isValidToken(value))
-			// 	throw std::invalid_argument("Parameter value is not a valid token");
 			_parameters.push_back(std::make_pair(key, value));
 		}
 	}

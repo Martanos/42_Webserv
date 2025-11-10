@@ -414,9 +414,6 @@ void HttpResponse::sendResponse(const FileDescriptor &clientFd, ssize_t &totalBy
 			if (!_bodyFileDescriptor.isOpen())
 			{
 				_sendingState = RESPONSE_SENDING_ERROR;
-				Logger::error("HttpResponse: Body file descriptor is not open for client: " +
-								  StrUtils::toString(clientFd.getFd()) + ": " + strerror(errno),
-							  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 				return;
 			}
 			std::string buffer;

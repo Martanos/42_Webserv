@@ -144,7 +144,6 @@ void Client::_handleBuffer()
 			break;
 		}
 	}
-	Logger::debug("Client _holdingBuffer: " + std::string(_holdingBuffer.begin(), _holdingBuffer.end()));
 	// Parse the request
 	_handleRequest();
 }
@@ -214,8 +213,8 @@ void Client::_routeRequest()
 	else if (std::find(location->getAllowedMethods().begin(), location->getAllowedMethods().end(),
 					   _request.getMethod()) == location->getAllowedMethods().end()) // 2. Verify method is allowed
 	{
-		Logger::debug("Client: Method not allowed for URI: " + _request.getUri(), __FILE__, __LINE__,
-					  __PRETTY_FUNCTION__);
+		Logger::warning("Client: " + _request.getMethod() + " method not allowed for URI: " + _request.getUri(),
+						__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		_response.setResponseDefaultBody(405, "Method Not Allowed", _request.getSelectedServer(), location,
 										 HttpResponse::ERROR);
 		return;
@@ -272,11 +271,6 @@ void Client::_handleResponseBuffer()
 	HttpResponse &response = _responseBuffer.front();
 	while (totalBytesSent < HTTP::DEFAULT_SEND_SIZE && !_responseBuffer.empty())
 	{
-		Logger::warning(
-			"Client: Sending response for client with status code: " + StrUtils::toString(response.getStatusCode()) +
-				" and status message: " + response.getStatusMessage() +
-				" for client: " + _remoteAddress.getHostString() + ":" + _remoteAddress.getPortString(),
-			__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		response.sendResponse(_clientFd, totalBytesSent);
 		switch (response.getSendingState())
 		{
