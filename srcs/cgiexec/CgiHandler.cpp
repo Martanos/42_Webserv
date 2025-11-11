@@ -47,36 +47,18 @@ CgiHandler &CgiHandler::operator=(const CgiHandler &other)
 ** --------------------------------- METHODS ----------------------------------
 */
 
-CgiHandler::ExecutionResult CgiHandler::execute(const HttpRequest &request, HttpResponse &response,
-												const Server *server, const Location *location)
+// Main method to facilitate CGI execution
+void CgiHandler::execute(const HttpRequest &request, HttpResponse &response, const Server *server,
+						 const Location *location)
 {
 	if (!server || !location)
 	{
-		Logger::log(Logger::ERROR, "Invalid server or location for CGI execution");
-		return ERROR_INTERNAL_ERROR;
+		Logger::error("Invalid server or location for CGI execution", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		response.setResponseDefaultBody(500, "Invalid server or location for CGI execution", server, location,
+										HttpResponse::ERROR);
 	}
-
-	// Resolve the CGI script path
-	std::string scriptPath = resolveCgiScriptPath(request.getUri(), server, location);
-	if (scriptPath.empty())
-	{
-		Logger::log(Logger::ERROR, "Could not resolve CGI script path for URI: " + request.getUri());
-		return ERROR_INVALID_SCRIPT_PATH;
-	}
-
-	// Validate script path
-	if (!validateScriptPath(scriptPath))
-	{
-		Logger::log(Logger::ERROR, "Invalid or inaccessible CGI script: " + scriptPath);
-		return ERROR_SCRIPT_NOT_FOUND;
-	}
-
 	// Setup CGI environment
-	ExecutionResult result = setupEnvironment(request, server, location, scriptPath);
-	if (result != SUCCESS)
-	{
-		return result;
-	}
+	_cgiEnv._transposeData(request, server, location);
 
 	// Determine interpreter
 	std::string interpreter = determineInterpreter(scriptPath, location);
@@ -115,9 +97,6 @@ int CgiHandler::getTimeout() const
 CgiHandler::ExecutionResult CgiHandler::setupEnvironment(const HttpRequest &request, const Server *server,
 														 const Location *location, const std::string &scriptPath)
 {
-	_cgiEnv._transposeData(request, server, location);
-	_cgiEnv.setupFromRequest(request, server, location, scriptPath);
-	return SUCCESS;
 }
 
 CgiHandler::ExecutionResult CgiHandler::executeCgiScript(const std::string &scriptPath, const std::string &interpreter,

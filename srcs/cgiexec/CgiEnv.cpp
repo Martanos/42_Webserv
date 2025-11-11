@@ -118,6 +118,11 @@ void CGIenv::_transposeData(const HttpRequest &request, const Server *server, co
 		break;
 	}
 
+	// Script name and path info
+	std::string scriptName = CgiHandler::resolveCgiScriptPath(request.getUri(), server, location);
+	setEnv("SCRIPT_NAME", scriptName);
+	setEnv("SCRIPT_FILENAME", scriptName);
+
 	// Translate HTTP headers to CGI environment variables
 	const std::map<std::string, std::vector<std::string> > &headers = request.getHeaders();
 
