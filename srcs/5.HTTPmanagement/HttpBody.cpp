@@ -350,7 +350,7 @@ std::string HttpBody::getTempFilePath() const
 	return "";
 }
 
-FileDescriptor &HttpBody::getTempFd()
+const FileDescriptor &HttpBody::getTempFd() const
 {
 	return _tempFile.getFd();
 }

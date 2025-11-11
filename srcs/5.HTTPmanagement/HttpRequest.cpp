@@ -340,6 +340,18 @@ std::string HttpRequest::getBodyData() const
 	return _body.getRawBody();
 };
 
+size_t HttpRequest::getContentLength() const
+{
+	if (isUsingTempFile())
+	{
+		return (_body.getTempFd().getFileSize());
+	}
+	else
+	{
+		return (_body.getBodySize());
+	}
+}
+
 HttpBody::BodyType HttpRequest::getBodyType() const
 {
 	return _body.getBodyType();
@@ -388,4 +400,9 @@ const std::string &HttpRequest::getSelectedServerHost() const
 const std::string &HttpRequest::getSelectedServerPort() const
 {
 	return _selectedServerPort;
+};
+
+const FileDescriptor &HttpRequest::getTempFd() const
+{
+	return _body.getTempFd();
 };

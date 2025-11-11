@@ -56,7 +56,7 @@ std::ostream &operator<<(std::ostream &os, const CGIenv &env)
 
 void CGIenv::setEnv(const std::string &key, const std::string &value)
 {
-	_envVariables.insert(std::make_pair(key, value));
+	_envVariables[key] = value;
 }
 
 const std::map<std::string, std::string> &CGIenv::getEnvVariables() const
@@ -84,24 +84,34 @@ void CGIenv::printEnv() const
 
 void CGIenv::_transposeData(const HttpRequest &request, const Server *server, const Location *location)
 {
-	// Server information
+	// RFC 3875 MUST variables - Server information
 	setEnv("SERVER_NAME", request.getSelectedServerHost());
 	setEnv("SERVER_PORT", request.getSelectedServerPort());
-	setEnv("REMOTE_ADDR", request.getRemoteAddress()->getHost());
-	setEnv("REMOTE_PORT", request.getRemoteAddress()->getPortString());
-
-	// Request information
-	setEnv("REQUEST_URI", request.getRawUri());
-	setEnv("REQUEST_METHOD", request.getMethod());
-	setEnv("REQUEST_PATH", request.getSelectedLocation()->getPath());
-	setEnv("QUERY_STRING", request.getQueryString());
-
-	// Add additional server-specific environment variables
-	setEnv("SERVER_SOFTWARE", "webserv/1.0");
 	setEnv("SERVER_PROTOCOL", "HTTP/1.1");
+	setEnv("SERVER_SOFTWARE", "webserv/1.0");
 	setEnv("GATEWAY_INTERFACE", "CGI/1.1");
 
-	// TODO: Implement PATH_INFO and SCRIPT_NAME
+	// RFC 3875 MUST variables - Request information
+	setEnv("REQUEST_METHOD", request.getMethod());
+	setEnv("QUERY_STRING", request.getQueryString());
+
+	// RFC 3875 MUST variables - Client information
+	setEnv("REMOTE_ADDR", request.getRemoteAddress()->getHost());
+
+	// Non-standard but useful
+	setEnv("REMOTE_PORT", request.getRemoteAddress()->getPortString());
+	setEnv("REQUEST_URI", request.getRawUri());
+
+	// Content length (RFC states only if body is present)
+	switch (request.getBodyType())
+	{
+	case HttpBody::BODY_TYPE_CHUNKED:
+	case HttpBody::BODY_TYPE_CONTENT_LENGTH:
+		setEnv("CONTENT_TYPE", StrUtils::toString(request.getContentLength()));
+		break;
+	default:
+		break;
+	}
 
 	// Translate HTTP headers to CGI environment variables
 	const std::map<std::string, std::vector<std::string> > &headers = request.getHeaders();
@@ -111,55 +121,23 @@ void CGIenv::_transposeData(const HttpRequest &request, const Server *server, co
 	{
 		if (!it->second.empty())
 		{
-			// Convert header name to CGI format: HTTP_HEADER_NAME
-			std::string cgiHeaderName = "HTTP_" + _convertHeaderNameToCgi(it->first);
-			setEnv(cgiHeaderName, it->second[0]); // Use first value if multiple
-		}
-	}
-}
+			std::string headerName = it->first;
 
-void CGIenv::setupFromRequest(const HttpRequest &request, const Server *server, const Location *location,
-							  const std::string &scriptPath)
-{
-	// Parse SCRIPT_NAME and PATH_INFO (requires location context but derived
-	// from URI)
-	if (location)
-	{
-		std::string locationPath = location->getPath();
-		std::string scriptName = locationPath;
-		std::string pathInfo = "";
-
-		// If URI is longer than location path, the extra part is PATH_INFO
-		if (uri.length() > locationPath.length() && uri.substr(0, locationPath.length()) == locationPath)
-		{
-			pathInfo = uri.substr(locationPath.length());
-			if (!pathInfo.empty() && pathInfo[0] != '/')
+			// Skip authentication headers per RFC 3875 Section 4.1.18
+			if (headerName == "authorization" || headerName == "proxy-authorization")
 			{
-				pathInfo = "/" + pathInfo;
+				continue; // Don't pass to CGI
 			}
+
+			// Skip headers already available as meta-variables
+			if (headerName == "content-length" || headerName == "content-type")
+			{
+				continue; // Already set as CONTENT_LENGTH/CONTENT_TYPE
+			}
+
+			std::string cgiHeaderName = "HTTP_" + _convertHeaderNameToCgi(headerName);
+			setEnv(cgiHeaderName, it->second[0]);
 		}
-
-		setEnv("SCRIPT_NAME", scriptName);
-		setEnv("PATH_INFO", pathInfo);
-	}
-
-	// Script filename (provided parameter)
-	setEnv("SCRIPT_FILENAME", scriptPath);
-
-	// Content information from HTTP headers
-	if (request.getMethod() == "POST")
-	{
-		std::vector<std::string> contentType = request.getHeader("content-type");
-		if (!contentType.empty())
-		{
-			setEnv("CONTENT_TYPE", contentType[0]);
-		}
-
-		setEnv("CONTENT_LENGTH", StrUtils::toString(request.getBodyData().length()));
-	}
-	else
-	{
-		setEnv("CONTENT_LENGTH", "0");
 	}
 }
 
@@ -187,8 +165,6 @@ std::string CGIenv::_convertHeaderNameToCgi(const std::string &headerName) const
 		{
 			result += c;
 		}
-		else
-			result += '\0';
 	}
 
 	return result;

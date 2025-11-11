@@ -91,6 +91,7 @@ public:
 	bool isChunked();
 	bool isUsingTempFile() const;
 	std::string getTempFile() const;
+	const FileDescriptor &getTempFd() const;
 
 	// Server accessors
 	const std::vector<Server> *getPotentialServers() const;
