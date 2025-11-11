@@ -84,38 +84,39 @@ void CgiEnv::printEnv() const
 
 void CgiEnv::_transposeData(const HttpRequest &request, const Server *server, const Location *location)
 {
-	Logger::debug("CgiEnv: Begin transpose for raw URI: " + request.getRawUri());
+	Logger::debug("CgiEnv: Begin transpose for raw URI: " + request.getRawUri(), __FILE__, __LINE__,
+				  __PRETTY_FUNCTION__);
 	try
 	{
 		// Server info
-		Logger::debug("CgiEnv: Setting SERVER_NAME");
+		Logger::debug("CgiEnv: Setting SERVER_NAME", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		setEnv("SERVER_NAME", request.getSelectedServerHost());
-		Logger::debug("CgiEnv: Setting SERVER_PORT");
+		Logger::debug("CgiEnv: Setting SERVER_PORT", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		setEnv("SERVER_PORT", request.getSelectedServerPort());
-		Logger::debug("CgiEnv: Setting SERVER_PROTOCOL");
+		Logger::debug("CgiEnv: Setting SERVER_PROTOCOL", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		setEnv("SERVER_PROTOCOL", "HTTP/1.1");
-		Logger::debug("CgiEnv: Setting SERVER_SOFTWARE");
+		Logger::debug("CgiEnv: Setting SERVER_SOFTWARE", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		setEnv("SERVER_SOFTWARE", "webserv/1.0");
-		Logger::debug("CgiEnv: Setting GATEWAY_INTERFACE");
+		Logger::debug("CgiEnv: Setting GATEWAY_INTERFACE", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		setEnv("GATEWAY_INTERFACE", "CGI/1.1");
 
 		// Request info
-		Logger::debug("CgiEnv: Setting REQUEST_METHOD");
+		Logger::debug("CgiEnv: Setting REQUEST_METHOD", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		setEnv("REQUEST_METHOD", request.getMethod());
-		Logger::debug("CgiEnv: Setting QUERY_STRING");
+		Logger::debug("CgiEnv: Setting QUERY_STRING", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		setEnv("QUERY_STRING", request.getQueryString());
 
 		// Client info
 		if (request.getRemoteAddress())
 		{
-			Logger::debug("CgiEnv: Setting REMOTE_ADDR");
+			Logger::debug("CgiEnv: Setting REMOTE_ADDR", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			setEnv("REMOTE_ADDR", request.getRemoteAddress()->getHost());
-			Logger::debug("CgiEnv: Setting REMOTE_PORT");
+			Logger::debug("CgiEnv: Setting REMOTE_PORT", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			setEnv("REMOTE_PORT", request.getRemoteAddress()->getPortString());
 		}
-		Logger::debug("CgiEnv: Setting REQUEST_URI");
+		Logger::debug("CgiEnv: Setting REQUEST_URI", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		setEnv("REQUEST_URI", request.getRawUri());
-		Logger::debug("CgiEnv: Core meta variables set");
+		Logger::debug("CgiEnv: Core meta variables set", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 
 		// Body meta
 		switch (request.getBodyType())
@@ -163,7 +164,8 @@ void CgiEnv::_transposeData(const HttpRequest &request, const Server *server, co
 		}
 		setEnv("SCRIPT_NAME", cleanUri);
 		setEnv("SCRIPT_FILENAME", scriptPath);
-		Logger::debug("CgiEnv: SCRIPT_NAME=" + cleanUri + " SCRIPT_FILENAME=" + scriptPath);
+		Logger::debug("CgiEnv: SCRIPT_NAME=" + cleanUri + " SCRIPT_FILENAME=" + scriptPath, __FILE__, __LINE__,
+					  __PRETTY_FUNCTION__);
 
 		// Headers
 		const std::map<std::string, std::vector<std::string> > &headers = request.getHeaders();
@@ -188,7 +190,8 @@ void CgiEnv::_transposeData(const HttpRequest &request, const Server *server, co
 		else
 			setEnv("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");
 
-		Logger::debug("CgiEnv: Header variables set, total env count: " + StrUtils::toString(getEnvCount()));
+		Logger::debug("CgiEnv: Header variables set, total env count: " + StrUtils::toString(getEnvCount()), __FILE__,
+					  __LINE__, __PRETTY_FUNCTION__);
 	}
 	catch (const std::exception &e)
 	{

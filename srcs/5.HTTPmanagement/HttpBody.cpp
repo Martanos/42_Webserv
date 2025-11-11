@@ -62,10 +62,11 @@ HttpBody &HttpBody::operator=(HttpBody const &rhs)
 void HttpBody::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 {
 	Logger::debug("HttpBody: parseBuffer called, body type: " + StrUtils::toString(_bodyType) +
-				  ", buffer size: " + StrUtils::toString(buffer.size()));
+					  ", buffer size: " + StrUtils::toString(buffer.size()),
+				  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	if (_bodyType == BODY_TYPE_NO_BODY)
 	{
-		Logger::debug("HttpBody: No body type, marking as complete");
+		Logger::debug("HttpBody: No body type, marking as complete", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		_bodyState = BODY_PARSING_COMPLETE;
 	}
 	else if (_bodyType == BODY_TYPE_CHUNKED)
@@ -145,7 +146,8 @@ HttpBody::BodyState HttpBody::_parseChunkedBody(std::vector<char> &buffer, HttpR
 			Logger::debug("HttpBody: Chunk size state", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			// Chunked size line validation
 			std::vector<char>::iterator it = std::search(buffer.begin(), buffer.end(), HTTP::CRLF, HTTP::CRLF + 2);
-			Logger::debug("HttpBody: Chunk size line search result: " + StrUtils::toString(it - buffer.begin()));
+			Logger::debug("HttpBody: Chunk size line search result: " + StrUtils::toString(it - buffer.begin()),
+						  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			if (it == buffer.end()) // If the CRLF is not found, we need more data
 			{
 				if (buffer.size() > 18) // Limit hex number size to 16 characters (8 bytes) + 2 for \r\n

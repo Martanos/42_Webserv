@@ -30,7 +30,8 @@ bool PostMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &
 		return false;
 	}
 
-	Logger::debug("PostMethodHandler: Processing POST request to: " + request.getUri());
+	Logger::debug("PostMethodHandler: Processing POST request to: " + request.getUri(), __FILE__, __LINE__,
+				  __PRETTY_FUNCTION__);
 
 	// Check if it's a CGI request
 	if (isCgiRequest(request.getUri(), location))
@@ -52,7 +53,7 @@ bool PostMethodHandler::canHandle(const std::string &method) const
 bool PostMethodHandler::handleCgiRequest(const HttpRequest &request, HttpResponse &response, const Server *server,
 										 const Location *location)
 {
-	Logger::debug("PostMethodHandler: Handling CGI request");
+	Logger::debug("PostMethodHandler: Handling CGI request", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 
 	// Check for internal redirect loop
 	if (request.getInternalRedirectDepth() >= 5) // MAX_INTERNAL_REDIRECTS from HttpRequest
@@ -70,7 +71,8 @@ bool PostMethodHandler::handleCgiRequest(const HttpRequest &request, HttpRespons
 	if (result == CgiHandler::SUCCESS && cgiHandler.isInternalRedirect())
 	{
 		std::string redirectPath = cgiHandler.getInternalRedirectPath();
-		Logger::info("PostMethodHandler: Processing internal redirect to: " + redirectPath);
+		Logger::info("PostMethodHandler: Processing internal redirect to: " + redirectPath, __FILE__, __LINE__,
+					 __PRETTY_FUNCTION__);
 
 		// Create a modified request for the redirect
 		HttpRequest redirectRequest = request;
@@ -93,7 +95,8 @@ bool PostMethodHandler::handleCgiRequest(const HttpRequest &request, HttpRespons
 		// For now, just log and return an error since full re-routing requires
 		// access to the handler factory which we don't have in this context
 		Logger::warning("PostMethodHandler: Internal redirect detected but full re-routing not implemented. "
-						"Treating as external redirect instead.");
+						"Treating as external redirect instead.",
+						__FILE__, __LINE__, __PRETTY_FUNCTION__);
 
 		// Fall through to populate the response with redirect headers
 		// The client will follow the redirect
@@ -102,7 +105,7 @@ bool PostMethodHandler::handleCgiRequest(const HttpRequest &request, HttpRespons
 	switch (result)
 	{
 	case CgiHandler::SUCCESS:
-		Logger::debug("PostMethodHandler: CGI execution successful");
+		Logger::debug("PostMethodHandler: CGI execution successful", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		return true;
 	case CgiHandler::ERROR_INVALID_SCRIPT_PATH:
 		response.setResponseDefaultBody(404, "Not Found", server, location, HttpResponse::ERROR);
@@ -130,14 +133,7 @@ bool PostMethodHandler::handleCgiRequest(const HttpRequest &request, HttpRespons
 bool PostMethodHandler::handleFileUpload(const HttpRequest &request, HttpResponse &response, const Server *server,
 										 const Location *location)
 {
-	Logger::debug("PostMethodHandler: Handling file upload");
-
-	// Check if upload is allowed
-	if (true) // Always allow uploads for now
-	{
-		response.setResponseDefaultBody(403, "Forbidden", server, location, HttpResponse::ERROR);
-		return false;
-	}
+	Logger::debug("PostMethodHandler: Handling file upload", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 
 	// Get upload path
 	std::string uploadPath = getUploadPath(server, location);
@@ -196,7 +192,8 @@ std::string PostMethodHandler::getUploadPath(const Server *server, const Locatio
 	{
 		if (mkdir(uploadDir.c_str(), 0755) != 0)
 		{
-			Logger::error("PostMethodHandler: Failed to create upload directory: " + uploadDir);
+			Logger::error("PostMethodHandler: Failed to create upload directory: " + uploadDir, __FILE__, __LINE__,
+						  __PRETTY_FUNCTION__);
 			return "";
 		}
 	}

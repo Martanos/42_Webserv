@@ -1,10 +1,7 @@
 #ifndef CGIEXECUTOR_HPP
 #define CGIEXECUTOR_HPP
 
-#include "../Global/Logger.hpp"
 #include "../Wrapper/FileDescriptor.hpp"
-#include <errno.h>
-#include <signal.h>
 #include <string>
 #include <sys/types.h>
 #include <sys/wait.h>

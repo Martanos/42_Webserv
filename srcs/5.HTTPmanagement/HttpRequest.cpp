@@ -66,26 +66,75 @@ bool HttpRequest::_identifyServer(HttpResponse &response)
 		response.setResponseDefaultBody(400, "No host header found", NULL, NULL, HttpResponse::FATAL_ERROR);
 		return false;
 	}
-	std::string hostValue = hostHeader->getValues()[0];
-	size_t colonPos = hostValue.find(':');
-	_selectedServerHost = (colonPos == std::string::npos) ? hostValue : hostValue.substr(0, colonPos);
-	_selectedServerPort = (colonPos == std::string::npos) ? "80" : hostValue.substr(colonPos + 1);
-	StrUtils::toLowerCase(_selectedServerHost);
-	for (std::vector<Server>::const_iterator it = _potentialServers->begin(); it != _potentialServers->end(); ++it)
+	std::string hostValue = (!hostHeader->getValues().empty()) ? hostHeader->getValues()[0] : "<none>";
+
+	// Parse host and optional port from Host header
+	std::string hostPart = hostValue;
+	std::string portPart = "";
+	if (!hostPart.empty() && hostPart[0] == '[')
+	{
+		// IPv6 in brackets: [::1]:8080 or [::1]
+		size_t rb = hostPart.find(']');
+		if (rb != std::string::npos)
+		{
+			std::string after = (rb + 1 < hostPart.size()) ? hostPart.substr(rb + 1) : std::string();
+			std::string inside = hostPart.substr(1, rb - 1);
+			hostPart = inside;
+			if (!after.empty() && after[0] == ':')
+				portPart = after.substr(1);
+		}
+	}
+	else
+	{
+		// Split on last ':' only if it's the only colon (avoid IPv6 without brackets)
+		size_t first = hostPart.find(':');
+		size_t last = hostPart.rfind(':');
+		if (first != std::string::npos && first == last)
+		{
+			hostPart = hostPart.substr(0, first);
+			portPart = hostPart.size() < hostValue.size() ? hostValue.substr(first + 1) : std::string();
+		}
+	}
+	// Normalize hostname to lowercase
+	hostPart = StrUtils::toLowerCase(hostPart);
+	_selectedServerHost = hostPart;
+	_selectedServerPort = portPart; // may be empty if not provided
+
+	// Try to find server by name (and port if provided)
+	const std::vector<Server> &servers = *_potentialServers;
+	for (std::vector<Server>::const_iterator it = servers.begin(); it != servers.end(); ++it)
 	{
 		if (it->hasServerName(_selectedServerHost))
 		{
-			for (std::vector<SocketAddress>::const_iterator it2 = it->getSocketAddresses().begin();
-				 it2 != it->getSocketAddresses().end(); ++it2)
+			if (!_selectedServerPort.empty())
 			{
-				if (it2->getPortString() == _selectedServerPort)
+				for (std::vector<SocketAddress>::const_iterator it2 = it->getSocketAddresses().begin();
+					 it2 != it->getSocketAddresses().end(); ++it2)
 				{
-					_selectedServer = const_cast<Server *>(&(*it));
-					return true;
+					if (it2->getPortString() == _selectedServerPort)
+					{
+						_selectedServer = const_cast<Server *>(&(*it));
+						return true;
+					}
 				}
+			}
+			else
+			{
+				// No port provided in Host header; accept name match on current listening socket
+				_selectedServer = const_cast<Server *>(&(*it));
+				return true;
 			}
 		}
 	}
+	// Fallback: use default server for this listening socket (first in list)
+	if (!servers.empty())
+	{
+		Logger::warning("HttpRequest: No exact server_name/port match; falling back to default server", __FILE__,
+						__LINE__, __PRETTY_FUNCTION__);
+		_selectedServer = const_cast<Server *>(&servers.front());
+		return true;
+	}
+
 	response.setResponseDefaultBody(404, "Matching server configuration not found", NULL, NULL,
 									HttpResponse::FATAL_ERROR);
 	Logger::debug("HttpRequest: Matching server configuration not found for host: " + hostValue, __FILE__, __LINE__,
@@ -103,7 +152,8 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 	PERF_SCOPED_TIMER(http_request_parsing);
 
 	Logger::debug("HttpRequest: parseBuffer called, state: " + StrUtils::toString(_parseState) +
-				  ", buffer size: " + StrUtils::toString(holdingBuffer.size()));
+					  ", buffer size: " + StrUtils::toString(holdingBuffer.size()),
+				  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 
 	// Continue parsing until complete or need more data
 	while (_parseState != PARSING_COMPLETE && _parseState != PARSING_ERROR && !holdingBuffer.empty())
@@ -113,21 +163,23 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 		{
 		case PARSING_URI:
 		{
-			Logger::debug("HttpRequest: Parsing URI");
+			Logger::debug("HttpRequest: Parsing URI", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			_uri.parseBuffer(holdingBuffer, response);
-			Logger::debug("HttpRequest: URI state: " + StrUtils::toString(_uri.getURIState()));
+			Logger::debug("HttpRequest: URI state: " + StrUtils::toString(_uri.getURIState()), __FILE__, __LINE__,
+						  __PRETTY_FUNCTION__);
 			switch (_uri.getURIState())
 			{
 			case HttpURI::URI_PARSING_COMPLETE:
 			{
-				Logger::debug("HttpRequest: URI parsing complete");
-				Logger::debug("URI: " + _uri.getMethod() + " " + _uri.getURI() + " " + _uri.getVersion());
+				Logger::debug("HttpRequest: URI parsing complete", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+				Logger::debug("URI: " + _uri.getMethod() + " " + _uri.getURI() + " " + _uri.getVersion(), __FILE__,
+							  __LINE__, __PRETTY_FUNCTION__);
 				_parseState = PARSING_HEADERS;
-				Logger::debug("HttpRequest: Transitioned to PARSING_HEADERS");
+				Logger::debug("HttpRequest: Transitioned to PARSING_HEADERS", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 				break;
 			}
 			case HttpURI::URI_PARSING_ERROR:
-				Logger::error("HttpRequest: Request line parsing error");
+				Logger::error("HttpRequest: Request line parsing error", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 				_parseState = PARSING_ERROR;
 				break;
 			default:
@@ -137,20 +189,25 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 		}
 		case PARSING_HEADERS:
 		{
-			Logger::debug("HttpRequest: Starting headers parsing");
+			Logger::debug("HttpRequest: Starting headers parsing", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			_headers.parseBuffer(holdingBuffer, response, _body);
-			Logger::debug("HttpRequest: Headers parsing state: " + StrUtils::toString(_headers.getHeadersState()));
+			Logger::debug("HttpRequest: Headers parsing state: " + StrUtils::toString(_headers.getHeadersState()),
+						  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			switch (_headers.getHeadersState())
 			{
 			case HttpHeaders::HEADERS_PARSING_COMPLETE:
 			{
 				if (!_identifyServer(response))
 				{
-					Logger::error("HttpRequest: Failed to identify server", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+					const Header *hostHeader = _headers.getHeader("host");
+					std::string hostValue =
+						(hostHeader && !hostHeader->getValues().empty()) ? hostHeader->getValues()[0] : "<none>";
+					Logger::error("HttpRequest: Failed to identify server for host value: " + hostValue, __FILE__,
+								  __LINE__, __PRETTY_FUNCTION__);
 					_parseState = PARSING_ERROR;
 					break;
 				}
-				Logger::debug("HttpRequest: Headers parsing complete");
+				Logger::debug("HttpRequest: Headers parsing complete", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 				switch (_body.getBodyType())
 				{
 				case HttpBody::BODY_TYPE_NO_BODY:
@@ -172,27 +229,30 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 				_parseState = PARSING_ERROR;
 				break;
 			case HttpHeaders::HEADERS_PARSING:
-				Logger::debug("HttpRequest: Headers still parsing, need more data");
+				Logger::debug("HttpRequest: Headers still parsing, need more data", __FILE__, __LINE__,
+							  __PRETTY_FUNCTION__);
 				return _parseState;
 			}
 			break;
 		}
 		case PARSING_BODY:
 		{
-			Logger::debug("HttpRequest: Parsing body");
+			Logger::debug("HttpRequest: Parsing body", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			_body.parseBuffer(holdingBuffer, response);
-			Logger::debug("HttpRequest: Body state: " + StrUtils::toString(_body.getBodyState()));
+			Logger::debug("HttpRequest: Body state: " + StrUtils::toString(_body.getBodyState()), __FILE__, __LINE__,
+						  __PRETTY_FUNCTION__);
 			switch (_body.getBodyState())
 			{
 			case HttpBody::BODY_PARSING_COMPLETE:
 			{
-				Logger::debug("HttpRequest: Body parsing complete");
+				Logger::debug("HttpRequest: Body parsing complete", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 				_parseState = PARSING_COMPLETE;
-				Logger::debug("HttpRequest: Transitioned to PARSING_COMPLETE");
+				Logger::debug("HttpRequest: Transitioned to PARSING_COMPLETE", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 				break;
 			}
 			case HttpBody::BODY_PARSING:
-				Logger::debug("HttpRequest: Body parsing incomplete, need more data");
+				Logger::debug("HttpRequest: Body parsing incomplete, need more data", __FILE__, __LINE__,
+							  __PRETTY_FUNCTION__);
 				_parseState = PARSING_BODY;
 				return _parseState;
 			case HttpBody::BODY_PARSING_ERROR:
@@ -206,7 +266,8 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 			break;
 		}
 	}
-	Logger::debug("HttpRequest: parseBuffer returning state: " + StrUtils::toString(_parseState));
+	Logger::debug("HttpRequest: parseBuffer returning state: " + StrUtils::toString(_parseState), __FILE__, __LINE__,
+				  __PRETTY_FUNCTION__);
 	return _parseState;
 }
 

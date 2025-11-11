@@ -51,9 +51,10 @@ HttpHeaders &HttpHeaders::operator=(HttpHeaders const &rhs)
 
 void HttpHeaders::parseBuffer(std::vector<char> &buffer, HttpResponse &response, HttpBody &body)
 {
-	Logger::debug("HttpHeaders: Parsing buffer, size: " + StrUtils::toString(buffer.size()));
+	Logger::debug("HttpHeaders: Parsing buffer, size: " + StrUtils::toString(buffer.size()), __FILE__, __LINE__,
+				  __PRETTY_FUNCTION__);
 	std::string bufferStr(buffer.begin(), buffer.end());
-	Logger::debug("HttpHeaders: Buffer content: " + bufferStr);
+	Logger::debug("HttpHeaders: Buffer content: " + bufferStr, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 
 	// Continue parsing headers until we find empty line or run out of data
 	while (_headersState == HEADERS_PARSING && !buffer.empty())
@@ -61,7 +62,7 @@ void HttpHeaders::parseBuffer(std::vector<char> &buffer, HttpResponse &response,
 		std::vector<char>::iterator it = std::search(buffer.begin(), buffer.end(), HTTP::CRLF, HTTP::CRLF + 2);
 		if (it == buffer.end())
 		{
-			Logger::debug("HttpHeaders: No CRLF found, waiting for more data");
+			Logger::debug("HttpHeaders: No CRLF found, waiting for more data", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			// If it can't be found check that the buffer has not currently exceeded the size limit of a header
 			if (buffer.size() > HTTP::DEFAULT_CLIENT_MAX_HEADERS_SIZE)
 			{
@@ -77,11 +78,11 @@ void HttpHeaders::parseBuffer(std::vector<char> &buffer, HttpResponse &response,
 		// Extract header data from buffer
 		std::string rawHeader;
 		rawHeader.assign(buffer.begin(), it);
-		Logger::debug("HttpHeaders: Found header line: '" + rawHeader + "'");
+		Logger::debug("HttpHeaders: Found header line: '" + rawHeader + "'", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		buffer.erase(buffer.begin(), it + 2);
 		if (rawHeader.empty())
 		{
-			Logger::debug("HttpHeaders: Empty line found, headers complete");
+			Logger::debug("HttpHeaders: Empty line found, headers complete", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			parseAllHeaders(response, body);
 			_headersState = HEADERS_PARSING_COMPLETE;
 			Logger::log(Logger::DEBUG, "Headers parsing complete");

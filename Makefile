@@ -1,6 +1,12 @@
 NAME = webserv
 CC = c++
 CFLAGS = -Wall -Wextra -Werror -MMD -MP -O0 -g -pipe
+
+# Default (release-ish) logging: show WARNING/ERROR/CRITICAL + ACCESS (LOG_MIN_LEVEL=2)
+LOG_MIN_LEVEL?=2
+
+# Append macro definition
+CFLAGS += -DLOG_MIN_LEVEL=$(LOG_MIN_LEVEL)
 STD = -std=c++98
 MAKEFLAGS = -j$(shell nproc) --no-print-directory
 # Directory structure
@@ -92,6 +98,11 @@ fclean:
 re:
 	@$(MAKE) fclean
 	@$(MAKE) all
+
+# Debug target: enable full DEBUG level (LOG_MIN_LEVEL=0)
+debug:
+	@$(MAKE) fclean
+	@$(MAKE) LOG_MIN_LEVEL=0 all
 # Include dependency files
 -include $(DEPS)
 .PHONY: all clean fclean re

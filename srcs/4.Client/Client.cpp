@@ -1,7 +1,6 @@
 #include "../../includes/Core/Client.hpp"
 #include "../../includes/Core/MethodHandlerFactory.hpp"
 #include "../../includes/Global/Logger.hpp"
-#include "../../includes/Global/StrUtils.hpp"
 #include "../../includes/HTTP/HTTP.hpp"
 #include "../../includes/HTTP/HttpRequest.hpp"
 #include "../../includes/HTTP/HttpResponse.hpp"
@@ -112,13 +111,15 @@ void Client::handleEvent(epoll_event event)
 	if (event.events & EPOLLERR)
 	{
 		Logger::error("Client: Error event occurred for client: " + _remoteAddress.getHostString() + ":" +
-					  _remoteAddress.getPortString());
+						  _remoteAddress.getPortString(),
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		_state = DISCONNECTED;
 	}
 	if (event.events & EPOLLHUP)
 	{
 		Logger::error("Client: Hang-up event occurred for client: " + _remoteAddress.getHostString() + ":" +
-					  _remoteAddress.getPortString());
+						  _remoteAddress.getPortString(),
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		_state = DISCONNECTED;
 	}
 	updateActivity(); // base last activity time off of when event handled
@@ -136,7 +137,8 @@ void Client::_handleBuffer()
 		else if (bytesRead == 0)
 		{
 			Logger::warning("Client: " + _remoteAddress.getHostString() + ":" + _remoteAddress.getPortString() +
-							" disconnected");
+								" disconnected",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 			_state = DISCONNECTED;
 			return;
 		}
@@ -196,12 +198,14 @@ void Client::_routeRequest()
 	{
 		location = _request.getSelectedServer()->getLocation(_request.getUri());
 		_request.setSelectedLocation(location);
-		Logger::debug("Client: Matched location: " + location->getPath() + " for URI: " + _request.getUri());
+		Logger::debug("Client: Matched location: " + location->getPath() + " for URI: " + _request.getUri(), __FILE__,
+					  __LINE__, __PRETTY_FUNCTION__);
 	}
 	catch (const std::exception &e)
 	{
 		Logger::error("Client: Exception during location lookup: " + std::string(e.what()) +
-					  " for URI: " + _request.getUri());
+						  " for URI: " + _request.getUri(),
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		_response.setResponseDefaultBody(500, "Exception during location lookup: " + std::string(e.what()), NULL, NULL,
 										 HttpResponse::FATAL_ERROR);
 		return;
@@ -241,13 +245,15 @@ void Client::_routeRequest()
 	IMethodHandler *handler = MethodHandlerFactory::createHandler(_request.getMethod());
 	if (handler)
 	{
-		Logger::debug("Client: Created handler for method: " + _request.getMethod());
+		Logger::debug("Client: Created handler for method: " + _request.getMethod(), __FILE__, __LINE__,
+					  __PRETTY_FUNCTION__);
 		handler->handleRequest(_request, _response, _request.getSelectedServer(), location);
 		delete handler;
 	}
 	else
 	{
-		Logger::error("Client: Failed to create handler for method: " + _request.getMethod());
+		Logger::error("Client: Failed to create handler for method: " + _request.getMethod(), __FILE__, __LINE__,
+					  __PRETTY_FUNCTION__);
 		_response.setResponseDefaultBody(500, "Failed to create handler for method: " + _request.getMethod(),
 										 _request.getSelectedServer(), location, HttpResponse::FATAL_ERROR);
 	}

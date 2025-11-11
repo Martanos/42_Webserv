@@ -1,4 +1,5 @@
 #include "../../includes/CGI/CgiExecutor.hpp"
+#include "../../includes/Global/Logger.hpp"
 #include "../../includes/Global/PerformanceMonitor.hpp"
 #include "../../includes/Global/StrUtils.hpp"
 #include <cstring>
@@ -114,16 +115,16 @@ CgiExecutor::ExecutionResult CgiExecutor::execute(const std::string &scriptPath,
 	}
 
 	// Setup pipes for communication
-	Logger::debug("CgiExecutor: Setting up pipes for communication");
+	Logger::debug("CgiExecutor: Setting up pipes for communication", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	ExecutionResult result = setupPipes();
 	if (result != SUCCESS)
 	{
-		Logger::error("CgiExecutor: Failed to setup pipes");
+		Logger::error("CgiExecutor: Failed to setup pipes", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		return result;
 	}
 
 	// Fork and execute the CGI script
-	Logger::debug("CgiExecutor: Forking and executing CGI script");
+	Logger::debug("CgiExecutor: Forking and executing CGI script", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	result = forkAndExec(scriptPath, interpreter, envp);
 	if (result != SUCCESS)
 	{
@@ -133,11 +134,11 @@ CgiExecutor::ExecutionResult CgiExecutor::execute(const std::string &scriptPath,
 	}
 
 	// Communicate with the child process
-	Logger::debug("CgiExecutor: Communicating with child process");
+	Logger::debug("CgiExecutor: Communicating with child process", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	result = communicateWithChild(inputData, outputData, errorData);
 
 	// Wait for child to complete
-	Logger::debug("CgiExecutor: Waiting for child process to complete");
+	Logger::debug("CgiExecutor: Waiting for child process to complete", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	ExecutionResult waitResult = waitForChild();
 	if (result == SUCCESS && waitResult != SUCCESS)
 	{
@@ -145,7 +146,8 @@ CgiExecutor::ExecutionResult CgiExecutor::execute(const std::string &scriptPath,
 	}
 
 	closePipes();
-	Logger::info("CgiExecutor: CGI execution completed with result: " + StrUtils::toString(result));
+	Logger::info("CgiExecutor: CGI execution completed with result: " + StrUtils::toString(result), __FILE__, __LINE__,
+				 __PRETTY_FUNCTION__);
 	return result;
 }
 

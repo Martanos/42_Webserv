@@ -121,7 +121,8 @@ static bool loadSystemMimeTypes(const std::string &filePath)
 
 	file.close();
 	Logger::debug("MimeTypeResolver: Loaded " + StrUtils::toString(loadedCount) +
-				  " extensions from system file: " + filePath);
+					  " extensions from system file: " + filePath,
+				  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	return true;
 }
 
@@ -265,7 +266,8 @@ static void initializeExtensionMap()
 
 	if (!systemLoaded)
 	{
-		Logger::debug("MimeTypeResolver: System MIME types file not found, using custom map only");
+		Logger::debug("MimeTypeResolver: System MIME types file not found, using custom map only", __FILE__, __LINE__,
+					  __PRETTY_FUNCTION__);
 	}
 }
 
@@ -365,7 +367,8 @@ void MimeTypeResolver::initialize()
 	getInitialized() = true;
 
 	Logger::debug("MimeTypeResolver: Initialized with " + StrUtils::toString(g_extensionMap->size()) +
-				  " extension mappings");
+					  " extension mappings",
+				  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 }
 
 void MimeTypeResolver::cleanup()
@@ -377,5 +380,5 @@ void MimeTypeResolver::cleanup()
 	}
 
 	getInitialized() = false;
-	Logger::debug("MimeTypeResolver: Cleaned up");
+	Logger::debug("MimeTypeResolver: Cleaned up", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 }

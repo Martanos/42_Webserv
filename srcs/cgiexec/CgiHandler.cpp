@@ -68,30 +68,34 @@ CgiHandler::ExecutionResult CgiHandler::execute(const HttpRequest &request, Http
 
 	// Resolve script path using RAW URI (HTTP target), not the filesystem path already translated
 	std::string scriptPath = resolveCgiScriptPath(request.getRawUri(), server, location);
-	Logger::debug("CgiHandler: Resolved script path: " + scriptPath);
+	Logger::debug("CgiHandler: Resolved script path: " + scriptPath, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	// Skip pre-validation; executor will validate existence/executability.
-	Logger::debug("CgiHandler: Skipping pre-validation; delegating to executor");
+	Logger::debug("CgiHandler: Skipping pre-validation; delegating to executor", __FILE__, __LINE__,
+				  __PRETTY_FUNCTION__);
 
 	// Setup CGI environment (uses raw URI semantics)
-	Logger::debug("CgiHandler: Transposing environment");
+	Logger::debug("CgiHandler: Transposing environment", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	_cgiEnv._transposeData(request, server, location);
 	Logger::debug("CgiHandler: Environment variable count after transpose: " +
-				  StrUtils::toString(_cgiEnv.getEnvCount()));
+					  StrUtils::toString(_cgiEnv.getEnvCount()),
+				  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	// Override SCRIPT_FILENAME with resolved script path (SCRIPT_NAME remains logical path)
 	_cgiEnv.setEnv("SCRIPT_FILENAME", scriptPath);
-	Logger::debug("CgiHandler: SCRIPT_FILENAME set to: " + scriptPath);
+	Logger::debug("CgiHandler: SCRIPT_FILENAME set to: " + scriptPath, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 
 	// Determine interpreter
-	Logger::debug("CgiHandler: Determining interpreter");
+	Logger::debug("CgiHandler: Determining interpreter", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	std::string interpreter = determineInterpreter(scriptPath, location);
 	Logger::debug("CgiHandler: Interpreter determined: " +
-				  (interpreter.empty() ? std::string("(shebang/none)") : interpreter));
+					  (interpreter.empty() ? std::string("(shebang/none)") : interpreter),
+				  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 
 	// Execute CGI script
 	std::string output, error;
-	Logger::debug("CgiHandler: Executing CGI script");
+	Logger::debug("CgiHandler: Executing CGI script", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	ExecutionResult result = executeCgiScript(scriptPath, interpreter, request, output, error);
-	Logger::debug("CgiHandler: executeCgiScript returned result code: " + StrUtils::toString(result));
+	Logger::debug("CgiHandler: executeCgiScript returned result code: " + StrUtils::toString(result), __FILE__,
+				  __LINE__, __PRETTY_FUNCTION__);
 	if (result != SUCCESS)
 	{
 		// Set appropriate error response
@@ -112,9 +116,10 @@ CgiHandler::ExecutionResult CgiHandler::execute(const HttpRequest &request, Http
 	}
 
 	// Process the response
-	Logger::debug("CgiHandler: Processing CGI response");
+	Logger::debug("CgiHandler: Processing CGI response", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	result = processResponse(output, error, response, server);
-	Logger::debug("CgiHandler: processResponse returned result code: " + StrUtils::toString(result));
+	Logger::debug("CgiHandler: processResponse returned result code: " + StrUtils::toString(result), __FILE__, __LINE__,
+				  __PRETTY_FUNCTION__);
 
 	// Check for internal redirect BEFORE finalizing response
 	if (result == SUCCESS && _response.hasHeader("location"))
@@ -124,7 +129,7 @@ CgiHandler::ExecutionResult CgiHandler::execute(const HttpRequest &request, Http
 		{
 			_isInternalRedirect = true;
 			_internalRedirectPath = locationValue;
-			Logger::info("CGI internal redirect detected: " + locationValue);
+			Logger::info("CGI internal redirect detected: " + locationValue, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			logExecutionDetails(request, scriptPath, result);
 			return SUCCESS; // Don't populate response, let caller handle redirect
 		}
@@ -179,7 +184,7 @@ CgiHandler::ExecutionResult CgiHandler::executeCgiScript(const std::string &scri
 	// Log stderr if present
 	if (!error.empty())
 	{
-		Logger::warning("CGI script stderr output: " + error);
+		Logger::warning("CGI script stderr output: " + error, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
 
 	// Map executor results to handler results

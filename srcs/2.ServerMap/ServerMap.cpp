@@ -1,6 +1,5 @@
 #include "../../includes/ConfigParser/ServerMap.hpp"
 #include "../../includes/Global/Logger.hpp"
-#include "../../includes/Global/StrUtils.hpp"
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -69,7 +68,9 @@ void ServerMap::_buildServerMap()
 				}
 				catch (const std::exception &e)
 				{
-					Logger::warning("ServerMap: Error adding listening socket: " + std::string(e.what()));
+					Logger::warning("ServerMap: Error adding listening socket [" + socketAddress_it->getPortString() +
+										"]: " + std::string(e.what()),
+									__FILE__, __LINE__, __PRETTY_FUNCTION__);
 					continue;
 				}
 			}

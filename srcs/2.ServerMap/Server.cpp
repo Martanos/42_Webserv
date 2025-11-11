@@ -194,15 +194,17 @@ const std::map<int, std::string> &Server::getStatusPages() const
 // Returns longest prefix match location null if no match found
 const Location *Server::getLocation(const std::string &path) const
 {
-	Logger::debug("Server::getLocation: Looking for path: " + path);
+	Logger::debug("Server::getLocation: Looking for path: " + path, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	const Location *location = _locations.findLongestPrefix(path);
 	if (location)
 	{
-		Logger::debug("Server::getLocation: Found location: " + location->getPath());
+		Logger::debug("Server::getLocation: Found location: " + location->getPath(), __FILE__, __LINE__,
+					  __PRETTY_FUNCTION__);
 	}
 	else
 	{
-		Logger::debug("Server::getLocation: No location found for path: " + path);
+		Logger::debug("Server::getLocation: No location found for path: " + path, __FILE__, __LINE__,
+					  __PRETTY_FUNCTION__);
 	}
 	return location;
 }
@@ -245,16 +247,17 @@ void Server::insertIndex(const std::string &index)
 
 void Server::insertLocation(const Location &location)
 {
-	Logger::debug("Server::insertLocation: Adding location: " + location.getPath());
+	Logger::debug("Server::insertLocation: Adding location: " + location.getPath(), __FILE__, __LINE__,
+				  __PRETTY_FUNCTION__);
 	if (!hasLocation(location.getPath()))
 	{
 		_locations.insert(location.getPath(), location);
 		_modified = true;
-		Logger::debug("Server::insertLocation: Location added successfully");
+		Logger::debug("Server::insertLocation: Location added successfully", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
 	else
 	{
-		Logger::debug("Server::insertLocation: Location already exists");
+		Logger::debug("Server::insertLocation: Location already exists", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
 }
 

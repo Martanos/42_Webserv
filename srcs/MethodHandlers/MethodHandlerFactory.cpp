@@ -40,7 +40,7 @@ IMethodHandler *MethodHandlerFactory::createHandler(const std::string &method)
 		return it->second();
 	}
 
-	Logger::warning("MethodHandlerFactory: Unsupported method: " + method);
+	Logger::warning("MethodHandlerFactory: Unsupported method: " + method, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	return NULL;
 }
 
@@ -82,7 +82,8 @@ void MethodHandlerFactory::initializeCreators()
 
 	_initialized = true;
 	Logger::debug("MethodHandlerFactory: Initialized with " + StrUtils::toString(_handlerCreators.size()) +
-				  " method handlers");
+					  " handler creators",
+				  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 }
 
 // Helper functions for creating specific handlers

@@ -31,7 +31,8 @@ bool DeleteMethodHandler::handleRequest(const HttpRequest &request, HttpResponse
 	// Get the sanitized file path from the request
 	std::string filePath = request.getUri();
 
-	Logger::debug("DeleteMethodHandler: Processing DELETE request to: " + filePath);
+	Logger::debug("DeleteMethodHandler: Processing DELETE request to: " + filePath, __FILE__, __LINE__,
+				  __PRETTY_FUNCTION__);
 
 	// Check if it's safe to delete
 	if (!isSafeToDelete(filePath, server, location))

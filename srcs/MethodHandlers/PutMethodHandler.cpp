@@ -63,7 +63,7 @@ bool PutMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &r
 		filePath = baseRoot + rawPath;
 	}
 
-	Logger::debug("PutMethodHandler: Writing to path: " + filePath);
+	Logger::debug("PutMethodHandler: Writing to path: " + filePath, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 
 	struct stat st;
 	bool existed = (stat(filePath.c_str(), &st) == 0);

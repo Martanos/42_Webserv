@@ -37,7 +37,8 @@ EpollManager::EpollManager()
 		Logger::log(Logger::ERROR, ss.str());
 		throw std::runtime_error(ss.str());
 	}
-	Logger::info("EpollManager: Epoll instance created successfully with fd " + StrUtils::toString(_epollFd.getFd()));
+	Logger::info("EpollManager: Epoll instance created successfully with fd " + StrUtils::toString(_epollFd.getFd()),
+				 __FILE__, __LINE__, __PRETTY_FUNCTION__);
 }
 
 /*
@@ -62,7 +63,8 @@ void EpollManager::addFd(int fd, uint32_t events)
 	event.events = events;
 	event.data.fd = fd;
 
-	Logger::debug("EpollManager: Adding fd " + StrUtils::toString(fd) + " with events " + StrUtils::toString(events));
+	Logger::debug("EpollManager: Adding fd " + StrUtils::toString(fd) + " with events " + StrUtils::toString(events),
+				  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 
 	if (epoll_ctl(_epollFd.getFd(), EPOLL_CTL_ADD, fd, &event) == -1)
 	{
@@ -72,7 +74,8 @@ void EpollManager::addFd(int fd, uint32_t events)
 		throw std::runtime_error(ss.str());
 	}
 
-	Logger::debug("EpollManager: Successfully added fd " + StrUtils::toString(fd) + " to epoll");
+	Logger::debug("EpollManager: Successfully added fd " + StrUtils::toString(fd) + " to epoll", __FILE__, __LINE__,
+				  __PRETTY_FUNCTION__);
 }
 
 void EpollManager::modifyFd(int fd, uint32_t events)
@@ -81,8 +84,8 @@ void EpollManager::modifyFd(int fd, uint32_t events)
 	event.events = events;
 	event.data.fd = fd;
 
-	Logger::debug("EpollManager: Modifying fd " + StrUtils::toString(fd) + " with events " +
-				  StrUtils::toString(events));
+	Logger::debug("EpollManager: Modifying fd " + StrUtils::toString(fd) + " with events " + StrUtils::toString(events),
+				  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 
 	if (epoll_ctl(_epollFd.getFd(), EPOLL_CTL_MOD, fd, &event) == -1)
 	{
@@ -117,7 +120,7 @@ int EpollManager::wait(std::vector<epoll_event> &events, int timeout)
 		if (errno == EINTR)
 		{
 			// Interrupted by signal, this is normal during shutdown
-			Logger::debug("EpollManager: epoll_wait interrupted by signal");
+			Logger::debug("EpollManager: epoll_wait interrupted by signal", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			return 0;
 		}
 		std::stringstream ss;

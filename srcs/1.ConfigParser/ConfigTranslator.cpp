@@ -124,9 +124,10 @@ Server ConfigTranslator::_translateServer(const AST::ASTNode &ast)
 		else if ((*it)->type == AST::LOCATION)
 		{
 			Location location((*it)->value);
-			Logger::debug("Processing location block: " + (*it)->value);
+			Logger::debug("Processing location block: " + (*it)->value, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			_translateLocation(**it, location);
-			Logger::debug("Location modified: " + std::string(location.hasModified() ? "true" : "false"));
+			Logger::debug("Location modified: " + std::string(location.hasModified() ? "true" : "false"), __FILE__,
+						  __LINE__, __PRETTY_FUNCTION__);
 			if (location.hasModified())
 				server.insertLocation(location);
 			else
@@ -251,7 +252,7 @@ void ConfigTranslator::_translateServerRoot(const AST::ASTNode &directive, Serve
 		{
 			std::string error = StrUtils::validateDirectoryPath((*it)->value, "server root");
 			if (!error.empty())
-				Logger::warning(error);
+				Logger::warning(error, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			server.setRoot((*it)->value);
 		}
 		else
@@ -519,11 +520,13 @@ void ConfigTranslator::_translateLocation(const AST::ASTNode &location_node, Loc
 {
 	try
 	{
-		Logger::debug("Location has " + StrUtils::toString<int>(location_node.children.size()) + " children");
+		Logger::debug("Location has " + StrUtils::toString<int>(location_node.children.size()) + " children", __FILE__,
+					  __LINE__, __PRETTY_FUNCTION__);
 		for (std::vector<AST::ASTNode *>::const_iterator it = location_node.children.begin();
 			 it != location_node.children.end(); ++it)
 		{
-			Logger::debug("Processing child: type=" + StrUtils::toString<int>((*it)->type) + ", value=" + (*it)->value);
+			Logger::debug("Processing child: type=" + StrUtils::toString<int>((*it)->type) + ", value=" + (*it)->value,
+						  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			if ((*it)->type == AST::DIRECTIVE)
 			{
 				if ((*it)->value == "root")
@@ -716,7 +719,8 @@ void ConfigTranslator::_translateLocationAllowedMethods(const AST::ASTNode &dire
 	try
 	{
 		Logger::debug("Processing allowed_methods directive with " +
-					  StrUtils::toString<int>(directive.children.size()) + " children");
+						  StrUtils::toString<int>(directive.children.size()) + " children",
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
 		if (it == directive.children.end())
 		{
@@ -728,7 +732,7 @@ void ConfigTranslator::_translateLocationAllowedMethods(const AST::ASTNode &dire
 		}
 		for (; it != directive.children.end(); ++it)
 		{
-			Logger::debug("Processing allowed method: " + (*it)->value);
+			Logger::debug("Processing allowed method: " + (*it)->value, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			if (location.hasAllowedMethod((*it)->value))
 				Logger::warning("Duplicate allowed method: " + (*it)->value +
 									" line: " + StrUtils::toString<int>((*it)->line) +
