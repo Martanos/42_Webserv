@@ -7,6 +7,7 @@
 #include "../includes/Core/Server.hpp"
 #include "../includes/Core/ServerManager.hpp"
 #include "../includes/Global/Logger.hpp"
+#include "../includes/Global/MimeTypeResolver.hpp"
 #include "../includes/Global/PerformanceMonitor.hpp"
 #include "../includes/Global/StrUtils.hpp"
 
@@ -67,12 +68,20 @@ int main(int argc, char **argv)
 		// Log performance report even on failure
 		perfMonitor.logPerformanceSummary();
 
+		// Cleanup even on failure
+		PerformanceMonitor::destroyInstance();
+		MimeTypeResolver::cleanup();
+
 		Logger::closeSession();
 		return 1;
 	}
 
 	// Cleanup performance monitoring
 	PerformanceMonitor::destroyInstance();
+
+	// Cleanup MIME type resolver
+	MimeTypeResolver::cleanup();
+
 	Logger::closeSession();
 	return 0;
 }

@@ -74,7 +74,7 @@ struct ASTNode
 	std::vector<ASTNode *> children;
 
 	// Constructor
-	ASTNode(NodeType t, const std::string &v = "") : type(t), value(v)
+	ASTNode(NodeType t, const std::string &v = "") : type(t), value(v), line(0), column(0), position(0)
 	{
 	}
 

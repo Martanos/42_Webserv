@@ -109,6 +109,8 @@ AST::ASTNode *ConfigParser::parseDirective()
 			Token::Token arg = _tok->nextToken();
 			AST::ASTNode *directiveArg = new AST::ASTNode(AST::ARG, arg.lexeme);
 			directiveArg->position = position;
+			directiveArg->line = arg.line;
+			directiveArg->column = arg.column;
 			d->addChild(directiveArg);
 			continue;
 		}
