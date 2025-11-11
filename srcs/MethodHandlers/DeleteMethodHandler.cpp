@@ -28,15 +28,10 @@ bool DeleteMethodHandler::handleRequest(const HttpRequest &request, HttpResponse
 		return false;
 	}
 
-	Logger::debug("DeleteMethodHandler: Processing DELETE request to: " + request.getUri());
+	// Get the sanitized file path from the request
+	std::string filePath = request.getUri();
 
-	// Get the file path
-	std::string filePath = getFilePath(request.getUri(), server, location);
-	if (filePath.empty())
-	{
-		response.setResponseDefaultBody(400, "Failed to get file path", server, location, HttpResponse::ERROR);
-		return false;
-	}
+	Logger::debug("DeleteMethodHandler: Processing DELETE request to: " + filePath);
 
 	// Check if it's safe to delete
 	if (!isSafeToDelete(filePath, server, location))
