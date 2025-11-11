@@ -85,6 +85,8 @@ Client &Client::operator=(const Client &rhs)
 		_clientFd = rhs._clientFd;
 		_remoteAddress = rhs._remoteAddress;
 		_request = rhs._request;
+		// Rebind HttpRequest's remote address pointer to this instance's _remoteAddress
+		_request.setRemoteAddress(&_remoteAddress);
 		_response = rhs._response;
 		_responseBuffer = rhs._responseBuffer;
 		_receiveBuffer = rhs._receiveBuffer;

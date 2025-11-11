@@ -934,19 +934,24 @@ void ConfigTranslator::_translateLocationCgiPath(const AST::ASTNode &directive, 
 		}
 		if ((*it)->type == AST::ARG)
 		{
-			if ((*it)->value.empty())
+			// Historically this directive expected an executable file path (interpreter).
+			// We now treat it as a BASE DIRECTORY that contains CGI scripts. Normal HTTP
+			// URI resolution will append the portion of the request URI after the location
+			// prefix to this directory when locating the actual script file.
+			// Per user request: accept the path verbatim without strict verification.
+			// (If the path does not exist or is not a directory, script resolution will
+			// later fail gracefully returning 404.)
+			std::string rawPath = (*it)->value;
+			if (rawPath.empty())
 			{
-				Logger::warning("Empty cgi path: " + (*it)->value + " line: " + StrUtils::toString<int>((*it)->line) +
-									" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
-								__FILE__, __LINE__, __PRETTY_FUNCTION__);
+				Logger::warning("Empty cgi_path argument provided; ignoring directive", __FILE__, __LINE__,
+								__PRETTY_FUNCTION__);
 				return;
 			}
-			std::string error = StrUtils::validateFilePath((*it)->value, "location cgi path");
-			if (!error.empty())
-				Logger::warning(error + " line: " + StrUtils::toString<int>((*it)->line) +
-									" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
-								__FILE__, __LINE__, __PRETTY_FUNCTION__);
-			location.setCgiPath((*it)->value);
+			// Normalize: remove trailing slashes for consistent concatenation
+			while (rawPath.length() > 1 && rawPath[rawPath.length() - 1] == '/')
+				rawPath.erase(rawPath.length() - 1);
+			location.setCgiPath(rawPath);
 		}
 		else
 			Logger::warning("Unknown token in location cgi path directive: " + (*it)->value +
@@ -954,11 +959,7 @@ void ConfigTranslator::_translateLocationCgiPath(const AST::ASTNode &directive, 
 								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
 							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 
-		while (++it != directive.children.end())
-			Logger::warning("Extra argument in location cgi path directive: " + (*it)->value +
-								" line: " + StrUtils::toString<int>((*it)->line) +
-								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
-							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+		// Ignore any extra args silently (previously logged as warnings)
 	}
 	catch (const std::exception &e)
 	{

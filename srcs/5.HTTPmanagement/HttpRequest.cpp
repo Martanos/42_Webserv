@@ -248,8 +248,7 @@ void HttpRequest::reset()
 	_headers.reset();
 	_body.reset();
 	_selectedLocation = NULL;
-	_selectedServerHost = "127.0.0.1";
-	_selectedServerPort = "80";
+	_internalRedirectDepth = 0;
 }
 
 /*
@@ -406,3 +405,23 @@ const FileDescriptor &HttpRequest::getTempFd() const
 {
 	return _body.getTempFd();
 };
+
+/*
+** --------------------------------- INTERNAL REDIRECT METHODS
+*----------------------------------
+*/
+
+int HttpRequest::getInternalRedirectDepth() const
+{
+	return _internalRedirectDepth;
+}
+
+void HttpRequest::incrementInternalRedirectDepth()
+{
+	_internalRedirectDepth++;
+}
+
+void HttpRequest::resetInternalRedirectDepth()
+{
+	_internalRedirectDepth = 0;
+}

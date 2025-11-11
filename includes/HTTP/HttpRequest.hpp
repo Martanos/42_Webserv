@@ -39,6 +39,10 @@ private:
 	// Parsing state
 	ParseState _parseState;
 
+	// Internal redirect tracking
+	int _internalRedirectDepth;
+	static const int MAX_INTERNAL_REDIRECTS = 5;
+
 	// External configuration
 	const std::vector<Server> *_potentialServers;
 	Server *_selectedServer;
@@ -67,6 +71,11 @@ public:
 	void setSelectedServer(Server *selectedServer);
 	void setSelectedLocation(const Location *selectedLocation);
 	void setRemoteAddress(const SocketAddress *remoteAddress);
+
+	// Internal redirect management
+	int getInternalRedirectDepth() const;
+	void incrementInternalRedirectDepth();
+	void resetInternalRedirectDepth();
 
 	// Request accessors
 	ParseState getParseState() const;

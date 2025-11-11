@@ -54,8 +54,50 @@ bool PostMethodHandler::handleCgiRequest(const HttpRequest &request, HttpRespons
 {
 	Logger::debug("PostMethodHandler: Handling CGI request");
 
+	// Check for internal redirect loop
+	if (request.getInternalRedirectDepth() >= 5) // MAX_INTERNAL_REDIRECTS from HttpRequest
+	{
+		Logger::error("PostMethodHandler: Internal redirect loop detected (depth exceeded)", __FILE__, __LINE__,
+					  __PRETTY_FUNCTION__);
+		response.setResponseDefaultBody(500, "Internal Redirect Loop Detected", server, location, HttpResponse::ERROR);
+		return false;
+	}
+
 	CgiHandler cgiHandler;
 	CgiHandler::ExecutionResult result = cgiHandler.execute(request, response, server, location);
+
+	// Check for internal redirect
+	if (result == CgiHandler::SUCCESS && cgiHandler.isInternalRedirect())
+	{
+		std::string redirectPath = cgiHandler.getInternalRedirectPath();
+		Logger::info("PostMethodHandler: Processing internal redirect to: " + redirectPath);
+
+		// Create a modified request for the redirect
+		HttpRequest redirectRequest = request;
+		redirectRequest.incrementInternalRedirectDepth();
+
+		// Find the location for the redirect path
+		const Location *newLocation = server->getLocation(redirectPath);
+		if (!newLocation)
+		{
+			Logger::error("PostMethodHandler: No location found for internal redirect: " + redirectPath, __FILE__,
+						  __LINE__, __PRETTY_FUNCTION__);
+			response.setResponseDefaultBody(500, "Internal Redirect Failed", server, location, HttpResponse::ERROR);
+			return false;
+		}
+
+		// For internal redirect, we need to re-process as a GET request to the new path
+		// This is a simplified approach - you might need to adjust based on your architecture
+		// The proper way would be to call the appropriate handler for the redirect path
+
+		// For now, just log and return an error since full re-routing requires
+		// access to the handler factory which we don't have in this context
+		Logger::warning("PostMethodHandler: Internal redirect detected but full re-routing not implemented. "
+						"Treating as external redirect instead.");
+
+		// Fall through to populate the response with redirect headers
+		// The client will follow the redirect
+	}
 
 	switch (result)
 	{

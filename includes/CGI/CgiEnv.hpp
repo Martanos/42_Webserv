@@ -9,24 +9,25 @@
 #include <string>
 
 // Initializes and manages the environment variables for the CGI process
-class CGIenv
+class CgiEnv
 {
 private:
 	std::map<std::string, std::string> _envVariables;
-	void _transposeData(const HttpRequest &request, const Server *server, const Location *location);
 	std::string _convertHeaderNameToCgi(const std::string &headerName) const;
 
 public:
-	CGIenv();
-	CGIenv(const CGIenv &other);
-	~CGIenv();
+	CgiEnv();
+	CgiEnv(const CgiEnv &other);
+	~CgiEnv();
 
-	CGIenv &operator=(const CGIenv &other);
-
+	CgiEnv &operator=(const CgiEnv &other);
 	void setEnv(const std::string &key, const std::string &value);
 	std::string getEnv(const std::string &key) const;
 	const std::map<std::string, std::string> &getEnvVariables() const;
 	void printEnv() const;
+
+	// Environment setup
+	void _transposeData(const HttpRequest &request, const Server *server, const Location *location);
 
 	// New methods for CGI execution
 
@@ -39,6 +40,6 @@ public:
 	bool hasEnv(const std::string &key) const;
 };
 
-std::ostream &operator<<(std::ostream &os, const CGIenv &env);
+std::ostream &operator<<(std::ostream &os, const CgiEnv &env);
 
 #endif

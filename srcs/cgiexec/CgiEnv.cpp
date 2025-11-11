@@ -11,11 +11,11 @@
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-CGIenv::CGIenv()
+CgiEnv::CgiEnv()
 {
 }
 
-CGIenv::CGIenv(const CGIenv &src)
+CgiEnv::CgiEnv(const CgiEnv &src)
 {
 	*this = src;
 }
@@ -24,7 +24,7 @@ CGIenv::CGIenv(const CGIenv &src)
 ** -------------------------------- DESTRUCTOR --------------------------------
 */
 
-CGIenv::~CGIenv()
+CgiEnv::~CgiEnv()
 {
 }
 
@@ -32,7 +32,7 @@ CGIenv::~CGIenv()
 ** --------------------------------- OVERLOAD ---------------------------------
 */
 
-CGIenv &CGIenv::operator=(const CGIenv &rhs)
+CgiEnv &CgiEnv::operator=(const CgiEnv &rhs)
 {
 	if (this != &rhs)
 	{
@@ -41,7 +41,7 @@ CGIenv &CGIenv::operator=(const CGIenv &rhs)
 	return *this;
 }
 
-std::ostream &operator<<(std::ostream &os, const CGIenv &env)
+std::ostream &operator<<(std::ostream &os, const CgiEnv &env)
 {
 	for (std::map<std::string, std::string>::const_iterator it = env.getEnvVariables().begin();
 		 it != env.getEnvVariables().end(); ++it)
@@ -54,17 +54,17 @@ std::ostream &operator<<(std::ostream &os, const CGIenv &env)
 ** --------------------------------- METHODS ----------------------------------
 */
 
-void CGIenv::setEnv(const std::string &key, const std::string &value)
+void CgiEnv::setEnv(const std::string &key, const std::string &value)
 {
 	_envVariables[key] = value;
 }
 
-const std::map<std::string, std::string> &CGIenv::getEnvVariables() const
+const std::map<std::string, std::string> &CgiEnv::getEnvVariables() const
 {
 	return _envVariables;
 }
 
-std::string CGIenv::getEnv(const std::string &key) const
+std::string CgiEnv::getEnv(const std::string &key) const
 {
 	std::map<std::string, std::string>::const_iterator it = _envVariables.find(key);
 	if (it != _envVariables.end())
@@ -74,7 +74,7 @@ std::string CGIenv::getEnv(const std::string &key) const
 	return "";
 }
 
-void CGIenv::printEnv() const
+void CgiEnv::printEnv() const
 {
 	for (std::map<std::string, std::string>::const_iterator it = _envVariables.begin(); it != _envVariables.end(); ++it)
 	{
@@ -82,124 +82,158 @@ void CGIenv::printEnv() const
 	}
 }
 
-void CGIenv::_transposeData(const HttpRequest &request, const Server *server, const Location *location)
+void CgiEnv::_transposeData(const HttpRequest &request, const Server *server, const Location *location)
 {
-	// RFC 3875 MUST variables - Server information
-	setEnv("SERVER_NAME", request.getSelectedServerHost());
-	setEnv("SERVER_PORT", request.getSelectedServerPort());
-	setEnv("SERVER_PROTOCOL", "HTTP/1.1");
-	setEnv("SERVER_SOFTWARE", "webserv/1.0");
-	setEnv("GATEWAY_INTERFACE", "CGI/1.1");
-
-	// RFC 3875 MUST variables - Request information
-	setEnv("REQUEST_METHOD", request.getMethod());
-	setEnv("QUERY_STRING", request.getQueryString());
-
-	// RFC 3875 MUST variables - Client information
-	setEnv("REMOTE_ADDR", request.getRemoteAddress()->getHost());
-
-	// Non-standard but useful
-	setEnv("REMOTE_PORT", request.getRemoteAddress()->getPortString());
-	setEnv("REQUEST_URI", request.getRawUri());
-
-	// Content length (RFC states only if body is present)
-	switch (request.getBodyType())
+	Logger::debug("CgiEnv: Begin transpose for raw URI: " + request.getRawUri());
+	try
 	{
-	case HttpBody::BODY_TYPE_CHUNKED:
-	case HttpBody::BODY_TYPE_CONTENT_LENGTH:
-	{
-		setEnv("CONTENT_LENGTH", StrUtils::toString(request.getContentLength()));
-		std::vector<std::string> contentType = request.getHeader("content-type");
-		if (!contentType.empty())
-			setEnv("CONTENT_TYPE", contentType[0]);
-		break;
-	}
-	default:
-		break;
-	}
+		// Server info
+		Logger::debug("CgiEnv: Setting SERVER_NAME");
+		setEnv("SERVER_NAME", request.getSelectedServerHost());
+		Logger::debug("CgiEnv: Setting SERVER_PORT");
+		setEnv("SERVER_PORT", request.getSelectedServerPort());
+		Logger::debug("CgiEnv: Setting SERVER_PROTOCOL");
+		setEnv("SERVER_PROTOCOL", "HTTP/1.1");
+		Logger::debug("CgiEnv: Setting SERVER_SOFTWARE");
+		setEnv("SERVER_SOFTWARE", "webserv/1.0");
+		Logger::debug("CgiEnv: Setting GATEWAY_INTERFACE");
+		setEnv("GATEWAY_INTERFACE", "CGI/1.1");
 
-	// Script name and path info
-	std::string scriptName = CgiHandler::resolveCgiScriptPath(request.getUri(), server, location);
-	setEnv("SCRIPT_NAME", scriptName);
-	setEnv("SCRIPT_FILENAME", scriptName);
+		// Request info
+		Logger::debug("CgiEnv: Setting REQUEST_METHOD");
+		setEnv("REQUEST_METHOD", request.getMethod());
+		Logger::debug("CgiEnv: Setting QUERY_STRING");
+		setEnv("QUERY_STRING", request.getQueryString());
 
-	// Translate HTTP headers to CGI environment variables
-	const std::map<std::string, std::vector<std::string> > &headers = request.getHeaders();
-
-	for (std::map<std::string, std::vector<std::string> >::const_iterator it = headers.begin(); it != headers.end();
-		 ++it)
-	{
-		if (!it->second.empty())
+		// Client info
+		if (request.getRemoteAddress())
 		{
+			Logger::debug("CgiEnv: Setting REMOTE_ADDR");
+			setEnv("REMOTE_ADDR", request.getRemoteAddress()->getHost());
+			Logger::debug("CgiEnv: Setting REMOTE_PORT");
+			setEnv("REMOTE_PORT", request.getRemoteAddress()->getPortString());
+		}
+		Logger::debug("CgiEnv: Setting REQUEST_URI");
+		setEnv("REQUEST_URI", request.getRawUri());
+		Logger::debug("CgiEnv: Core meta variables set");
+
+		// Body meta
+		switch (request.getBodyType())
+		{
+		case HttpBody::BODY_TYPE_CHUNKED:
+		case HttpBody::BODY_TYPE_CONTENT_LENGTH:
+		{
+			setEnv("CONTENT_LENGTH", StrUtils::toString(request.getContentLength()));
+			std::vector<std::string> contentType = request.getHeader("content-type");
+			if (!contentType.empty())
+				setEnv("CONTENT_TYPE", contentType[0]);
+			break;
+		}
+		default:
+			break;
+		}
+
+		// Resolve script path
+		std::string cleanUri = StrUtils::sanitizeUriPath(request.getRawUri());
+		std::string scriptPath;
+		if (location && !location->getCgiPath().empty())
+		{
+			std::string base = location->getCgiPath();
+			std::string locPrefix = location->getPath();
+			if (!locPrefix.empty() && locPrefix[locPrefix.size() - 1] != '/')
+				locPrefix += "/";
+			std::string tail = cleanUri;
+			if (cleanUri.find(locPrefix) == 0)
+				tail = cleanUri.substr(locPrefix.size());
+			while (!tail.empty() && tail[0] == '/')
+				tail.erase(0, 1);
+			scriptPath = base + "/" + tail;
+		}
+		else if (location && !location->getRoot().empty())
+		{
+			scriptPath = location->getRoot() + cleanUri;
+		}
+		else if (server && !server->getRootPath().empty())
+		{
+			scriptPath = server->getRootPath() + cleanUri;
+		}
+		else
+		{
+			scriptPath = cleanUri;
+		}
+		setEnv("SCRIPT_NAME", cleanUri);
+		setEnv("SCRIPT_FILENAME", scriptPath);
+		Logger::debug("CgiEnv: SCRIPT_NAME=" + cleanUri + " SCRIPT_FILENAME=" + scriptPath);
+
+		// Headers
+		const std::map<std::string, std::vector<std::string> > &headers = request.getHeaders();
+		for (std::map<std::string, std::vector<std::string> >::const_iterator it = headers.begin(); it != headers.end();
+			 ++it)
+		{
+			if (it->second.empty())
+				continue;
 			std::string headerName = it->first;
-
-			// Skip authentication headers per RFC 3875 Section 4.1.18
 			if (headerName == "authorization" || headerName == "proxy-authorization")
-			{
-				continue; // Don't pass to CGI
-			}
-
-			// Skip headers already available as meta-variables
+				continue;
 			if (headerName == "content-length" || headerName == "content-type")
-			{
-				continue; // Already set as CONTENT_LENGTH/CONTENT_TYPE
-			}
-
+				continue;
 			std::string cgiHeaderName = "HTTP_" + _convertHeaderNameToCgi(headerName);
 			setEnv(cgiHeaderName, it->second[0]);
 		}
+
+		// Add minimal shell environment for CGI (PATH for interpreter resolution)
+		const char *systemPath = std::getenv("PATH");
+		if (systemPath)
+			setEnv("PATH", systemPath);
+		else
+			setEnv("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");
+
+		Logger::debug("CgiEnv: Header variables set, total env count: " + StrUtils::toString(getEnvCount()));
+	}
+	catch (const std::exception &e)
+	{
+		Logger::error(std::string("CgiEnv: Exception during transpose: ") + e.what(), __FILE__, __LINE__,
+					  __PRETTY_FUNCTION__);
+		throw; // rethrow so caller can handle (will surface as 500)
 	}
 }
 
-std::string CGIenv::_convertHeaderNameToCgi(const std::string &headerName) const
+std::string CgiEnv::_convertHeaderNameToCgi(const std::string &headerName) const
 {
 	std::string result;
 	result.reserve(headerName.length());
-
 	for (size_t i = 0; i < headerName.length(); ++i)
 	{
 		char c = headerName[i];
 		if (c == '-')
-		{
 			result += '_';
-		}
 		else if (c >= 'a' && c <= 'z')
-		{
-			result += (c - 'a' + 'A'); // Convert to uppercase
-		}
+			result += (c - 'a' + 'A');
 		else if (c >= 'A' && c <= 'Z')
-		{
 			result += c;
-		}
 		else if (c >= '0' && c <= '9')
-		{
 			result += c;
-		}
 	}
-
 	return result;
 }
 
 // TODO: refactor not necessary to allocate to heap
-char **CGIenv::getEnvArray() const
+char **CgiEnv::getEnvArray() const
 {
-	// Allocate array of char* pointers
 	char **envArray = new char *[_envVariables.size() + 1];
 	size_t index = 0;
-
 	for (std::map<std::string, std::string>::const_iterator it = _envVariables.begin(); it != _envVariables.end();
 		 ++it, ++index)
 	{
-		std::string envString = it->first + "=" + it->second;
+		const std::string &envString = it->first + "=" + it->second;
 		envArray[index] = new char[envString.length() + 1];
 		std::strcpy(envArray[index], envString.c_str());
 	}
-
-	envArray[index] = NULL; // Null-terminate the array
+	envArray[index] = NULL;
 	return envArray;
 }
 
-void CGIenv::freeEnvArray(char **envArray) const
+void CgiEnv::freeEnvArray(char **envArray) const
 {
 	if (!envArray)
 		return;
@@ -211,12 +245,12 @@ void CGIenv::freeEnvArray(char **envArray) const
 	delete[] envArray;
 }
 
-size_t CGIenv::getEnvCount() const
+size_t CgiEnv::getEnvCount() const
 {
 	return _envVariables.size();
 }
 
-bool CGIenv::hasEnv(const std::string &key) const
+bool CgiEnv::hasEnv(const std::string &key) const
 {
 	return _envVariables.find(key) != _envVariables.end();
 }
