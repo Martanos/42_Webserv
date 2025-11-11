@@ -107,8 +107,13 @@ void CGIenv::_transposeData(const HttpRequest &request, const Server *server, co
 	{
 	case HttpBody::BODY_TYPE_CHUNKED:
 	case HttpBody::BODY_TYPE_CONTENT_LENGTH:
+	{
 		setEnv("CONTENT_LENGTH", StrUtils::toString(request.getContentLength()));
+		std::vector<std::string> contentType = request.getHeader("content-type");
+		if (!contentType.empty())
+			setEnv("CONTENT_TYPE", contentType[0]);
 		break;
+	}
 	default:
 		break;
 	}
