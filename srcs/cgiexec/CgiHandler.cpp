@@ -108,44 +108,6 @@ int CgiHandler::getTimeout() const
 	return _timeout;
 }
 
-std::string CgiHandler::resolveCgiScriptPath(const std::string &uri, const Server *server, const Location *location)
-{
-	// Get the location path and root
-	std::string locationPath = location->getPath();
-	std::string root = location->getRoot();
-	if (root.empty())
-		root = server->getRootPath();
-
-	// Remove location path from URI to get the script relative path
-	std::string scriptRelativePath;
-	if (uri.length() > locationPath.length() && uri.substr(0, locationPath.length()) == locationPath)
-	{
-		scriptRelativePath = uri.substr(locationPath.length());
-
-		// Remove leading slash if present
-		if (!scriptRelativePath.empty() && scriptRelativePath[0] == '/')
-		{
-			scriptRelativePath = scriptRelativePath.substr(1);
-		}
-	}
-
-	// If no script path specified, look for default script
-	if (scriptRelativePath.empty())
-	{
-		scriptRelativePath = "index.cgi"; // Default CGI script name
-	}
-
-	// Construct full script path
-	std::string fullPath = root;
-	if (!fullPath.empty() && fullPath[fullPath.length() - 1] != '/')
-	{
-		fullPath += '/';
-	}
-	fullPath += scriptRelativePath;
-
-	return fullPath;
-}
-
 /*
 ** --------------------------------- PRIVATE ----------------------------------
 */
@@ -153,7 +115,7 @@ std::string CgiHandler::resolveCgiScriptPath(const std::string &uri, const Serve
 CgiHandler::ExecutionResult CgiHandler::setupEnvironment(const HttpRequest &request, const Server *server,
 														 const Location *location, const std::string &scriptPath)
 {
-	_cgiEnv.copyDataFromServer(server, location);
+	_cgiEnv._transposeData(request, server, location);
 	_cgiEnv.setupFromRequest(request, server, location, scriptPath);
 	return SUCCESS;
 }

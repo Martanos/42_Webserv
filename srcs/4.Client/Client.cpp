@@ -103,7 +103,6 @@ Client &Client::operator=(const Client &rhs)
 
 void Client::handleEvent(epoll_event event)
 {
-
 	if (event.events & EPOLLIN)
 		_handleBuffer();
 	if (event.events & EPOLLOUT)

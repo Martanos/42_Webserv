@@ -15,8 +15,9 @@ CGIenv::CGIenv()
 {
 }
 
-CGIenv::CGIenv(const CGIenv &src) : _envVariables(src._envVariables)
+CGIenv::CGIenv(const CGIenv &src)
 {
+	*this = src;
 }
 
 /*
@@ -40,6 +41,15 @@ CGIenv &CGIenv::operator=(const CGIenv &rhs)
 	return *this;
 }
 
+std::ostream &operator<<(std::ostream &os, const CGIenv &env)
+{
+	for (std::map<std::string, std::string>::const_iterator it = env.getEnvVariables().begin();
+		 it != env.getEnvVariables().end(); ++it)
+	{
+		os << it->first << "=" << it->second << std::endl;
+	}
+	return os;
+}
 /*
 ** --------------------------------- METHODS ----------------------------------
 */
@@ -47,6 +57,11 @@ CGIenv &CGIenv::operator=(const CGIenv &rhs)
 void CGIenv::setEnv(const std::string &key, const std::string &value)
 {
 	_envVariables.insert(std::make_pair(key, value));
+}
+
+const std::map<std::string, std::string> &CGIenv::getEnvVariables() const
+{
+	return _envVariables;
 }
 
 std::string CGIenv::getEnv(const std::string &key) const
@@ -97,7 +112,7 @@ void CGIenv::_transposeData(const HttpRequest &request, const Server *server, co
 		if (!it->second.empty())
 		{
 			// Convert header name to CGI format: HTTP_HEADER_NAME
-			std::string cgiHeaderName = "HTTP_" + convertHeaderNameToCgi(it->first);
+			std::string cgiHeaderName = "HTTP_" + _convertHeaderNameToCgi(it->first);
 			setEnv(cgiHeaderName, it->second[0]); // Use first value if multiple
 		}
 	}
@@ -146,29 +161,9 @@ void CGIenv::setupFromRequest(const HttpRequest &request, const Server *server, 
 	{
 		setEnv("CONTENT_LENGTH", "0");
 	}
-
-	// Convert HTTP headers to CGI environment variables
-	setupHttpHeaders(request);
-
-	// Derive SERVER_NAME and SERVER_PORT from Host header when provided
-	std::vector<std::string> hostHeader = request.getHeader("host");
-	if (!hostHeader.empty())
-	{
-		std::string hostValue = hostHeader[0];
-		size_t colonPos = hostValue.find(':');
-		if (colonPos == std::string::npos)
-		{
-			setEnv("SERVER_NAME", hostValue);
-		}
-		else
-		{
-			setEnv("SERVER_NAME", hostValue.substr(0, colonPos));
-			setEnv("SERVER_PORT", hostValue.substr(colonPos + 1));
-		}
-	}
 }
 
-std::string CGIenv::convertHeaderNameToCgi(const std::string &headerName) const
+std::string CGIenv::_convertHeaderNameToCgi(const std::string &headerName) const
 {
 	std::string result;
 	result.reserve(headerName.length());
@@ -192,12 +187,14 @@ std::string CGIenv::convertHeaderNameToCgi(const std::string &headerName) const
 		{
 			result += c;
 		}
-		// Skip other characters
+		else
+			result += '\0';
 	}
 
 	return result;
 }
 
+// TODO: refactor not necessary to allocate to heap
 char **CGIenv::getEnvArray() const
 {
 	// Allocate array of char* pointers

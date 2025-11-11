@@ -13,8 +13,8 @@ class CGIenv
 {
 private:
 	std::map<std::string, std::string> _envVariables;
-
 	void _transposeData(const HttpRequest &request, const Server *server, const Location *location);
+	std::string _convertHeaderNameToCgi(const std::string &headerName) const;
 
 public:
 	CGIenv();
@@ -25,13 +25,10 @@ public:
 
 	void setEnv(const std::string &key, const std::string &value);
 	std::string getEnv(const std::string &key) const;
+	const std::map<std::string, std::string> &getEnvVariables() const;
 	void printEnv() const;
 
 	// New methods for CGI execution
-	void setupFromRequest(const HttpRequest &request, const Server *server, const Location *location,
-						  const std::string &scriptPath);
-	void setupHttpHeaders(const HttpRequest &request);
-	std::string convertHeaderNameToCgi(const std::string &headerName) const;
 
 	// Environment array management for execve
 	char **getEnvArray() const;
@@ -41,5 +38,7 @@ public:
 	size_t getEnvCount() const;
 	bool hasEnv(const std::string &key) const;
 };
+
+std::ostream &operator<<(std::ostream &os, const CGIenv &env);
 
 #endif
