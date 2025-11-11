@@ -107,7 +107,7 @@ void CGIenv::_transposeData(const HttpRequest &request, const Server *server, co
 	{
 	case HttpBody::BODY_TYPE_CHUNKED:
 	case HttpBody::BODY_TYPE_CONTENT_LENGTH:
-		setEnv("CONTENT_TYPE", StrUtils::toString(request.getContentLength()));
+		setEnv("CONTENT_LENGTH", StrUtils::toString(request.getContentLength()));
 		break;
 	default:
 		break;
