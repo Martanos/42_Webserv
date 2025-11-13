@@ -77,9 +77,9 @@ public:
 	std::string getRawBody() const;
 	size_t getBodySize() const;
 	size_t getRawBodySize() const;
-	bool getIsUsingTempFile();
-	std::string getTempFilePath();
-	FileDescriptor &getTempFd();
+	bool getIsUsingTempFile() const;
+	std::string getTempFilePath() const;
+	const FileDescriptor &getTempFd() const;
 
 	// Mutators
 	void setBodyState(BodyState bodyState);

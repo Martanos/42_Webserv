@@ -24,31 +24,31 @@ public:
 			rule1.magic = "\\x89PNG\\r\\n\\x1a\\n";
 			rule1.mimeType = "image/png";
 			rules.push_back(rule1);
-			
+
 			MagicRule rule2;
 			rule2.offset = 0;
 			rule2.magic = "%PDF-";
 			rule2.mimeType = "application/pdf";
 			rules.push_back(rule2);
-			
+
 			MagicRule rule3;
 			rule3.offset = 0;
 			rule3.magic = "PK\\x03\\x04";
 			rule3.mimeType = "application/zip";
 			rules.push_back(rule3);
-			
+
 			MagicRule rule4;
 			rule4.offset = 0;
 			rule4.magic = "\\xFF\\xD8\\xFF";
 			rule4.mimeType = "image/jpeg";
 			rules.push_back(rule4);
-			
+
 			MagicRule rule5;
 			rule5.offset = 0;
 			rule5.magic = "GIF87a";
 			rule5.mimeType = "image/gif";
 			rules.push_back(rule5);
-			
+
 			MagicRule rule6;
 			rule6.offset = 0;
 			rule6.magic = "GIF89a";

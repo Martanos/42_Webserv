@@ -12,6 +12,14 @@
 
 HttpURI::HttpURI()
 {
+	_uriState = URI_PARSING;
+	_uriSize = 0;
+	_method.clear();
+	_URI.clear();
+	_rawURI.clear();
+	_version.clear();
+	_queryParameters.clear();
+	_queryString.clear();
 }
 
 HttpURI::HttpURI(const HttpURI &other)
@@ -38,8 +46,10 @@ HttpURI &HttpURI::operator=(const HttpURI &other)
 		_uriState = other._uriState;
 		_method = other._method;
 		_URI = other._URI;
+		_rawURI = other._rawURI;
 		_version = other._version;
 		_queryParameters = other._queryParameters;
+		_queryString = other._queryString;
 		_uriSize = other._uriSize;
 	}
 	return *this;
@@ -47,17 +57,16 @@ HttpURI &HttpURI::operator=(const HttpURI &other)
 /*
 ** --------------------------------- METHODS ----------------------------------
 */
-
 void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 {
 	std::vector<char>::iterator it = std::search(buffer.begin(), buffer.end(), HTTP::CRLF, HTTP::CRLF + 2);
 	if (it == buffer.end())
 	{
 		// If it can't be found check that the buffer has not currently exceeded the size limit of a header
-		if (buffer.size() > HTTP::MAX_URI_LINE_SIZE)
+		if (buffer.size() > HTTP::DEFAULT_CLIENT_MAX_REQUEST_LINE_SIZE)
 		{
-			response.setStatus(413, "Request URI Too Large");
-			Logger::log(Logger::ERROR, "URI size limit exceeded");
+			response.setResponseDefaultBody(413, "Request URI Too Large", NULL, NULL, HttpResponse::FATAL_ERROR);
+			Logger::debug("URI size limit exceeded", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			_uriState = URI_PARSING_ERROR;
 		}
 		else
@@ -67,10 +76,10 @@ void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 
 	// Extract request line up to the CLRF
 	std::string requestLine(buffer.begin(), it);
-	if (requestLine.size() + 2 > HTTP::MAX_URI_LINE_SIZE)
+	if (requestLine.size() + 2 > HTTP::DEFAULT_CLIENT_MAX_REQUEST_LINE_SIZE)
 	{
-		response.setStatus(413, "Request URI Too Large");
-		Logger::log(Logger::ERROR, "URI size limit exceeded");
+		response.setResponseDefaultBody(413, "Request URI Too Large", NULL, NULL, HttpResponse::FATAL_ERROR);
+		Logger::debug("URI size limit exceeded", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		_uriState = URI_PARSING_ERROR;
 		return;
 	}
@@ -83,44 +92,46 @@ void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 
 	if (!(stream >> _method >> _URI >> _version))
 	{
-		Logger::log(Logger::ERROR, "Invalid request line: " + requestLine);
+		Logger::debug("Invalid request line: " + requestLine, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		_uriState = URI_PARSING_ERROR;
-		response.setStatus(400, "Bad Request");
+		response.setResponseDefaultBody(400, "Invalid request line: " + requestLine, NULL, NULL,
+										HttpResponse::FATAL_ERROR);
 		return;
 	}
+
+	_rawURI = _URI;
 
 	// Validate URI
 	if (_URI.empty() || _URI[0] != '/')
 	{
-		Logger::log(Logger::ERROR, "Invalid URI: " + _URI);
+		Logger::debug("Invalid URI: " + _URI, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		_uriState = URI_PARSING_ERROR;
-		response.setStatus(400, "Bad Request");
+		response.setResponseDefaultBody(400, "Invalid URI: " + _URI, NULL, NULL, HttpResponse::FATAL_ERROR);
 		return;
 	}
 
 	// Validate version
 	if (_version != "HTTP/1.1")
 	{
-		Logger::log(Logger::ERROR, "Unsupported HTTP version: " + _version);
+		Logger::debug("Unsupported HTTP version: " + _version, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		_uriState = URI_PARSING_ERROR;
-		response.setStatus(505, "HTTP Version Not Supported");
+		response.setResponseDefaultBody(505, "HTTP Version Not Supported: " + _version, NULL, NULL,
+										HttpResponse::FATAL_ERROR);
 		return;
 	}
 
 	_uriState = URI_PARSING_COMPLETE;
 }
 
-void HttpURI::sanitizeURI(const Server *server, const Location *location)
+void HttpURI::sanitizeURI(const Server *server, const Location *location, HttpResponse &response)
 {
 	std::string path;
-	std::string queryParameters;
-
 	// 1. Seperate the URI into the path and the query parameters
 	size_t queryPos = _URI.find('?');
 	if (queryPos != std::string::npos)
 	{
 		path = _URI.substr(0, queryPos);
-		queryParameters = _URI.substr(queryPos + 1);
+		_queryString = _URI.substr(queryPos + 1);
 	}
 	else
 	{
@@ -129,7 +140,7 @@ void HttpURI::sanitizeURI(const Server *server, const Location *location)
 
 	// 2. Seperate query parameters into tokens
 	std::string token;
-	std::istringstream stream(queryParameters);
+	std::istringstream stream(_queryString);
 	while (getline(stream, token, '&'))
 	{
 		// Seperate into key and value
@@ -156,22 +167,62 @@ void HttpURI::sanitizeURI(const Server *server, const Location *location)
 		root = server->getRootPath();
 
 	std::string fullPath = root;
-	if (!root.empty() && root[root.size() - 1] != '/')
+	if (!root.empty() && root[root.size() - 1] != '/' && path[0] != '/')
 		fullPath += "/";
 	fullPath += path;
 
 	char resolvedPath[PATH_MAX];
 	if (realpath(fullPath.c_str(), resolvedPath) == NULL)
 	{
+		size_t lastSlash = fullPath.find_last_of('/');
+		std::string directoryPath;
+		if (lastSlash != std::string::npos)
+		{
+			directoryPath = fullPath.substr(0, lastSlash);
+		}
+		else
+		{
+			directoryPath = fullPath;
+		}
+
+		if (directoryPath.empty())
+			directoryPath = root;
+
+		if (!directoryPath.empty() && realpath(directoryPath.c_str(), resolvedPath) != NULL)
+		{
+			std::string resolvedDir(resolvedPath);
+			if (resolvedDir.compare(0, root.size(), root) != 0)
+			{
+				_uriState = URI_PARSING_ERROR;
+				Logger::debug("Resolved directory escapes root: " + resolvedDir, __FILE__, __LINE__,
+							  __PRETTY_FUNCTION__);
+				response.setResponseDefaultBody(403, "Forbidden", NULL, NULL, HttpResponse::FATAL_ERROR);
+				return;
+			}
+
+			std::string remainder = (lastSlash == std::string::npos) ? std::string() : fullPath.substr(lastSlash + 1);
+			if (!remainder.empty())
+			{
+				if (!resolvedDir.empty() && resolvedDir[resolvedDir.size() - 1] != '/')
+					resolvedDir += "/";
+				resolvedDir += remainder;
+			}
+			_URI = resolvedDir;
+			return;
+		}
+
 		_uriState = URI_PARSING_ERROR;
-		Logger::log(Logger::ERROR, "Cannot resolve path: " + fullPath);
+		Logger::debug("Cannot resolve path: " + fullPath, __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		response.setResponseDefaultBody(404, "Not Found", NULL, NULL, HttpResponse::FATAL_ERROR);
 		return;
 	}
 
 	if (std::string(resolvedPath).compare(0, root.size(), root) != 0)
 	{
 		_uriState = URI_PARSING_ERROR;
-		Logger::log(Logger::ERROR, "Resolved path escapes root: " + std::string(resolvedPath));
+		Logger::debug("Resolved path escapes root: " + std::string(resolvedPath), __FILE__, __LINE__,
+					  __PRETTY_FUNCTION__);
+		response.setResponseDefaultBody(403, "Forbidden", NULL, NULL, HttpResponse::FATAL_ERROR);
 		return;
 	}
 
@@ -213,6 +264,11 @@ const std::map<std::string, std::vector<std::string> > &HttpURI::getQueryParamet
 	return _queryParameters;
 }
 
+const std::string &HttpURI::getQueryString() const
+{
+	return _queryString;
+}
+
 /*
 ** --------------------------------- METHODS ----------------------------------
 */
@@ -220,8 +276,15 @@ const std::map<std::string, std::vector<std::string> > &HttpURI::getQueryParamet
 void HttpURI::reset()
 {
 	_uriState = URI_PARSING;
-	_method = "";
-	_URI = "";
-	_version = "";
+	_method.clear();
+	_URI.clear();
+	_rawURI.clear();
+	_version.clear();
 	_queryParameters.clear();
+	_queryString.clear();
+}
+
+const std::string &HttpURI::getRawURI() const
+{
+	return _rawURI;
 }

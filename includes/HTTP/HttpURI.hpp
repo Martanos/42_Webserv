@@ -30,9 +30,11 @@ private:
 	// Request line
 	std::string _method;
 	std::string _URI;
+	std::string _rawURI;
 	std::string _version;
 
 	// Query parameters
+	std::string _queryString;
 	std::map<std::string, std::vector<std::string> > _queryParameters;
 
 public:
@@ -44,14 +46,16 @@ public:
 
 	// Main parsing method
 	void parseBuffer(std::vector<char> &buffer, HttpResponse &response);
-	void sanitizeURI(const Server *server, const Location *location);
+	void sanitizeURI(const Server *server, const Location *location, HttpResponse &response);
 
 	// Accessors
 	const std::string &getURI() const;
+	const std::string &getRawURI() const;
 	const std::string &getVersion() const;
 	const std::string &getMethod() const;
 	size_t getURIsize() const;
 	const std::map<std::string, std::vector<std::string> > &getQueryParameters() const;
+	const std::string &getQueryString() const;
 	URIState getURIState() const;
 
 	// Methods

@@ -1,6 +1,7 @@
 #ifndef FILEDESCRIPTOR_HPP
 #define FILEDESCRIPTOR_HPP
 
+#include "SocketAddress.hpp"
 #include <cstring>
 #include <fcntl.h>
 #include <iostream>
@@ -10,7 +11,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
-
 // Class wrapper for file descriptors
 class FileDescriptor
 {
@@ -19,7 +19,7 @@ private:
 	{
 		int fd;
 		int count;
-		Control(int fd) : fd(fd), count(1){};
+		Control(int fd) : fd(fd), count(1) {};
 	};
 	Control *_ctrl;
 
@@ -49,12 +49,12 @@ public:
 	bool isSymbolicLink() const;
 
 	// Socket operations
-	void setNonBlocking();
-	void setBlocking();
-	void setCloseOnExec();
-	void unsetCloseOnExec();
-	void setReuseAddr();
-	void unsetReuseAddr();
+	bool setNonBlocking();
+	bool setBlocking();
+	bool setCloseOnExec();
+	bool unsetCloseOnExec();
+	bool setReuseAddr();
+	bool unsetReuseAddr();
 
 	// Comparator overloads
 	bool operator==(int rhs) const;
@@ -90,7 +90,7 @@ public:
 
 	// Static factory methods for all fd-creating functions
 	static FileDescriptor createSocket(int domain, int type, int protocol);
-	static FileDescriptor createFromAccept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+	static FileDescriptor createFromAccept(int sockfd, SocketAddress &remoteAddress);
 	static FileDescriptor createFromOpen(const char *pathname, int flags);
 	static FileDescriptor createFromOpen(const char *pathname, int flags, mode_t mode);
 	static FileDescriptor createFromDup(int oldfd);

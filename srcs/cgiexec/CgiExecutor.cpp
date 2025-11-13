@@ -1,4 +1,5 @@
 #include "../../includes/CGI/CgiExecutor.hpp"
+#include "../../includes/Global/Logger.hpp"
 #include "../../includes/Global/PerformanceMonitor.hpp"
 #include "../../includes/Global/StrUtils.hpp"
 #include <cstring>
@@ -114,16 +115,16 @@ CgiExecutor::ExecutionResult CgiExecutor::execute(const std::string &scriptPath,
 	}
 
 	// Setup pipes for communication
-	Logger::debug("CgiExecutor: Setting up pipes for communication");
+	Logger::debug("CgiExecutor: Setting up pipes for communication", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	ExecutionResult result = setupPipes();
 	if (result != SUCCESS)
 	{
-		Logger::error("CgiExecutor: Failed to setup pipes");
+		Logger::error("CgiExecutor: Failed to setup pipes", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		return result;
 	}
 
 	// Fork and execute the CGI script
-	Logger::debug("CgiExecutor: Forking and executing CGI script");
+	Logger::debug("CgiExecutor: Forking and executing CGI script", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	result = forkAndExec(scriptPath, interpreter, envp);
 	if (result != SUCCESS)
 	{
@@ -133,11 +134,11 @@ CgiExecutor::ExecutionResult CgiExecutor::execute(const std::string &scriptPath,
 	}
 
 	// Communicate with the child process
-	Logger::debug("CgiExecutor: Communicating with child process");
+	Logger::debug("CgiExecutor: Communicating with child process", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	result = communicateWithChild(inputData, outputData, errorData);
 
 	// Wait for child to complete
-	Logger::debug("CgiExecutor: Waiting for child process to complete");
+	Logger::debug("CgiExecutor: Waiting for child process to complete", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	ExecutionResult waitResult = waitForChild();
 	if (result == SUCCESS && waitResult != SUCCESS)
 	{
@@ -145,7 +146,8 @@ CgiExecutor::ExecutionResult CgiExecutor::execute(const std::string &scriptPath,
 	}
 
 	closePipes();
-	Logger::info("CgiExecutor: CGI execution completed with result: " + StrUtils::toString(result));
+	Logger::info("CgiExecutor: CGI execution completed with result: " + StrUtils::toString(result), __FILE__, __LINE__,
+				 __PRETTY_FUNCTION__);
 	return result;
 }
 
@@ -256,26 +258,43 @@ CgiExecutor::ExecutionResult CgiExecutor::forkAndExec(const std::string &scriptP
 
 		closePipes();
 
-		// Prepare arguments for execve
-		std::vector<char *> args = prepareExecArgs(scriptPath, interpreter);
+		// Prepare arguments - must be done in child to keep strings alive
+		std::string shebangInterpreter;
+		if (interpreter.empty())
+		{
+			shebangInterpreter = getInterpreterFromShebang(scriptPath);
+		}
 
-		// Execute the script
+		char *args[3];
 		if (!interpreter.empty())
 		{
-			execve(interpreter.c_str(), &args[0], envp);
+			// Use provided interpreter
+			args[0] = const_cast<char *>(interpreter.c_str());
+			args[1] = const_cast<char *>(scriptPath.c_str());
+			args[2] = NULL;
+			execve(interpreter.c_str(), args, envp);
 		}
-		else if (!args.empty() && args[0] != const_cast<char *>(scriptPath.c_str()))
+		else if (!shebangInterpreter.empty())
 		{
-			// Has shebang interpreter
-			execve(args[0], &args[0], envp);
+			// Use shebang interpreter
+			args[0] = const_cast<char *>(shebangInterpreter.c_str());
+			args[1] = const_cast<char *>(scriptPath.c_str());
+			args[2] = NULL;
+			execve(shebangInterpreter.c_str(), args, envp);
 		}
 		else
 		{
 			// Direct execution
-			execve(scriptPath.c_str(), &args[0], envp);
+			args[0] = const_cast<char *>(scriptPath.c_str());
+			args[1] = NULL;
+			execve(scriptPath.c_str(), args, envp);
 		}
 
-		// If we reach here, execve failed
+		// If we reach here, execve failed - write to stderr before exit
+		const char *errMsg = "CGI execve failed: ";
+		write(STDERR_FILENO, errMsg, strlen(errMsg));
+		write(STDERR_FILENO, strerror(errno), strlen(strerror(errno)));
+		write(STDERR_FILENO, "\n", 1);
 		_exit(1);
 	}
 
@@ -481,36 +500,6 @@ std::string CgiExecutor::getInterpreterFromShebang(const std::string &scriptPath
 	}
 
 	return interpreter.substr(start, end - start);
-}
-
-std::vector<char *> CgiExecutor::prepareExecArgs(const std::string &scriptPath, const std::string &interpreter) const
-{
-	std::vector<char *> args;
-
-	if (!interpreter.empty())
-	{
-		// Use interpreter
-		args.push_back(const_cast<char *>(interpreter.c_str()));
-		args.push_back(const_cast<char *>(scriptPath.c_str()));
-	}
-	else
-	{
-		// Try to get interpreter from shebang
-		std::string shebangInterpreter = getInterpreterFromShebang(scriptPath);
-		if (!shebangInterpreter.empty())
-		{
-			args.push_back(const_cast<char *>(shebangInterpreter.c_str()));
-			args.push_back(const_cast<char *>(scriptPath.c_str()));
-		}
-		else
-		{
-			// Execute script directly
-			args.push_back(const_cast<char *>(scriptPath.c_str()));
-		}
-	}
-
-	args.push_back(NULL);
-	return args;
 }
 
 /* ************************************************************************** */

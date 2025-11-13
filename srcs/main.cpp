@@ -7,8 +7,8 @@
 #include "../includes/Core/Server.hpp"
 #include "../includes/Core/ServerManager.hpp"
 #include "../includes/Global/Logger.hpp"
+#include "../includes/Global/MimeTypeResolver.hpp"
 #include "../includes/Global/PerformanceMonitor.hpp"
-#include "../includes/Global/StrUtils.hpp"
 
 int main(int argc, char **argv)
 {
@@ -39,7 +39,8 @@ int main(int argc, char **argv)
 		AST::ASTNode cfg = parser.parse();
 		if (cfg.children.empty())
 			throw std::runtime_error("No server blocks found in config file");
-		parser.printAST(cfg); // Temporary for debugging
+		// TODO: convert this into a debug log
+		parser.printAST(cfg);
 
 		// 2. Translate the AST into server objects
 		ConfigTranslator translator(cfg);
@@ -53,8 +54,7 @@ int main(int argc, char **argv)
 		}
 		// 3. Build server map
 		ServerMap serverMap(servers);
-		// serverMap.printServerMap(); // Temporarily commented out to debug segfault
-
+		// Print occurs in ServerManager::run(), avoid duplicate dump here
 		// 4. Create manager instance with server map
 		ServerManager serverManager(serverMap);
 
@@ -71,12 +71,20 @@ int main(int argc, char **argv)
 		// Log performance report even on failure
 		perfMonitor.logPerformanceSummary();
 
+		// Cleanup even on failure
+		PerformanceMonitor::destroyInstance();
+		MimeTypeResolver::cleanup();
+
 		Logger::closeSession();
 		return 1;
 	}
 
 	// Cleanup performance monitoring
 	PerformanceMonitor::destroyInstance();
+
+	// Cleanup MIME type resolver
+	MimeTypeResolver::cleanup();
+
 	Logger::closeSession();
 	return 0;
 }

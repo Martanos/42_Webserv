@@ -1,17 +1,12 @@
 #ifndef FILEMANAGER_HPP
 #define FILEMANAGER_HPP
 
-#include "../../includes/Global/Logger.hpp"
 #include "FileDescriptor.hpp"
-#include <algorithm>
 #include <cerrno>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
 #include <fcntl.h>
-#include <fstream>
-#include <iostream>
-#include <sstream>
 #include <string>
 #include <sys/stat.h>
 #include <sys/types.h>

@@ -4,7 +4,9 @@
 #include <algorithm>
 #include <cctype>
 #include <cstddef>
+#include <cstdio>
 #include <cstdlib>
+#include <iostream>
 #include <sstream>
 #include <string.h>
 #include <string>
@@ -97,6 +99,16 @@ inline std::vector<std::string> splitString(const std::string &str, char delimit
 // Check if character is a control character (0x00-0x1F or 0x7F)
 inline bool isControlCharacter(unsigned char c)
 {
+	// Examples of control characters:
+	// 0x00 - NUL
+	// 0x07 - BEL
+	// 0x08 - BS
+	// 0x09 - TAB
+	// 0x0A - LF
+	// 0x0B - VT
+	// 0x0C - FF
+	// 0x0D - CR
+	// 0x7F - DEL
 	return (c < 0x20 || c == 0x7F);
 }
 

@@ -1,12 +1,10 @@
 #include "../../includes/Core/Client.hpp"
-#include "../../includes/Core/GetHandler.hpp"
 #include "../../includes/Core/MethodHandlerFactory.hpp"
 #include "../../includes/Global/Logger.hpp"
-#include "../../includes/Global/StrUtils.hpp"
+#include "../../includes/HTTP/HTTP.hpp"
 #include "../../includes/HTTP/HttpRequest.hpp"
 #include "../../includes/HTTP/HttpResponse.hpp"
 #include <cstdio>
-#include <sstream>
 #include <sys/epoll.h>
 #include <sys/resource.h>
 #include <sys/socket.h>
@@ -22,9 +20,9 @@
 
 Client::Client()
 {
+	_keepAlive = HTTP::DEFAULT_KEEP_ALIVE;
 	_clientFd = FileDescriptor();
-	_localAddr = SocketAddress();
-	_remoteAddr = SocketAddress();
+	_remoteAddress = SocketAddress();
 	_request = HttpRequest();
 	_response = HttpResponse();
 	_responseBuffer = std::deque<HttpResponse>();
@@ -37,7 +35,7 @@ Client::Client()
 	}
 	_receiveBuffer = std::vector<char>(static_cast<size_t>(pageSize)); // Is about 4KB depending on the system
 	_potentialServers = NULL;
-	_state = CLIENT_WAITING_FOR_REQUEST;
+	_state = WAITING_FOR_EPOLLIN;
 	_lastActivity = time(NULL);
 }
 
@@ -46,12 +44,13 @@ Client::Client(const Client &src)
 	*this = src;
 }
 
-Client::Client(FileDescriptor socketFd, SocketAddress clientAddr, SocketAddress remoteAddr)
+Client::Client(FileDescriptor socketFd, SocketAddress remoteAddress)
 {
+	_keepAlive = HTTP::DEFAULT_KEEP_ALIVE;
 	_clientFd = socketFd;
-	_localAddr = clientAddr;
-	_remoteAddr = remoteAddr;
+	_remoteAddress = remoteAddress;
 	_request = HttpRequest();
+	_request.setRemoteAddress(&_remoteAddress);
 	_response = HttpResponse();
 	_responseBuffer = std::deque<HttpResponse>();
 	long pageSize = sysconf(_SC_PAGESIZE);
@@ -62,7 +61,7 @@ Client::Client(FileDescriptor socketFd, SocketAddress clientAddr, SocketAddress 
 	}
 	_receiveBuffer = std::vector<char>(static_cast<size_t>(pageSize));
 	_potentialServers = NULL;
-	_state = CLIENT_WAITING_FOR_REQUEST;
+	_state = WAITING_FOR_EPOLLIN;
 	_lastActivity = time(NULL);
 }
 
@@ -83,9 +82,10 @@ Client &Client::operator=(const Client &rhs)
 	if (this != &rhs)
 	{
 		_clientFd = rhs._clientFd;
-		_localAddr = rhs._localAddr;
-		_remoteAddr = rhs._remoteAddr;
+		_remoteAddress = rhs._remoteAddress;
 		_request = rhs._request;
+		// Rebind HttpRequest's remote address pointer to this instance's _remoteAddress
+		_request.setRemoteAddress(&_remoteAddress);
 		_response = rhs._response;
 		_responseBuffer = rhs._responseBuffer;
 		_receiveBuffer = rhs._receiveBuffer;
@@ -105,185 +105,225 @@ Client &Client::operator=(const Client &rhs)
 void Client::handleEvent(epoll_event event)
 {
 	if (event.events & EPOLLIN)
-	{
 		_handleBuffer();
-	}
-	else if (event.events & EPOLLOUT)
-	{
+	if (event.events & EPOLLOUT)
 		_handleResponseBuffer();
-	}
-	else if (event.events & (EPOLLERR | EPOLLHUP))
+	if (event.events & EPOLLERR)
 	{
-		_state = CLIENT_DISCONNECTED;
+		Logger::error("Client: Error event occurred for client: " + _remoteAddress.getHostString() + ":" +
+						  _remoteAddress.getPortString(),
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		_state = DISCONNECTED;
 	}
+	if (event.events & EPOLLHUP)
+	{
+		Logger::error("Client: Hang-up event occurred for client: " + _remoteAddress.getHostString() + ":" +
+						  _remoteAddress.getPortString(),
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		_state = DISCONNECTED;
+	}
+	updateActivity(); // base last activity time off of when event handled
 }
 
 void Client::_handleBuffer()
 {
-	Logger::debug("Client: Reading from socket fd: " + StrUtils::toString(_clientFd.getFd()));
-	ssize_t bytesRead = recv(_clientFd.getFd(), &_receiveBuffer[0], _receiveBuffer.size(), 0);
-	Logger::debug("Client: Read " + StrUtils::toString(bytesRead) + " bytes");
-	
-	if (bytesRead <= 0)
+	while (true)
 	{
-		Logger::debug("Client: Connection closed or error, disconnecting");
-		_state = CLIENT_DISCONNECTED;
-		return;
+		ssize_t bytesRead = recv(_clientFd.getFd(), &_receiveBuffer[0], _receiveBuffer.size(), 0);
+		if (bytesRead > 0)
+		{
+			_holdingBuffer.insert(_holdingBuffer.end(), _receiveBuffer.begin(), _receiveBuffer.begin() + bytesRead);
+		}
+		else if (bytesRead == 0)
+		{
+			Logger::warning("Client: " + _remoteAddress.getHostString() + ":" + _remoteAddress.getPortString() +
+								" disconnected",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			_state = DISCONNECTED;
+			return;
+		}
+		else // No idea if EGAIN or something else due to project restrictions just have to assume its EGAIN and process
+			 // as normal
+		{
+			break;
+		}
 	}
-	
-	_holdingBuffer.insert(_holdingBuffer.end(), _receiveBuffer.begin(), _receiveBuffer.begin() + bytesRead);
-	Logger::debug("Client: Total buffer size: " + StrUtils::toString(_holdingBuffer.size()));
-	
-	// Debug: Print the raw request
-	std::string rawRequest(_holdingBuffer.begin(), _holdingBuffer.end());
-	Logger::debug("Client: Raw request: " + rawRequest);
-	
+	// Parse the request
 	_handleRequest();
 }
 
 void Client::_handleRequest()
 {
-	Logger::debug("Client: Handling request, buffer size: " + StrUtils::toString(_holdingBuffer.size()));
-	
-	// Set the server for this request before parsing
-	if (_potentialServers && !_potentialServers->empty())
+	while (!_holdingBuffer.empty())
 	{
-		Logger::debug("Client: Setting server from potential servers, count: " + StrUtils::toString(_potentialServers->size()));
-		Server *serverPtr = const_cast<Server*>(&_potentialServers->front());
-		std::stringstream ss;
-		ss << "Client: Server pointer: " << serverPtr;
-		Logger::debug(ss.str());
-		_request.setServer(serverPtr);
-	}
-	else
-	{
-		_response.setStatus(500, "Internal Server Error");
-		_response.setBody(NULL, NULL);
-		_response.setHeader(Header("Content-Type: text/html"));
-		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
-		_responseBuffer.push_back(_response);
-		_state = CLIENT_PROCESSING_RESPONSES;
-		return;
-	}
-	
-	// Parse the HTTP request from the buffer
-	HttpRequest::ParseState parseState = _request.parseBuffer(_holdingBuffer, _response);
-	Logger::debug("Client: Parse state: " + StrUtils::toString(parseState));
-	
-	// If parsing is not complete, wait for more data
-	if (parseState != HttpRequest::PARSING_COMPLETE)
-	{
-		if (parseState == HttpRequest::PARSING_ERROR)
+		// Set/refresh current potential servers if not set for the request yet
+		if (_request.getPotentialServers() == NULL)
+			_request.setPotentialServers(_potentialServers);
+		HttpRequest::ParseState parseState = _request.parseBuffer(_holdingBuffer, _response);
+		switch (parseState)
 		{
-			_state = CLIENT_DISCONNECTED;
+		case HttpRequest::PARSING_COMPLETE:
+			_routeRequest();
+			_responseBuffer.push_back(_response);
+			_response.reset();
+			_request.reset();
+			// Set state to waiting for epollout here as we know we have responses ready
+			_state = WAITING_FOR_EPOLLOUT;
+			break;
+		case HttpRequest::PARSING_ERROR:
+			// Any errors here are considered fatal and denote an immediate disconnect
+			_responseBuffer.push_back(_response);
+			_state = WAITING_FOR_EPOLLOUT;
+			return;
+		case HttpRequest::PARSING_URI:
+		case HttpRequest::PARSING_HEADERS:
+		case HttpRequest::PARSING_BODY:
+			// Ending on any of these states means we need more data to complete the request
+			return;
+		default:
+			break;
 		}
-		return;
 	}
-	
-	// Identify if request is handled by the server then route
-	Logger::debug("Client: Getting server for request");
-	Server *server = _request.getServer();
-	if (!server)
-	{
-		Logger::error("Client: No server available for request");
-		_response.setStatus(500, "Internal Server Error");
-		_response.setBody(NULL, NULL);
-		_response.setHeader(Header("Content-Type: text/html"));
-		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
-		_responseBuffer.push_back(_response);
-		_state = CLIENT_PROCESSING_RESPONSES;
-		return;
-	}
-	
-	Logger::debug("Client: Got server, getting location for URI: " + _request.getUri());
+}
+
+void Client::_routeRequest()
+{
+	// change keep alive setting depending on found server
+	if (_request.getSelectedServer()->isKeepAlive())
+		_keepAlive = true;
+	else
+		_keepAlive = false;
 	const Location *location = NULL;
 	try
 	{
-		location = server->getLocation(_request.getUri());
-		Logger::debug("Client: Location lookup complete");
+		location = _request.getSelectedServer()->getLocation(_request.getUri());
+		_request.setSelectedLocation(location);
+		Logger::debug("Client: Matched location: " + location->getPath() + " for URI: " + _request.getUri(), __FILE__,
+					  __LINE__, __PRETTY_FUNCTION__);
 	}
 	catch (const std::exception &e)
 	{
-		Logger::error("Client: Exception during location lookup: " + std::string(e.what()));
-		_response.setStatus(500, "Internal Server Error");
-		_response.setBody(NULL, NULL);
-		_response.setHeader(Header("Content-Type: text/html"));
-		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
-		_responseBuffer.push_back(_response);
-		_state = CLIENT_PROCESSING_RESPONSES;
+		Logger::error("Client: Exception during location lookup: " + std::string(e.what()) +
+						  " for URI: " + _request.getUri(),
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		_response.setResponseDefaultBody(500, "Exception during location lookup: " + std::string(e.what()), NULL, NULL,
+										 HttpResponse::FATAL_ERROR);
 		return;
 	}
-	catch (...)
+	if (!location) // 1. Verify location can be found on server (returns Null if exact match / longest prefix match
+				   // is not found)
 	{
-		Logger::error("Client: Unknown exception during location lookup");
-		_response.setStatus(500, "Internal Server Error");
-		_response.setBody(NULL, NULL);
-		_response.setHeader(Header("Content-Type: text/html"));
-		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
-		_responseBuffer.push_back(_response);
-		_state = CLIENT_PROCESSING_RESPONSES;
-		return;
-	}
-	if (!location) // 1. Verify location can be found on server (returns Null if exact match / longest prefix match is not found)
-	{
-		_response.setStatus(404, "Not Found");
-		_response.setBody(NULL, _request.getServer());
-		_response.setHeader(Header("Content-Type: text/html"));
-		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
-		_responseBuffer.push_back(_response);
-		_state = CLIENT_PROCESSING_RESPONSES;
+		_response.setResponseDefaultBody(404, "No location found for URI: " + _request.getUri(),
+										 _request.getSelectedServer(), NULL, HttpResponse::ERROR);
 		return;
 	}
 	else if (std::find(location->getAllowedMethods().begin(), location->getAllowedMethods().end(),
 					   _request.getMethod()) == location->getAllowedMethods().end()) // 2. Verify method is allowed
 	{
-		_response.setStatus(405, "Method Not Allowed");
-		_response.setBody(location, _request.getServer());
-		_response.setHeader(Header("Content-Type: text/html"));
-		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
-		_responseBuffer.push_back(_response);
-		_state = CLIENT_PROCESSING_RESPONSES;
+		Logger::warning("Client: " + _request.getMethod() + " method not allowed for URI: " + _request.getUri(),
+						__FILE__, __LINE__, __PRETTY_FUNCTION__);
+		_response.setResponseDefaultBody(405, "Method Not Allowed", _request.getSelectedServer(), location,
+										 HttpResponse::ERROR);
 		return;
 	}
 
 	// 3. Once location is found sanitize the request (can only be done after location is found)
-	_request.sanitizeRequest(_response, _request.getServer(), location);
-	
+	_request.sanitizeRequest(_response, _request.getSelectedServer(), location);
+	switch (_request.getParseState())
+	{
+	case HttpRequest::PARSING_COMPLETE:
+		break;
+	case HttpRequest::PARSING_ERROR:
+		return;
+	default:
+		break;
+	}
+
+	Logger::debug("Client: sanitized request URI: " + _request.getUri(), __FILE__, __LINE__, __PRETTY_FUNCTION__);
+
 	// Use method handlers
 	IMethodHandler *handler = MethodHandlerFactory::createHandler(_request.getMethod());
 	if (handler)
 	{
-		handler->handleRequest(_request, _response, _request.getServer(), location);
+		Logger::debug("Client: Created handler for method: " + _request.getMethod(), __FILE__, __LINE__,
+					  __PRETTY_FUNCTION__);
+		handler->handleRequest(_request, _response, _request.getSelectedServer(), location);
 		delete handler;
 	}
 	else
 	{
-		_response.setStatus(405, "Method Not Allowed");
-		_response.setBody(location, _request.getServer());
-		_response.setHeader(Header("Content-Type: text/html"));
-		_response.setHeader(Header("Content-Length: " + StrUtils::toString(_response.getBody().length())));
+		Logger::error("Client: Failed to create handler for method: " + _request.getMethod(), __FILE__, __LINE__,
+					  __PRETTY_FUNCTION__);
+		_response.setResponseDefaultBody(500, "Failed to create handler for method: " + _request.getMethod(),
+										 _request.getSelectedServer(), location, HttpResponse::FATAL_ERROR);
 	}
-	
-	// Add response to response buffer and prepare for sending
-	_responseBuffer.push_back(_response);
-	_state = CLIENT_PROCESSING_RESPONSES;
 }
 
+// Write up to 4096 worth of response to the client each time this is called
+// Highlevel consideration is to flush the response buffer so EPOLLOUT takes priority over EPOLLIN
 void Client::_handleResponseBuffer()
 {
+	Logger::debug("Client: Handling response buffer for client: " + _remoteAddress.getHostString() + ":" +
+					  _remoteAddress.getPortString(),
+				  __FILE__, __LINE__, __PRETTY_FUNCTION__);
+	errno = 0;
+	ssize_t totalBytesSent = 0;
+	// SafeGuard should never occur
 	if (_responseBuffer.empty())
 	{
-		_state = CLIENT_DISCONNECTED;
+		Logger::error("Client: Response buffer is empty while handling response buffer for client: " +
+						  _remoteAddress.getHostString() + ":" + _remoteAddress.getPortString(),
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		_state = WAITING_FOR_EPOLLIN;
 		return;
 	}
-	
 	HttpResponse &response = _responseBuffer.front();
-	response.sendResponse(_clientFd);
-	_responseBuffer.pop_front();
-	
-	if (_responseBuffer.empty())
+	while (totalBytesSent < HTTP::DEFAULT_SEND_SIZE && !_responseBuffer.empty())
 	{
-		_state = CLIENT_DISCONNECTED;
+		response.sendResponse(_clientFd, totalBytesSent);
+		switch (response.getSendingState())
+		{
+		case HttpResponse::RESPONSE_SENDING_COMPLETE:
+		{
+			switch (response.getResponseType())
+			{
+			case HttpResponse::SUCCESS:
+			case HttpResponse::ERROR:
+				_responseBuffer.pop_front();  // Clear response from buffer when its done
+				if (!_responseBuffer.empty()) // If the response buffer is not empty set the next response to send
+				{
+					response = _responseBuffer.front();
+					_state = WAITING_FOR_EPOLLOUT;
+				}
+				else
+					_state = WAITING_FOR_EPOLLIN; // else ready to continue processing data
+				if (!_keepAlive)
+					_state = DISCONNECTED; // If keep alive is false however then we disconnect the client
+				break;
+			case HttpResponse::FATAL_ERROR:
+				_state = DISCONNECTED;
+				return;
+			}
+			break;
+		}
+		case HttpResponse::RESPONSE_SENDING_ERROR: // Fatal error encountered sending the response immediately
+												   // disconnect the client
+			Logger::error(
+				"Client: Fatal error encountered while sending response for client: " + _remoteAddress.getHostString() +
+					":" + _remoteAddress.getPortString() + ": " + strerror(errno),
+				__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			_state = DISCONNECTED;
+			return;
+		case HttpResponse::RESPONSE_SENDING_MESSAGE:
+		case HttpResponse::RESPONSE_SENDING_BODY:
+		{
+			// In the middle of sending the response only ends here if 4096 bytes where reached
+			_state = WAITING_FOR_EPOLLOUT;
+			break;
+		}
+		default:
+			break;
+		}
 	}
 }
 
@@ -311,14 +351,9 @@ int Client::getSocketFd() const
 	return _clientFd.getFd();
 }
 
-const SocketAddress &Client::getLocalAddr() const
-{
-	return _localAddr;
-}
-
 const SocketAddress &Client::getRemoteAddr() const
 {
-	return _remoteAddr;
+	return _remoteAddress;
 }
 
 const std::vector<Server> &Client::getPotentialServers() const

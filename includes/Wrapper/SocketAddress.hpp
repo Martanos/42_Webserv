@@ -34,6 +34,7 @@ private:
 public:
 	// Orthodox Canonical Class Form
 	SocketAddress();
+	SocketAddress(const struct sockaddr_storage &storage, socklen_t addrLen);
 	SocketAddress(const std::string &host, const std::string &port);
 	SocketAddress(const std::string &host, const unsigned short &port);
 	SocketAddress(const std::string &host_port);

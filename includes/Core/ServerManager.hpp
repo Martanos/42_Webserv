@@ -23,9 +23,8 @@ private:
 	static bool serverRunning;
 
 	void _addServerFdsToEpoll(ServerMap &serverMap);
-	void _checkClientTimeouts();
 	void _handleNewConnection(int serverFd);
-	void _handleClientEvent(int clientFd, epoll_event event);
+	void _handleClientEvent(Client &client, epoll_event event);
 
 	// Private methods
 	void _handleEventLoop(int ready_events, std::vector<epoll_event> &events);
@@ -35,9 +34,9 @@ private:
 	static void _handleSignal(int signal);
 
 	// Internal members
-	ServerMap _serverMap;					   // Map to servers via their host_port/connection fd
-	std::map<FileDescriptor, Client> _clients; // clients that are currently active
-	EpollManager _epollManager;				   // epoll instance class
+	ServerMap _serverMap;			// Map to servers via their host_port/connection fd
+	std::map<int, Client> _clients; // clients that are currently active
+	EpollManager _epollManager;		// epoll instance class
 
 public:
 	explicit ServerManager(ServerMap &serverMap);

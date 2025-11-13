@@ -5,7 +5,6 @@
 #include "../../includes/Core/Server.hpp"
 #include "../../includes/HTTP/Header.hpp"
 #include "../../includes/Wrapper/FileDescriptor.hpp"
-#include <map>
 #include <string>
 
 namespace HTTP_RESPONSE_DEFAULT
@@ -23,20 +22,29 @@ const std::string CONTENT_TYPE = "text/html";
 class HttpResponse
 {
 public: // State of the response
-	enum HttpResponseState
+	enum SendingState
 	{
-		RESPONSE_SENDING_URI = 0,
-		RESPONSE_SENDING_HEADERS = 1,
+		RESPONSE_FORMATTING_MESSAGE = 0,
+		RESPONSE_SENDING_MESSAGE = 1,
 		RESPONSE_SENDING_BODY = 2,
 		RESPONSE_SENDING_COMPLETE = 3,
 		RESPONSE_SENDING_ERROR = 4
 	};
 
+	enum ResponseType
+	{
+		SUCCESS = 0,
+		ERROR = 1,
+		FATAL_ERROR = 2
+	};
+
 private:
 	// State of the response
-	HttpResponseState _httpResponseState;
+	SendingState _sendingState;
+	ResponseType _responseType;
 
 	// Response data
+	std::string _rawResponse;
 
 	// URI Portion
 	int _statusCode;
@@ -49,11 +57,7 @@ private:
 	// Body Portion
 	std::string _body;
 	bool _streamBody;
-	FileDescriptor _bodyFileDescriptor; // If the body is a file, this will be the file descriptor
-
-	// Sending Portion
-	size_t _bytesSent;
-	std::string _rawResponse;
+	FileDescriptor _bodyFileDescriptor;
 
 	// Private methods
 	void _getDateHeader();
@@ -73,8 +77,9 @@ public:
 	std::string getVersion() const;
 	std::vector<Header> getHeaders() const;
 	std::string getBody() const;
-	size_t getBytesSent() const;
 	std::string getRawResponse() const;
+	SendingState getSendingState() const;
+	ResponseType getResponseType() const;
 
 	// Mutators
 	void setHeader(const Header &header);
@@ -86,19 +91,19 @@ public:
 	void setHeaders(const std::vector<Header> &headers);
 	void setBody(const std::string &body);
 	void setBody(const Location *location, const Server *server);
-	void setBytesSent(size_t bytesSent);
 	void setRawResponse(const std::string &rawResponse);
 	void setLastModifiedHeader();
 
 	// Methods
-	void setResponse(int statusCode, const std::string &statusMessage, const Server *server, const Location *location,
-					 const std::string &filePath);
-	void setResponse(int statusCode, const std::string &statusMessage);
-	void setResponse(int statusCode, const std::string &statusMessage, const std::string &body,
-					 const std::string &contentType);
-	void setRedirectResponse(const std::string &redirectPath);
+	void setResponseDefaultBody(int statusCode, const std::string &statusMessage, const Server *server,
+								const Location *location, ResponseType responseType);
+	void setResponseCustomBody(int statusCode, const std::string &statusMessage, const std::string &body,
+							   const std::string &contentType, ResponseType responseType);
+	void setResponseFile(int statusCode, const std::string &statusMessage, const std::string &filePath,
+						 const std::string &contentType, ResponseType responseType);
+	void setRedirectResponse(const std::string &redirectPath, ResponseType responseType);
 	std::string toString() const;
-	void sendResponse(const FileDescriptor &clientSocketFd);
+	void sendResponse(const FileDescriptor &clientSocketFd, ssize_t &totalBytesSent);
 	void reset();
 };
 

@@ -15,13 +15,15 @@ private:
 	// Non-copyable
 
 public:
-	explicit ListeningSocket(const SocketAddress &socketAddress);
+	ListeningSocket();
+	ListeningSocket(const SocketAddress &socketAddress);
 	ListeningSocket(const ListeningSocket &src);
 	ListeningSocket &operator=(const ListeningSocket &rhs);
 	~ListeningSocket();
-	ListeningSocket();
 	// Accept connection
 	void accept(SocketAddress &address, FileDescriptor &clientFd) const;
+	void bind();
+	void listen();
 
 	// Comparator overloads for mapping
 	bool operator<(const ListeningSocket &rhs) const;

@@ -1,37 +1,35 @@
 #ifndef CGIENV_HPP
 #define CGIENV_HPP
 
-#include "../ConfigParser/ServerConfig.hpp"
-
+#include "../Core/Location.hpp"
+#include "../Core/Server.hpp"
+#include "../HTTP/HttpRequest.hpp"
 #include <cstring>
-#include <iostream>
 #include <map>
 #include <string>
 
-// Forward declarations
-class HttpRequest;
-class Server;
-class Location;
-
-class CGIenv
+// Initializes and manages the environment variables for the CGI process
+class CgiEnv
 {
+private:
+	std::map<std::string, std::string> _envVariables;
+	std::string _convertHeaderNameToCgi(const std::string &headerName) const;
+
 public:
-	CGIenv();
-	CGIenv(const CGIenv &other);
-	~CGIenv();
+	CgiEnv();
+	CgiEnv(const CgiEnv &other);
+	~CgiEnv();
 
-	CGIenv &operator=(const CGIenv &other);
-
+	CgiEnv &operator=(const CgiEnv &other);
 	void setEnv(const std::string &key, const std::string &value);
 	std::string getEnv(const std::string &key) const;
+	const std::map<std::string, std::string> &getEnvVariables() const;
 	void printEnv() const;
-	void copyDataFromServer(const Server *server, const Location *location);
+
+	// Environment setup
+	void _transposeData(const HttpRequest &request, const Server *server, const Location *location);
 
 	// New methods for CGI execution
-	void setupFromRequest(const HttpRequest &request, const Server *server, const Location *location,
-						  const std::string &scriptPath);
-	void setupHttpHeaders(const HttpRequest &request);
-	std::string convertHeaderNameToCgi(const std::string &headerName) const;
 
 	// Environment array management for execve
 	char **getEnvArray() const;
@@ -40,9 +38,8 @@ public:
 	// Utility methods
 	size_t getEnvCount() const;
 	bool hasEnv(const std::string &key) const;
-
-private:
-	std::map<std::string, std::string> _envVariables;
 };
+
+std::ostream &operator<<(std::ostream &os, const CgiEnv &env);
 
 #endif

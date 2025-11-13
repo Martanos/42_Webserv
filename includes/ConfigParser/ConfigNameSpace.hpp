@@ -13,14 +13,14 @@ namespace Token
 {
 enum TokenType
 {
-	TOKEN_EOF,
-	TOKEN_OPEN_BRACE,  // {
-	TOKEN_CLOSE_BRACE, // }
-	TOKEN_SEMICOLON,   // ;
-	TOKEN_IDENTIFIER,  // keywords, names, paths
-	TOKEN_NUMBER,	   // numeric literal (digits only)
-	TOKEN_STRING,	   // double-quoted with escapes interpreted
-	TOKEN_ERROR		   // lexical error with message in message
+	TOKEN_EOF = 0,
+	TOKEN_OPEN_BRACE = 1,  // {
+	TOKEN_CLOSE_BRACE = 2, // }
+	TOKEN_SEMICOLON = 3,   // ;
+	TOKEN_IDENTIFIER = 4,  // keywords, names, paths
+	TOKEN_NUMBER = 5,	   // numeric literal (digits only)
+	TOKEN_STRING = 6,	   // double-quoted with escapes interpreted
+	TOKEN_ERROR = 7		   // lexical error with message in message
 };
 
 struct Token
@@ -74,7 +74,7 @@ struct ASTNode
 	std::vector<ASTNode *> children;
 
 	// Constructor
-	ASTNode(NodeType t, const std::string &v = "") : type(t), value(v)
+	ASTNode(NodeType t, const std::string &v = "") : type(t), value(v), line(0), column(0), position(0)
 	{
 	}
 

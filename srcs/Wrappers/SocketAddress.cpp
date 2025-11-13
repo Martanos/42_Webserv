@@ -19,6 +19,13 @@ SocketAddress::SocketAddress(const std::string &host, const unsigned short &port
 	*this = SocketAddress(host, StrUtils::toString(port));
 }
 
+SocketAddress::SocketAddress(const struct sockaddr_storage &storage, socklen_t addrLen)
+	: _addrLen(addrLen), _family(storage.ss_family)
+{
+	std::memcpy(&_storage, &storage, addrLen);
+	_updateCachedValues();
+}
+
 SocketAddress::SocketAddress(const std::string &host, const std::string &port) : _addrLen(0), _family(AF_UNSPEC)
 {
 	std::memset(&_storage, 0, sizeof(_storage));
@@ -35,9 +42,7 @@ SocketAddress::SocketAddress(const std::string &host, const std::string &port) :
 				throw std::runtime_error("Malformed IPv6 address: " + host);
 		}
 		else
-		{
 			_host = host;
-		}
 	}
 	else
 	{
@@ -64,7 +69,7 @@ SocketAddress::SocketAddress(const std::string &host, const std::string &port) :
 		struct sockaddr_in *addr4 = _getSockAddrIn();
 		addr4->sin_family = AF_INET;
 		addr4->sin_port = htons(_port);
-		addr4->sin_addr.s_addr = INADDR_ANY;
+		addr4->sin_addr.s_addr = htonl(INADDR_ANY);
 		_family = AF_INET;
 		_addrLen = sizeof(struct sockaddr_in);
 		return;
@@ -75,7 +80,7 @@ SocketAddress::SocketAddress(const std::string &host, const std::string &port) :
 		struct sockaddr_in6 *addr6 = _getSockAddrIn6();
 		addr6->sin6_family = AF_INET6;
 		addr6->sin6_port = htons(_port);
-		addr6->sin6_addr = in6addr_any;
+		std::memset(&addr6->sin6_addr, 0, sizeof(addr6->sin6_addr));
 		_family = AF_INET6;
 		_addrLen = sizeof(struct sockaddr_in6);
 		return;
@@ -133,18 +138,24 @@ SocketAddress::SocketAddress(const std::string &host, const std::string &port) :
 
 SocketAddress::SocketAddress(const std::string &host_port) : _addrLen(0), _family(AF_UNSPEC)
 {
-	size_t colon_pos = host_port.rfind(':');
-	if (colon_pos == std::string::npos)
+	if (!host_port.empty() && host_port[0] == '[')
 	{
-		// If no colon, treat as port number
-		*this = SocketAddress("0.0.0.0", host_port);
+		size_t end = host_port.find(']');
+		if (end == std::string::npos)
+			throw std::runtime_error("Malformed IPv6 host: " + host_port);
+		std::string host = host_port.substr(1, end - 1);
+		std::string port = (end + 1 < host_port.size() && host_port[end + 1] == ':') ? host_port.substr(end + 2) : "";
+		*this = SocketAddress(host, port);
 	}
 	else
 	{
-		*this = SocketAddress(host_port.substr(0, colon_pos), host_port.substr(colon_pos + 1));
+		size_t colon_pos = host_port.rfind(':');
+		if (colon_pos == std::string::npos)
+			*this = SocketAddress("0.0.0.0", host_port);
+		else
+			*this = SocketAddress(host_port.substr(0, colon_pos), host_port.substr(colon_pos + 1));
 	}
 }
-
 // Copy constructor
 SocketAddress::SocketAddress(const SocketAddress &src)
 	: _addrLen(src._addrLen), _family(src._family), _host(src._host), _port(src._port)

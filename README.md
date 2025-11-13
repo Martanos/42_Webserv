@@ -1,5 +1,6 @@
 # webserv
-Solution for 42's webserv project
+
+A http/1.1 compliant static file server
 
 ---- Key Design Considerations ----
 	

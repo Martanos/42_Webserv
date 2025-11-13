@@ -17,6 +17,9 @@ Location::Location(const std::string &path)
 	_indexes = TrieTree<std::string>();
 	_autoIndex = false;
 	_cgiPath = std::string();
+	_clientMaxBodySize = -1.0;
+	_cgiParams = std::map<std::string, std::string>();
+	_hasAutoIndex = false;
 
 	// Flags
 	_modified = false;
@@ -47,9 +50,12 @@ Location &Location::operator=(Location const &rhs)
 		_root = rhs._root;
 		_allowedMethods = rhs._allowedMethods;
 		_redirect = rhs._redirect;
-		_autoIndex = rhs._autoIndex;
+		_hasAutoIndex = rhs._hasAutoIndex;
+		_autoIndexValue = rhs._autoIndexValue;
 		_indexes = rhs._indexes;
 		_cgiPath = rhs._cgiPath;
+		_clientMaxBodySize = rhs._clientMaxBodySize;
+		_cgiParams = rhs._cgiParams;
 		_modified = rhs._modified;
 	}
 	return *this;
@@ -103,9 +109,13 @@ bool Location::hasRedirect() const
 
 bool Location::hasAutoIndex() const
 {
-	return _autoIndex;
+	return _hasAutoIndex;
 }
 
+bool Location::isAutoIndex() const
+{
+	return _autoIndexValue;
+}
 bool Location::hasIndexes() const
 {
 	return _indexes.size() > 0;
@@ -118,6 +128,16 @@ bool Location::hasIndex(const std::string &index) const
 bool Location::hasCgiPath() const
 {
 	return !_cgiPath.empty();
+}
+
+bool Location::hasClientMaxBodySize() const
+{
+	return _clientMaxBodySize >= 0.0;
+}
+
+bool Location::hasCgiParams() const
+{
+	return !_cgiParams.empty();
 }
 
 bool Location::hasModified() const
@@ -169,6 +189,16 @@ const std::string &Location::getCgiPath() const
 	return _cgiPath;
 }
 
+double Location::getClientMaxBodySize() const
+{
+	return _clientMaxBodySize;
+}
+
+const std::map<std::string, std::string> &Location::getCgiParams() const
+{
+	return _cgiParams;
+}
+
 /*
 ** --------------------------------- Mutators ---------------------------------
 */
@@ -207,7 +237,8 @@ void Location::setRedirect(const std::pair<int, std::string> &redirect)
 
 void Location::setAutoIndex(const bool &autoIndex)
 {
-	_autoIndex = autoIndex;
+	_autoIndexValue = autoIndex;
+	_hasAutoIndex = true;
 	_modified = true;
 }
 
@@ -220,6 +251,18 @@ void Location::insertIndex(const std::string &index)
 void Location::setCgiPath(const std::string &cgiPath)
 {
 	_cgiPath = cgiPath;
+	_modified = true;
+}
+
+void Location::setClientMaxBodySize(double size)
+{
+	_clientMaxBodySize = size;
+	_modified = true;
+}
+
+void Location::setCgiParam(const std::string &key, const std::string &value)
+{
+	_cgiParams[key] = value;
 	_modified = true;
 }
 

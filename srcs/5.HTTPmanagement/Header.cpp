@@ -1,6 +1,5 @@
 #include "../../includes/HTTP/Header.hpp"
 #include "../../includes/Global/StrUtils.hpp"
-#include "../../includes/Global/Logger.hpp"
 #include <cstddef>
 
 /*
@@ -63,9 +62,20 @@ void Header::_parseRawHeader()
 
 	// Extract raw values by iterating through till first ; or end of string
 	size_t valuesStart = colonPos + 1;
-	size_t valuesEnd = _rawHeader.find_first_of(";");
-
-	// If no ; is found, set valuesEnd to end of string
+	size_t valuesEnd = std::string::npos;
+	bool inComment = false;
+	for (std::string::iterator it = _rawHeader.begin(); it != _rawHeader.end(); ++it)
+	{
+		if (*it == '(')
+			inComment = true;
+		else if (*it == ')')
+			inComment = false;
+		else if (*it == ';' && !inComment)
+		{
+			valuesEnd = it - _rawHeader.begin();
+			break;
+		}
+	}
 	bool hasParameters = true;
 	if (valuesEnd == std::string::npos)
 	{
@@ -116,15 +126,18 @@ void Header::_parseRawHeader()
 			std::string value = parameters[i].substr(equalSignPos + 1);
 			if (value.empty())
 				throw std::invalid_argument("Empty parameter value");
+			// Loop through values to check if they are quoted
 			else if (value[0] == '\"' && value[value.length() - 1] == '\"')
 			{
+				// remove the quotes from the value
 				value = value.substr(1, value.length() - 2);
+				printf("Value after removing quotes: %s\n", value.c_str());
+				// decode the value
 				value = StrUtils::percentDecode(value);
-				if (!StrUtils::hasControlCharacters(value))
+				// check if the value has control characters
+				if (StrUtils::hasControlCharacters(value))
 					throw std::invalid_argument("Parameter value has control characters");
 			}
-			else if (!StrUtils::isValidToken(value))
-				throw std::invalid_argument("Parameter value is not a valid token");
 			_parameters.push_back(std::make_pair(key, value));
 		}
 	}

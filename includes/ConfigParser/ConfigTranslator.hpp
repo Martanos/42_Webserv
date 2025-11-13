@@ -26,20 +26,20 @@ private:
 	void _translateServerIndex(const AST::ASTNode &directive, Server &server);
 	void _translateServerAutoindex(const AST::ASTNode &directive, Server &server);
 	void _translateServerClientMaxBodySize(const AST::ASTNode &directive, Server &server);
-	void _translateServerClientMaxHeadersSize(const AST::ASTNode &directive, Server &server);
-	void _translateServerClientMaxUriSize(const AST::ASTNode &directive, Server &server);
-	void _translateServerStatusPage(const AST::ASTNode &directive, Server &server);
+	void _translateServerErrorPages(const AST::ASTNode &directive, Server &server);
 
 	// Location specific translation helpers
 	void _translateLocation(const AST::ASTNode &location_node, Location &location);
 	void _translateLocationPath(const AST::ASTNode &directive, Location &location);
 	void _translateLocationRoot(const AST::ASTNode &directive, Location &location);
 	void _translateLocationAllowedMethods(const AST::ASTNode &directive, Location &location);
-	void _translateLocationStatusPage(const AST::ASTNode &directive, Location &location);
+	void _translateLocationErrorPages(const AST::ASTNode &directive, Location &location);
 	void _translateLocationRedirect(const AST::ASTNode &directive, Location &location);
 	void _translateLocationAutoindex(const AST::ASTNode &directive, Location &location);
 	void _translateLocationIndex(const AST::ASTNode &directive, Location &location);
 	void _translateLocationCgiPath(const AST::ASTNode &directive, Location &location);
+	void _translateLocationCgiParam(const AST::ASTNode &directive, Location &location);
+	void _translateLocationClientMaxBodySize(const AST::ASTNode &directive, Location &location);
 
 public:
 	explicit ConfigTranslator(const AST::ASTNode &ast);

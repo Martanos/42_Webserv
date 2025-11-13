@@ -39,8 +39,18 @@ private:
 	// Parsing state
 	ParseState _parseState;
 
+	// Internal redirect tracking
+	int _internalRedirectDepth;
+	static const int MAX_INTERNAL_REDIRECTS = 5;
+
 	// External configuration
-	Server *_server;
+	const std::vector<Server> *_potentialServers;
+	Server *_selectedServer;
+	std::string _selectedServerHost;
+	std::string _selectedServerPort;
+	Location *_selectedLocation;
+	SocketAddress *_remoteAddress;
+	bool _identifyServer(HttpResponse &response);
 
 public:
 	HttpRequest();
@@ -57,7 +67,15 @@ public:
 
 	// Mutators
 	void setParseState(ParseState parseState);
-	void setServer(Server *server);
+	void setPotentialServers(const std::vector<Server> *potentialServers);
+	void setSelectedServer(Server *selectedServer);
+	void setSelectedLocation(const Location *selectedLocation);
+	void setRemoteAddress(const SocketAddress *remoteAddress);
+
+	// Internal redirect management
+	int getInternalRedirectDepth() const;
+	void incrementInternalRedirectDepth();
+	void resetInternalRedirectDepth();
 
 	// Request accessors
 	ParseState getParseState() const;
@@ -66,7 +84,10 @@ public:
 	// URI accessors
 	std::string getMethod() const;
 	std::string getUri() const;
+	std::string getRawUri() const;
 	std::string getVersion() const;
+	std::string getQueryString() const;
+	const std::map<std::string, std::vector<std::string> > &getQueryParameters() const;
 
 	// Headers accessors
 	std::map<std::string, std::vector<std::string> > getHeaders() const;
@@ -77,13 +98,18 @@ public:
 	HttpBody::BodyType getBodyType() const;
 	size_t getContentLength() const;
 	bool isChunked();
-	bool isUsingTempFile();
-	std::string getTempFile();
+	bool isUsingTempFile() const;
+	std::string getTempFile() const;
+	const FileDescriptor &getTempFd() const;
 
 	// Server accessors
-	Server *getServer() const;
-};
+	const std::vector<Server> *getPotentialServers() const;
+	Server *getSelectedServer() const;
 
-// TODO : Add request stream overload
+	Location *getSelectedLocation() const;
+	SocketAddress *getRemoteAddress() const;
+	const std::string &getSelectedServerHost() const;
+	const std::string &getSelectedServerPort() const;
+};
 
 #endif /* HTTPREQUEST_HPP */

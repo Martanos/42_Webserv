@@ -4,6 +4,7 @@
 #include "../../includes/HTTP/HttpResponse.hpp"
 #include <algorithm>
 #include <cstdlib>
+#include <sys/ucontext.h>
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -18,6 +19,7 @@ HttpBody::HttpBody()
 	_expectedBodySize = 0;
 	_tempFile = FileManager();
 	_isUsingTempFile = false;
+	_rawBodySize = 0;
 }
 
 HttpBody::HttpBody(HttpBody const &src)
@@ -46,6 +48,7 @@ HttpBody &HttpBody::operator=(HttpBody const &rhs)
 		_chunkState = rhs._chunkState;
 		_expectedBodySize = rhs._expectedBodySize;
 		_rawBody = rhs._rawBody;
+		_rawBodySize = rhs._rawBodySize;
 		_tempFile = rhs._tempFile;
 		_isUsingTempFile = rhs._isUsingTempFile;
 	}
@@ -58,10 +61,12 @@ HttpBody &HttpBody::operator=(HttpBody const &rhs)
 
 void HttpBody::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 {
-	Logger::debug("HttpBody: parseBuffer called, body type: " + StrUtils::toString(_bodyType) + ", buffer size: " + StrUtils::toString(buffer.size()));
+	Logger::debug("HttpBody: parseBuffer called, body type: " + StrUtils::toString(_bodyType) +
+					  ", buffer size: " + StrUtils::toString(buffer.size()),
+				  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	if (_bodyType == BODY_TYPE_NO_BODY)
 	{
-		Logger::debug("HttpBody: No body type, marking as complete");
+		Logger::debug("HttpBody: No body type, marking as complete", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		_bodyState = BODY_PARSING_COMPLETE;
 	}
 	else if (_bodyType == BODY_TYPE_CHUNKED)
@@ -74,13 +79,18 @@ void HttpBody::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 
 HttpBody::BodyState HttpBody::_parseContentLengthBody(std::vector<char> &buffer, HttpResponse &response)
 {
+	Logger::debug(
+		"HttpBody: parseContentLengthBody called, expected body size: " + StrUtils::toString(_expectedBodySize) +
+			", is using temp file: " + StrUtils::toString(_isUsingTempFile),
+		__FILE__, __LINE__, __PRETTY_FUNCTION__);
 	if (!_isUsingTempFile)
 	{
 		ssize_t bytes_needed = _expectedBodySize - _rawBody.size();
 		if (bytes_needed < 0)
 		{
-			Logger::log(Logger::ERROR, "Body size exceeds expected size");
-			response.setStatus(400, "Bad Request");
+			Logger::debug("Body size exceeds expected size", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+			response.setResponseDefaultBody(400, "Body size exceeds expected size", NULL, NULL,
+											HttpResponse::FATAL_ERROR);
 			return BODY_PARSING_ERROR;
 		}
 		ssize_t bytes_to_copy = std::min(bytes_needed, static_cast<ssize_t>(buffer.size()));
@@ -89,11 +99,12 @@ HttpBody::BodyState HttpBody::_parseContentLengthBody(std::vector<char> &buffer,
 		_rawBodySize += bytes_to_copy;
 		if (_rawBodySize > _expectedBodySize)
 		{
-			Logger::log(Logger::ERROR, "Body size exceeds expected size");
-			response.setStatus(400, "Bad Request");
+			Logger::debug("Body size exceeds expected size", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+			response.setResponseDefaultBody(400, "Body size exceeds expected size", NULL, NULL,
+											HttpResponse::FATAL_ERROR);
 			return BODY_PARSING_ERROR;
 		}
-		else if (_rawBody.size() >= HTTP::MAX_BODY_BUFFER_SIZE) // Flush to temp file
+		else if (_rawBody.size() >= HTTP::DEFAULT_CLIENT_MAX_BODY_SIZE) // Flush to temp file
 		{
 			_isUsingTempFile = true;
 			_tempFile.append(_rawBody, _rawBody.begin(), _rawBody.end());
@@ -105,8 +116,9 @@ HttpBody::BodyState HttpBody::_parseContentLengthBody(std::vector<char> &buffer,
 		ssize_t bytes_needed = _expectedBodySize - _tempFile.getFileSize();
 		if (bytes_needed < 0)
 		{
-			Logger::log(Logger::ERROR, "Body size exceeds expected size");
-			response.setStatus(400, "Bad Request");
+			Logger::debug("Body size exceeds expected size", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+			response.setResponseDefaultBody(400, "Body size exceeds expected size", NULL, NULL,
+											HttpResponse::FATAL_ERROR);
 			return BODY_PARSING_ERROR;
 		}
 		else
@@ -125,130 +137,146 @@ HttpBody::BodyState HttpBody::_parseContentLengthBody(std::vector<char> &buffer,
 
 HttpBody::BodyState HttpBody::_parseChunkedBody(std::vector<char> &buffer, HttpResponse &response)
 {
-	switch (_chunkState)
+	while (!buffer.empty())
 	{
-	case CHUNK_SIZE:
-	{
-		// Chunked size line validation
-		std::vector<char>::iterator it = std::search(buffer.begin(), buffer.end(), HTTP::CRLF, HTTP::CRLF + 2);
-		if (it == buffer.end())
+		switch (_chunkState)
 		{
-			if (buffer.size() > 18) // Limit hex number size to 16 characters (8 bytes) + 2 for \r\n
+		case CHUNK_SIZE:
+		{
+			Logger::debug("HttpBody: Chunk size state", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+			// Chunked size line validation
+			std::vector<char>::iterator it = std::search(buffer.begin(), buffer.end(), HTTP::CRLF, HTTP::CRLF + 2);
+			Logger::debug("HttpBody: Chunk size line search result: " + StrUtils::toString(it - buffer.begin()),
+						  __FILE__, __LINE__, __PRETTY_FUNCTION__);
+			if (it == buffer.end()) // If the CRLF is not found, we need more data
 			{
-				Logger::log(Logger::ERROR, "Chunked size line too long");
-				response.setStatus(400, "Bad Request");
-				return BODY_PARSING_ERROR;
+				if (buffer.size() > 18) // Limit hex number size to 16 characters (8 bytes) + 2 for \r\n
+				{
+					Logger::debug("Chunked transfer encoding size string exceeded limit", __FILE__, __LINE__,
+								  __PRETTY_FUNCTION__);
+					response.setResponseDefaultBody(400, "Chunked transfer encoding size string exceeded limit", NULL,
+													NULL, HttpResponse::FATAL_ERROR);
+					return BODY_PARSING_ERROR;
+				}
+				return BODY_PARSING;
 			}
-			return BODY_PARSING;
-		}
-		// Extract size line
-		std::string sizeLine(buffer.begin(), it);
-		buffer.erase(buffer.begin(), it + 2);
-		if (sizeLine.empty())
-		{
-			Logger::log(Logger::ERROR, "Empty chunk size line");
-			response.setStatus(400, "Bad Request");
-			return BODY_PARSING_ERROR;
-		}
-		else if (sizeLine.size() + 2 > 18) // 16 characters (8 bytes) + 2 for \r\n
-		{
-			Logger::log(Logger::ERROR, "Chunked size line too long");
-			response.setStatus(400, "Bad Request");
-			return BODY_PARSING_ERROR;
-		}
-		_expectedBodySize = _parseHexSize(sizeLine);
-		if (_expectedBodySize == 0)
-		{
-			_chunkState = CHUNK_TRAILERS;
-			return BODY_PARSING;
-		}
-		else if (_expectedBodySize == -1)
-		{
-			_chunkState = CHUNK_ERROR;
-			Logger::log(Logger::ERROR, "Invalid chunk size: " + sizeLine);
-			response.setStatus(400, "Bad Request");
-			return BODY_PARSING_ERROR;
-		}
-		_chunkState = CHUNK_DATA;
-		return BODY_PARSING;
-	}
-	case CHUNK_DATA: // Use a modified form of content length body parsing
-	{
-		// Abit simpler we find if current buffer has CRLF
-		std::vector<char>::iterator extractableBytes =
-			std::search(buffer.begin(), buffer.end(), HTTP::CRLF, HTTP::CRLF + 2);
-		// Subtract the size of the extracted bytes from the expected body size
-		_expectedBodySize -= extractableBytes - buffer.begin();
-		// Add the size of the extracted bytes to the raw body size
-		_rawBodySize += extractableBytes - buffer.begin();
-		if (_expectedBodySize < 0)
-		{
-			Logger::log(Logger::ERROR, "Body size exceeds expected size");
-			response.setStatus(400, "Bad Request");
-			return BODY_PARSING_ERROR;
-		}
-
-		if (!_isUsingTempFile)
-		{
-			_rawBody.insert(_rawBody.end(), buffer.begin(), extractableBytes);
-			if (_rawBodySize >= HTTP::MAX_BODY_BUFFER_SIZE)
-			{
-				_isUsingTempFile = true;
-				_tempFile.append(_rawBody, _rawBody.begin(), _rawBody.end());
-				_rawBody.clear();
-			}
-		}
-		else
-		{
-			_tempFile.append(buffer, buffer.begin(), extractableBytes);
-		}
-		if (extractableBytes == buffer.end())
-			buffer.erase(buffer.begin(), extractableBytes);
-		else
-			buffer.erase(buffer.begin(), extractableBytes + 2);
-		if (_expectedBodySize == 0)
-			_chunkState = CHUNK_SIZE;
-		else
-			_chunkState = CHUNK_DATA;
-		return BODY_PARSING;
-	}
-	case CHUNK_TRAILERS: // TODO: Instead of discarding the trailers as a bonus we could parse them
-	{
-		std::vector<char>::iterator it = std::search(buffer.begin(), buffer.end(), HTTP::CRLF, HTTP::CRLF + 2);
-		_rawBodySize += it - buffer.begin();
-		if (it == buffer.end())
-		{
-			if (buffer.size() > HTTP::MAX_HEADERS_LINE_SIZE)
-			{
-				Logger::log(Logger::ERROR, "Chunked trailers line too long");
-				response.setStatus(400, "Bad Request");
-				return BODY_PARSING_ERROR;
-			}
-			return BODY_PARSING;
-		}
-		else if (it == buffer.begin()) // If its /r/n then chunks are complete
-		{
+			// Extract size line
+			std::string sizeLine(buffer.begin(), it);
 			buffer.erase(buffer.begin(), it + 2);
-			_chunkState = CHUNK_COMPLETE;
+			if (sizeLine.empty())
+			{
+				Logger::debug("Empty chunk size line", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+				response.setResponseDefaultBody(400, "Empty chunk size line", NULL, NULL, HttpResponse::FATAL_ERROR);
+				return BODY_PARSING_ERROR;
+			}
+			else if (sizeLine.size() + 2 > 18) // 16 characters (8 bytes) + 2 for \r\n
+			{
+				Logger::debug("Chunked transfer encoding size string exceeded limit", __FILE__, __LINE__,
+							  __PRETTY_FUNCTION__);
+				response.setResponseDefaultBody(400, "Chunked transfer encoding size string exceeded limit", NULL, NULL,
+												HttpResponse::FATAL_ERROR);
+				return BODY_PARSING_ERROR;
+			}
+			_expectedBodySize = _parseHexSize(sizeLine);
+			_rawBodySize += _expectedBodySize; // Add the expected body size to the raw body size
+			if (_expectedBodySize == 0)
+			{
+				Logger::debug("Chunked transfer encoding size is 0, switching to trailers state", __FILE__, __LINE__,
+							  __PRETTY_FUNCTION__);
+				_chunkState = CHUNK_TRAILERS;
+				break;
+			}
+			else if (_expectedBodySize == -1)
+			{
+				_chunkState = CHUNK_ERROR;
+				Logger::debug("Invalid chunk size: " + sizeLine, __FILE__, __LINE__, __PRETTY_FUNCTION__);
+				response.setResponseDefaultBody(400, "Invalid chunk size: " + sizeLine, NULL, NULL,
+												HttpResponse::FATAL_ERROR);
+				return BODY_PARSING_ERROR;
+			}
+			_chunkState = CHUNK_DATA;
+			break;
+		}
+		case CHUNK_DATA: // Use a modified form of content length body parsing
+		{
+			// We search for the CRLF in the buffer to find the end of the chunk data
+			std::vector<char>::iterator extractableBytes =
+				std::search(buffer.begin(), buffer.end(), HTTP::CRLF, HTTP::CRLF + 2);
+			// If the CRLF is not found, we need more data
+			if (extractableBytes == buffer.end())
+			{
+				if (buffer.size() >
+					static_cast<size_t>(_expectedBodySize)) // If the buffer size is greater than the expected body size
+															// a fatal error is returned
+				{
+					Logger::debug("Chunked transfer encoding body size exceeds expected size", __FILE__, __LINE__,
+								  __PRETTY_FUNCTION__);
+					response.setResponseDefaultBody(400, "Chunked transfer encoding body size exceeds expected size",
+													NULL, NULL, HttpResponse::FATAL_ERROR);
+					return BODY_PARSING_ERROR;
+				}
+				return BODY_PARSING;
+			}
+			if (!_isUsingTempFile)
+			{
+				_rawBody.insert(_rawBody.end(), buffer.begin(), extractableBytes);
+				if (_rawBodySize >= HTTP::DEFAULT_CLIENT_MAX_BODY_SIZE)
+				{
+					_isUsingTempFile = true;
+					_tempFile.append(_rawBody, _rawBody.begin(), _rawBody.end());
+					_rawBody.clear();
+				}
+			}
+			else
+			{
+				_tempFile.append(buffer, buffer.begin(), extractableBytes);
+			}
+			buffer.erase(buffer.begin(), extractableBytes + 2); // Clear the buffer up to the CRLF
+			_chunkState = CHUNK_SIZE;
+			break;
+		}
+		case CHUNK_TRAILERS: // TODO: Instead of discarding the trailers as a bonus we could parse them
+		{
+			std::vector<char>::iterator it = std::search(buffer.begin(), buffer.end(), HTTP::CRLF, HTTP::CRLF + 2);
+			_rawBodySize += it - buffer.begin();
+			if (it == buffer.end())
+			{
+				if (buffer.size() > HTTP::DEFAULT_CLIENT_MAX_HEADERS_SIZE)
+				{
+					Logger::debug("Chunked transfer encoding trailers line too long", __FILE__, __LINE__,
+								  __PRETTY_FUNCTION__);
+					response.setResponseDefaultBody(400, "Chunked transfer encoding trailers line too long", NULL, NULL,
+													HttpResponse::FATAL_ERROR);
+					return BODY_PARSING_ERROR;
+				}
+				return BODY_PARSING;
+			}
+			else if (it == buffer.begin()) // If its /r/n then chunks are complete
+			{
+				buffer.erase(buffer.begin(), it + 2);
+				_chunkState = CHUNK_COMPLETE;
+				return BODY_PARSING_COMPLETE;
+			}
+			else if (it - buffer.begin() > HTTP::DEFAULT_CLIENT_MAX_HEADERS_SIZE)
+			{
+				Logger::debug("Chunked transfer encoding trailers line too long", __FILE__, __LINE__,
+							  __PRETTY_FUNCTION__);
+				response.setResponseDefaultBody(400, "Chunked transfer encoding trailers line too long", NULL, NULL,
+												HttpResponse::FATAL_ERROR);
+				return BODY_PARSING_ERROR;
+			}
+			buffer.erase(buffer.begin(), it + 2); // Clear the buffer up to the CRLF
+			break;
+		}
+		case CHUNK_COMPLETE:
+		{
 			return BODY_PARSING_COMPLETE;
 		}
-		else if (it - buffer.begin() > HTTP::MAX_HEADERS_LINE_SIZE)
+		case CHUNK_ERROR:
 		{
-			Logger::log(Logger::ERROR, "Chunked trailers line too long");
-			response.setStatus(400, "Bad Request");
 			return BODY_PARSING_ERROR;
 		}
-		buffer.erase(buffer.begin(), it + 2); // Clear the buffer up to the CRLF
-		return BODY_PARSING;
-	}
-	case CHUNK_COMPLETE:
-	{
-		return BODY_PARSING_COMPLETE;
-	}
-	case CHUNK_ERROR:
-	{
-		return BODY_PARSING_ERROR;
-	}
+		}
 	}
 	return BODY_PARSING;
 }
@@ -310,12 +338,12 @@ size_t HttpBody::getRawBodySize() const
 	return _rawBody.size();
 }
 
-bool HttpBody::getIsUsingTempFile()
+bool HttpBody::getIsUsingTempFile() const
 {
 	return _isUsingTempFile;
 }
 
-std::string HttpBody::getTempFilePath()
+std::string HttpBody::getTempFilePath() const
 {
 	if (_isUsingTempFile)
 	{
@@ -324,7 +352,7 @@ std::string HttpBody::getTempFilePath()
 	return "";
 }
 
-FileDescriptor &HttpBody::getTempFd()
+const FileDescriptor &HttpBody::getTempFd() const
 {
 	return _tempFile.getFd();
 }
@@ -376,4 +404,5 @@ void HttpBody::reset()
 	_rawBody.clear();
 	_tempFile.reset();
 	_isUsingTempFile = false;
+	_rawBodySize = 0;
 }

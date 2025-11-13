@@ -71,12 +71,7 @@ public:
 	// Convenience method for stringstream
 	static void log(LogLevel level, const std::stringstream &ss);
 
-	// Convenience methods for different levels
-	static void debug(const std::string &message);
-	static void info(const std::string &message);
-	static void warning(const std::string &message);
-	static void error(const std::string &message);
-	static void critical(const std::string &message);
+	// Enhanced convenience methods only (enforce consistent style with file/line/function)
 
 	// Enhanced convenience methods with file and line information
 	static void debug(const std::string &message, const std::string &file, int line, const std::string &function);
@@ -84,6 +79,8 @@ public:
 	static void warning(const std::string &message, const std::string &file, int line, const std::string &function);
 	static void error(const std::string &message, const std::string &file, int line, const std::string &function);
 	static void critical(const std::string &message, const std::string &file, int line, const std::string &function);
+	// Access log (bypasses level filtering) with file/line/function signature for consistency
+	static void access(const std::string &message, const std::string &file, int line, const std::string &function);
 
 	// Specialized logging methods
 	static void logRequest(const std::string &method, const std::string &uri, const std::string &clientIP,

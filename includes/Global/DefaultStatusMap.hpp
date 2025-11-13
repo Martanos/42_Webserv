@@ -227,7 +227,7 @@ private:
 		   << "</style>\n"
 		   << "</head>\n"
 		   << "<body>\n"
-		   << "<h1>" << message << "</h1>\n"
+		   << "<h1>" << status << " " << message << "</h1>\n"
 		   << errorContent << "<hr>\n"
 		   << "<center>42_Webserv/1.0</center>\n"
 		   << "</body>\n"
@@ -286,12 +286,6 @@ private:
 			message_body += generateHTMLBody(status, message);
 		else if (can_have_body && !generate_body)
 			message_body += "";
-		{
-			std::stringstream ss;
-			ss << "Generated status info for " << status << " with message " << message << " and body "
-			   << (can_have_body && generate_body ? "true" : "false");
-			Logger::log(Logger::DEBUG, "StatusMap: " + ss.str());
-		}
 		return (message_body);
 	}
 

@@ -156,13 +156,13 @@ void FileManager::append(const std::vector<char> &buffer, std::vector<char>::ite
 void FileManager::reset()
 {
 	unlink(_filePath.c_str());
-	_fd = FileDescriptor::createFromOpen(_filePath.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
+	_instantiated = false;
 }
 
 void FileManager::clear()
 {
 	unlink(_filePath.c_str());
-	_fd = FileDescriptor::createFromOpen(_filePath.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0644);
+	_instantiated = false;
 }
 
 size_t FileManager::contains(const char *data, size_t len) const
@@ -201,11 +201,11 @@ size_t FileManager::getFileSize() const
 {
 	if (!_instantiated)
 		return 0;
-	
+
 	struct stat fileStat;
 	if (fstat(_fd.getFd(), &fileStat) != 0)
 		return 0;
-	
+
 	return fileStat.st_size;
 }
 

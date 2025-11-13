@@ -3,12 +3,30 @@
 #include <iomanip>
 #include <iostream>
 
+// USAGE CONVENTIONS:
+//  - Always use enhanced logging methods: debug/info/warning/error/critical
+//    with (message, __FILE__, __LINE__, __PRETTY_FUNCTION__) for every log call.
+//  - ACCESS logs (Logger::access) should be used for request/response events and always include file/line/function.
+//  - Do NOT use removed single-argument overloads; all log calls must provide full source context.
+//  - Example:
+//      Logger::debug("Some debug info", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+//      Logger::access("Request log entry", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+//  - Compile-time filtering is controlled by LOG_MIN_LEVEL macro (see Makefile):
+//      - Default: WARNING and above
+//      - Debug build: DEBUG and above
+//  - All log entries are written to a single session log file in the logs/ directory.
+
 // Static member initialization
 std::string Logger::_sessionId = "";
 std::string Logger::_logDirectory = "logs";
 bool Logger::_sessionInitialized = false;
 std::ofstream Logger::_logFile;
-Logger::LogLevel Logger::_minLogLevel = Logger::INFO;
+// Compile-time configurable minimum log level. Override via -DLOG_MIN_LEVEL=<int> in build.
+// 0=DEBUG,1=INFO,2=WARNING,3=ERROR,4=CRITICAL
+#ifndef LOG_MIN_LEVEL
+#define LOG_MIN_LEVEL 2 // Default to WARNING: show WARNING/ERROR/CRITICAL by default
+#endif
+Logger::LogLevel Logger::_minLogLevel = static_cast<Logger::LogLevel>(LOG_MIN_LEVEL);
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -86,8 +104,9 @@ void Logger::setMinLogLevel(LogLevel level)
 
 void Logger::log(LogLevel level, const std::string &message)
 {
-	// if (level < _minLogLevel)
-	// 	return;
+	// Apply level filtering (DEBUG suppressed in normal builds)
+	if (level < _minLogLevel)
+		return;
 
 	std::string timestamp = _getCurrentTime();
 	std::string levelStr = _getLevelString(level);
@@ -112,6 +131,8 @@ void Logger::log(LogLevel level, const std::stringstream &ss)
 void Logger::log(LogLevel level, const std::string &message, const std::string &file, int line,
 				 const std::string &function)
 {
+	if (level < _minLogLevel)
+		return;
 	// Extract just the filename from the full path
 	std::string filename = file;
 	size_t lastSlash = filename.find_last_of("/\\");
@@ -136,29 +157,25 @@ void Logger::log(LogLevel level, const std::string &message, const std::string &
 	_logToConsole(level, logEntry);
 }
 
-void Logger::debug(const std::string &message)
-{
-	log(DEBUG, message);
-}
+// Removed message-only convenience overloads to enforce consistent style (file/line/function).
 
-void Logger::info(const std::string &message)
+void Logger::access(const std::string &message, const std::string &file, int line, const std::string &function)
 {
-	log(INFO, message);
-}
-
-void Logger::warning(const std::string &message)
-{
-	log(WARNING, message);
-}
-
-void Logger::error(const std::string &message)
-{
-	log(ERROR, message);
-}
-
-void Logger::critical(const std::string &message)
-{
-	log(CRITICAL, message);
+	// Access logs bypass level filtering but retain source context for traceability
+	std::string filename = file;
+	size_t lastSlash = filename.find_last_of("/\\");
+	if (lastSlash != std::string::npos)
+		filename = filename.substr(lastSlash + 1);
+	std::string timestamp = _getCurrentTime();
+	std::stringstream ss;
+	ss << "[" << timestamp << "] [ACCESS]  [" << filename << ":" << line << "] " << function << " " << message;
+	std::string logEntry = ss.str();
+	if (_sessionInitialized && _logFile.is_open())
+	{
+		_logFile << logEntry << std::endl;
+		_logFile.flush();
+	}
+	_logToConsole(INFO, logEntry);
 }
 
 void Logger::debug(const std::string &message, const std::string &file, int line, const std::string &function)
@@ -190,7 +207,8 @@ void Logger::logRequest(const std::string &method, const std::string &uri, const
 {
 	std::stringstream ss;
 	ss << clientIP << " - \"" << method << " " << uri << "\" " << statusCode;
-	log(INFO, ss.str());
+	// Route through enhanced access API; use this file/line/function
+	Logger::access(ss.str(), __FILE__, __LINE__, __PRETTY_FUNCTION__);
 }
 
 void Logger::logErrno(LogLevel level, const std::string &message)

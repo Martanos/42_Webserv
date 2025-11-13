@@ -16,11 +16,23 @@ private:
 	std::vector<std::string> _allowedMethods;
 	TrieTree<std::string> _indexes;
 	std::map<int, std::string> _statusPages;
-	bool _autoIndex;
+	bool _hasAutoIndex;
+	bool _autoIndexValue;
 	std::pair<int, std::string> _redirect;
 	std::string _cgiPath;
+	double _clientMaxBodySize;
+	std::map<std::string, std::string> _cgiParams;
 
 	// Flags
+	bool _hasRootDirective;
+	bool _hasAutoIndexDirective;
+	bool _hasCgiPathDirective;
+	bool _hasClientMaxBodySizeDirective;
+	bool _hasCgiParamsDirective;
+	bool _hasRedirectDirective;
+	bool _hasStatusPagesDirective;
+	bool _hasIndexesDirective;
+	bool _hasAllowedMethodsDirective;
 	bool _modified;
 
 public:
@@ -33,10 +45,13 @@ public:
 	bool hasAllowedMethod(const std::string &allowedMethod) const;
 	bool hasStatusPage(const int &status) const;
 	bool hasRedirect() const;
-	bool hasAutoIndex() const;
+	bool hasAutoIndex() const; // Line exists
+	bool isAutoIndex() const;  // Line value
 	bool hasIndex(const std::string &index) const;
 	bool hasIndexes() const;
 	bool hasCgiPath() const;
+	bool hasClientMaxBodySize() const;
+	bool hasCgiParams() const;
 	bool hasModified() const;
 	bool hasRoot() const;
 
@@ -48,6 +63,8 @@ public:
 	const std::pair<int, std::string> &getRedirect() const;
 	const TrieTree<std::string> &getIndexes() const;
 	const std::string &getCgiPath() const;
+	double getClientMaxBodySize() const;
+	const std::map<std::string, std::string> &getCgiParams() const;
 
 	// Mutators
 	void setPath(const std::string &path);
@@ -58,6 +75,8 @@ public:
 	void setRedirect(const std::pair<int, std::string> &redirect);
 	void setAutoIndex(const bool &autoIndex);
 	void setCgiPath(const std::string &cgiPath);
+	void setClientMaxBodySize(double size);
+	void setCgiParam(const std::string &key, const std::string &value);
 };
 
 std::ostream &operator<<(std::ostream &o, Location const &i);

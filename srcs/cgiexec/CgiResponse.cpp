@@ -130,7 +130,16 @@ void CgiResponse::populateHttpResponse(HttpResponse &httpResponse) const
 		httpResponse.setHeader(Header(it->first + ": " + it->second));
 	}
 
-	httpResponse.setBody(_body);
+	// Suppress body for status codes that MUST NOT have a body
+	if (_statusCode == 204 || _statusCode == 304 || (_statusCode >= 100 && _statusCode < 200))
+	{
+		// 204 No Content, 304 Not Modified, 1xx Informational - no body
+		httpResponse.setBody("");
+	}
+	else
+	{
+		httpResponse.setBody(_body);
+	}
 }
 
 /*
@@ -394,7 +403,7 @@ void CgiResponse::setDefaultHeaders()
 	// This ensures correct Content-Length even if CGI script provided an
 	// incorrect one or if no Content-Length was provided (EOF-based
 	// termination)
-		_headers["content-length"] = StrUtils::toString(_body.length());
+	_headers["content-length"] = StrUtils::toString(_body.length());
 
 	// Set Content-Type if not already set
 	if (!hasHeader("content-type"))

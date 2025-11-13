@@ -1,7 +1,6 @@
 #include "../../includes/Core/GetMethodHandler.hpp"
 #include "../../includes/Global/MimeTypeResolver.hpp"
 #include <dirent.h>
-#include <iomanip>
 
 GetMethodHandler::GetMethodHandler()
 {
@@ -22,24 +21,54 @@ GetMethodHandler &GetMethodHandler::operator=(const GetMethodHandler &other)
 	return *this;
 }
 
-bool GetMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &response, 
-									const Server *server, const Location *location)
+bool GetMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &response, const Server *server,
+									 const Location *location)
 {
 	if (!canHandle(request.getMethod()))
 	{
-		response.setStatus(405, "Method Not Allowed");
+		response.setResponseDefaultBody(405, "Method Not Allowed", server, location, HttpResponse::ERROR);
 		return false;
 	}
 
-	std::string uri = request.getUri();
-	std::string rootPath = location->hasRoot() ? location->getRoot() : server->getRootPath();
-	std::string filePath = rootPath + uri;
+	std::string filePath = request.getUri();
 
-	Logger::debug("GetMethodHandler: Serving file: " + filePath);
+	Logger::debug("GetMethodHandler: Serving file: " + filePath, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 
 	// Check if it's a directory
 	if (isDirectory(filePath))
 	{
+		// Attempt to serve configured index files before falling back to directory listing
+		if (location->hasIndexes())
+		{
+			const std::vector<std::string> &indexes = location->getIndexes().getAllValues();
+			for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); ++it)
+			{
+				std::string indexPath = filePath + "/" + *it;
+				Logger::debug("GetMethodHandler: Checking location index: " + indexPath, __FILE__, __LINE__,
+							  __PRETTY_FUNCTION__);
+				if (fileExists(indexPath))
+				{
+					Logger::debug("GetMethodHandler: Serving location index file: " + indexPath, __FILE__, __LINE__,
+								  __PRETTY_FUNCTION__);
+					return serveFile(indexPath, response, server, location);
+				}
+			}
+		}
+
+		const std::vector<std::string> serverIndexes = server->getIndexes().getAllValues();
+		for (std::vector<std::string>::const_iterator it = serverIndexes.begin(); it != serverIndexes.end(); ++it)
+		{
+			std::string indexPath = filePath + "/" + *it;
+			Logger::debug("GetMethodHandler: Checking server index: " + indexPath, __FILE__, __LINE__,
+						  __PRETTY_FUNCTION__);
+			if (fileExists(indexPath))
+			{
+				Logger::debug("GetMethodHandler: Serving server index file: " + indexPath, __FILE__, __LINE__,
+							  __PRETTY_FUNCTION__);
+				return serveFile(indexPath, response, server, location);
+			}
+		}
+
 		return serveDirectory(filePath, response, server, location);
 	}
 	else if (fileExists(filePath))
@@ -77,7 +106,7 @@ bool GetMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &r
 		}
 
 		// File not found
-		response.setStatus(404, "Not Found");
+		response.setResponseDefaultBody(404, "Not Found", server, location, HttpResponse::ERROR);
 		return false;
 	}
 }
@@ -87,59 +116,58 @@ bool GetMethodHandler::canHandle(const std::string &method) const
 	return method == "GET";
 }
 
-bool GetMethodHandler::serveFile(const std::string &filePath, HttpResponse &response, 
-								const Server *server, const Location *location)
+bool GetMethodHandler::serveFile(const std::string &filePath, HttpResponse &response, const Server *server,
+								 const Location *location)
 {
-	(void)server;
-	(void)location;
 	std::ifstream file(filePath.c_str(), std::ios::binary);
 	if (!file.is_open())
 	{
-		response.setStatus(403, "Forbidden");
+		response.setResponseDefaultBody(403, "Cannot access file: " + filePath, server, location, HttpResponse::ERROR);
 		return false;
 	}
 
-	// Read file content
-	std::ostringstream buffer;
-	buffer << file.rdbuf();
-	std::string content = buffer.str();
-	file.close();
-
 	// Set response
-	response.setStatus(200, "OK");
-	response.setBody(content);
-	response.setHeader(Header("Content-Type: " + getMimeType(filePath)));
-	response.setHeader(Header("Content-Length: " + StrUtils::toString(content.length())));
+	response.setResponseFile(200, "OK", filePath, MimeTypeResolver::resolveMimeType(filePath), HttpResponse::SUCCESS);
 
-	Logger::debug("GetMethodHandler: Successfully served file: " + filePath);
+	Logger::debug("GetMethodHandler: Successfully served file: " + filePath, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	return true;
 }
 
-bool GetMethodHandler::serveDirectory(const std::string &dirPath, HttpResponse &response, 
-									 const Server *server, const Location *location)
+bool GetMethodHandler::serveDirectory(const std::string &dirPath, HttpResponse &response, const Server *server,
+									  const Location *location)
 {
 	// Check if autoindex is enabled
-		if (location->hasAutoIndex())
+	if (location->hasAutoIndex())
 	{
-		std::string listing = generateDirectoryListing(dirPath, "");
-		response.setStatus(200, "OK");
-		response.setBody(listing);
-		response.setHeader(Header("Content-Type: text/html"));
-		response.setHeader(Header("Content-Length: " + StrUtils::toString(listing.length())));
-		return true;
+		if (location->isAutoIndex())
+		{
+			std::string listing = generateDirectoryListing(dirPath, "");
+			response.setResponseCustomBody(200, "OK", listing, "text/html", HttpResponse::SUCCESS);
+			return true;
+		}
+		else
+		{
+			response.setResponseDefaultBody(403, "Forbidden", server, location, HttpResponse::ERROR);
+			return false;
+		}
 	}
-		else if (server->isAutoIndex())
+	else if (server->hasAutoIndex())
 	{
-		std::string listing = generateDirectoryListing(dirPath, "");
-		response.setStatus(200, "OK");
-		response.setBody(listing);
-		response.setHeader(Header("Content-Type: text/html"));
-		response.setHeader(Header("Content-Length: " + StrUtils::toString(listing.length())));
-		return true;
+		if (server->isAutoIndex())
+		{
+			std::string listing = generateDirectoryListing(dirPath, "");
+			response.setResponseCustomBody(200, "OK", listing, "text/html", HttpResponse::SUCCESS);
+			return true;
+		}
+		else
+		{
+			response.setResponseDefaultBody(403, "Forbidden", server, location, HttpResponse::ERROR);
+			return false;
+		}
 	}
 	else
 	{
-		response.setStatus(403, "Forbidden");
+		response.setResponseDefaultBody(403, "Forbidden", server, location, HttpResponse::ERROR);
 		return false;
 	}
 }
@@ -167,7 +195,7 @@ std::string GetMethodHandler::generateDirectoryListing(const std::string &dirPat
 			{
 				if (S_ISDIR(st.st_mode))
 					name += "/";
-				
+
 				html << "<a href=\"" << name << "\">" << name << "</a>\n";
 			}
 		}
@@ -176,36 +204,6 @@ std::string GetMethodHandler::generateDirectoryListing(const std::string &dirPat
 
 	html << "</pre><hr></body></html>\n";
 	return html.str();
-}
-
-std::string GetMethodHandler::getMimeType(const std::string &filePath)
-{
-	// Simple MIME type detection based on file extension
-	size_t dotPos = filePath.find_last_of('.');
-	if (dotPos == std::string::npos)
-		return "application/octet-stream";
-
-	std::string extension = filePath.substr(dotPos + 1);
-	StrUtils::toLowerCase(extension);
-
-	if (extension == "html" || extension == "htm")
-		return "text/html";
-	else if (extension == "css")
-		return "text/css";
-	else if (extension == "js")
-		return "application/javascript";
-	else if (extension == "json")
-		return "application/json";
-	else if (extension == "png")
-		return "image/png";
-	else if (extension == "jpg" || extension == "jpeg")
-		return "image/jpeg";
-	else if (extension == "gif")
-		return "image/gif";
-	else if (extension == "txt")
-		return "text/plain";
-	else
-		return "application/octet-stream";
 }
 
 bool GetMethodHandler::isDirectory(const std::string &path)

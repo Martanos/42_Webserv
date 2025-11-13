@@ -2,14 +2,10 @@
 #define CGIEXECUTOR_HPP
 
 #include "../Wrapper/FileDescriptor.hpp"
-#include "../Global/Logger.hpp"
-#include <errno.h>
-#include <signal.h>
 #include <string>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <vector>
 
 class CgiExecutor
 {
@@ -71,7 +67,6 @@ private:
 	// Utility methods
 	bool isFileExecutable(const std::string &path) const;
 	std::string getInterpreterFromShebang(const std::string &scriptPath) const;
-	std::vector<char *> prepareExecArgs(const std::string &scriptPath, const std::string &interpreter) const;
 };
 
 #endif /* CGIEXECUTOR_HPP */

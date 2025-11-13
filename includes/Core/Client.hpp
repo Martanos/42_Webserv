@@ -24,17 +24,15 @@ class Client
 public:
 	enum ClientState
 	{
-		CLIENT_WAITING_FOR_REQUEST = 0,
-		CLIENT_PROCESSING_REQUESTS = 1,
-		CLIENT_PROCESSING_RESPONSES = 2,
-		CLIENT_DISCONNECTED = 3
+		WAITING_FOR_EPOLLIN = 0,  // Ready to process incoming data
+		WAITING_FOR_EPOLLOUT = 1, // Ready to send outgoing data
+		DISCONNECTED = 2		  // Client has been disconnected
 	};
 
 private:
 	// Objects
-	FileDescriptor _clientFd;  // File descriptor for the client
-	SocketAddress _localAddr;  // Local address of the client (Who am I locally)
-	SocketAddress _remoteAddr; // Remote address of the client (Who sent me)
+	FileDescriptor _clientFd;	  // File descriptor for the client
+	SocketAddress _remoteAddress; // Remote address of the client
 
 	// Request and response caches and buffers
 	HttpRequest _request;					  // Cached request (May be partially processed)
@@ -62,15 +60,12 @@ private:
 
 	// Response processing methods
 	void _handleResponseBuffer();
-
-	// Method handlers
-
-	// TODO: Utility methods
+	void _routeRequest();
 
 public:
 	// Orchestrator methods
 	Client();
-	Client(FileDescriptor socketFd, SocketAddress clientAddr, SocketAddress remoteAddr);
+	Client(FileDescriptor socketFd, SocketAddress remoteAddress);
 	Client(const Client &other);
 	Client &operator=(const Client &other);
 	~Client();

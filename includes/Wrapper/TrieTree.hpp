@@ -30,8 +30,9 @@ private:
 		TrieNode<T> *node;
 		std::string path;
 		typename std::map<char, TrieNode<T> *>::const_iterator childIt;
+		bool initialized;
 
-		IteratorState(TrieNode<T> *n, const std::string &p) : node(n), path(p), childIt()
+		IteratorState(TrieNode<T> *n, const std::string &p) : node(n), path(p), childIt(), initialized(false)
 		{
 		}
 	};
@@ -312,13 +313,15 @@ public:
 					_currentData = state.node->getData();
 					const std::map<char, TrieNode<T> *> &children = state.node->getChildren();
 					state.childIt = children.begin();
+					state.initialized = true;
 					return;
 				}
 
 				const std::map<char, TrieNode<T> *> &children = state.node->getChildren();
-				if (state.childIt == children.end())
+				if (!state.initialized)
 				{
 					state.childIt = children.begin();
+					state.initialized = true;
 				}
 
 				if (state.childIt != children.end())

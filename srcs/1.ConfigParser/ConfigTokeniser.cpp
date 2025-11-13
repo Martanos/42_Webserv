@@ -1,5 +1,5 @@
 #include "../../includes/ConfigParser/ConfigTokeniser.hpp"
-
+#include <iostream>
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
@@ -44,7 +44,8 @@ Token::Token ConfigTokeniser::consumeSingle(Token::TokenType type)
 
 bool ConfigTokeniser::isIdentChar(unsigned char ch)
 {
-	return std::isalnum(ch) || ch == '_' || ch == '-' || ch == '.' || ch == '/' || ch == '$';
+	return std::isalnum(ch) || ch == '_' || ch == '-' || ch == '.' || ch == '/' || ch == '$' || ch == ':' ||
+		   ch == '[' || ch == ']';
 }
 
 bool ConfigTokeniser::isDigit(unsigned char ch)
