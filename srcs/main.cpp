@@ -47,7 +47,11 @@ int main(int argc, char **argv)
 		std::vector<Server> servers = translator.getServers();
 		if (servers.empty())
 			throw std::runtime_error("No valid server blocks found in config file");
-
+		for (size_t i = 0; i < servers.size(); ++i)
+		{
+			Logger::log(Logger::INFO, "Configured Server " + StrUtils::toString<size_t>(i) + ":");
+			std::cout << servers[i] << std::endl;
+		}
 		// 3. Build server map
 		ServerMap serverMap(servers);
 		// Print occurs in ServerManager::run(), avoid duplicate dump here

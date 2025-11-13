@@ -77,8 +77,12 @@ std::ostream &operator<<(std::ostream &o, Server const &i)
 	o << std::endl;
 	o << "Root: " << i.getRootPath() << std::endl;
 	o << "Indexes: ";
-	for (TrieTree<std::string>::const_iterator it = i.getIndexes().begin(); it != i.getIndexes().end(); ++it)
-		o << *it << " ";
+	if (!i.getIndexes().isEmpty())
+	{
+		std::vector<std::string> indexes = i.getIndexes().getAllKeys();
+		for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); ++it)
+			o << *it << " ";
+	}
 	o << std::endl;
 	o << "Autoindex: " << (i.isAutoIndex() ? "true" : "false") << std::endl;
 	o << "Client max body size: " << i.getClientMaxBodySize() << std::endl;
@@ -89,8 +93,15 @@ std::ostream &operator<<(std::ostream &o, Server const &i)
 		o << it->first << ": " << it->second << " ";
 	o << std::endl;
 	o << "Locations: ";
-	for (TrieTree<Location>::const_iterator it = i.getLocations().begin(); it != i.getLocations().end(); ++it)
-		o << it->getPath() << " ";
+	if (!i.getLocations().isEmpty())
+	{
+		std::vector<Location> locations = i.getLocations().getAllValues();
+		for (std::vector<Location>::const_iterator it = locations.begin(); it != locations.end(); ++it)
+			o << it->getPath() << " ";
+		for (std::vector<Location>::const_iterator it = locations.begin(); it != locations.end(); ++it)
+			o << std::endl
+			  << *it;
+	}
 	o << std::endl;
 	o << "--------------------------------" << std::endl;
 	return o;

@@ -79,7 +79,7 @@ public:
 	void setCgiParam(const std::string &key, const std::string &value);
 };
 
-void operator<<(std::ostream &o, Location const &i);
+std::ostream &operator<<(std::ostream &o, Location const &i);
 
 #endif /* ******************************************************** LOCATION_H                                          \
 		*/

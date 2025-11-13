@@ -15,6 +15,7 @@ Location::Location(const std::string &path)
 	_statusPages = std::map<int, std::string>();
 	_redirect = std::pair<int, std::string>();
 	_indexes = TrieTree<std::string>();
+	_autoIndex = false;
 	_cgiPath = std::string();
 	_clientMaxBodySize = -1.0;
 	_cgiParams = std::map<std::string, std::string>();
@@ -60,7 +61,7 @@ Location &Location::operator=(Location const &rhs)
 	return *this;
 }
 
-void operator<<(std::ostream &o, Location const &i)
+std::ostream &operator<<(std::ostream &o, Location const &i)
 {
 	o << "--------------------------------" << std::endl;
 	o << "Path: " << i.getPath() << std::endl;
@@ -78,11 +79,13 @@ void operator<<(std::ostream &o, Location const &i)
 	o << std::endl;
 	o << "AutoIndex: " << i.hasAutoIndex() << std::endl;
 	o << "Indexes: ";
-	for (TrieTree<std::string>::const_iterator it = i.getIndexes().begin(); it != i.getIndexes().end(); ++it)
+	std::vector<std::string> indexes = i.getIndexes().getAllKeys();
+	for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); ++it)
 		o << *it << " ";
 	o << std::endl;
 	o << "CgiPath: " << i.getCgiPath() << std::endl;
 	o << "--------------------------------" << std::endl;
+	return o;
 }
 
 /*
