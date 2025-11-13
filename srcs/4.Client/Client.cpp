@@ -189,7 +189,7 @@ void Client::_handleRequest()
 void Client::_routeRequest()
 {
 	// change keep alive setting depending on found server
-	if (_request.getSelectedServer()->isKeepAlive())
+	if (_request.getSelectedServer()->getKeepAliveValue())
 		_keepAlive = true;
 	else
 		_keepAlive = false;
@@ -254,8 +254,8 @@ void Client::_routeRequest()
 	{
 		Logger::error("Client: Failed to create handler for method: " + _request.getMethod(), __FILE__, __LINE__,
 					  __PRETTY_FUNCTION__);
-		_response.setResponseDefaultBody(500, "Failed to create handler for method: " + _request.getMethod(),
-										 _request.getSelectedServer(), location, HttpResponse::FATAL_ERROR);
+		_response.setResponseDefaultBody(403, "Method Not Implemented: " + _request.getMethod(),
+										 _request.getSelectedServer(), location, HttpResponse::ERROR);
 	}
 }
 

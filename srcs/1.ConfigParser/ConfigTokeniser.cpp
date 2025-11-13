@@ -1,5 +1,4 @@
 #include "../../includes/ConfigParser/ConfigTokeniser.hpp"
-#include <iostream>
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */

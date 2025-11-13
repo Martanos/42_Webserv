@@ -126,9 +126,9 @@ Server ConfigTranslator::_translateServer(const AST::ASTNode &ast)
 			Location location((*it)->value);
 			Logger::debug("Processing location block: " + (*it)->value, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			_translateLocation(**it, location);
-			Logger::debug("Location modified: " + std::string(location.hasModified() ? "true" : "false"), __FILE__,
+			Logger::debug("Location modified: " + std::string(location.wasModified() ? "true" : "false"), __FILE__,
 						  __LINE__, __PRETTY_FUNCTION__);
-			if (location.hasModified())
+			if (location.wasModified())
 				server.insertLocation(location);
 			else
 				Logger::warning("No valid members in location block" + StrUtils::toString<int>((*it)->line) +
@@ -140,6 +140,17 @@ Server ConfigTranslator::_translateServer(const AST::ASTNode &ast)
 								" line: " + StrUtils::toString<int>((*it)->line) +
 								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
 							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+	}
+	// Inheritence step: propagate server-level members to locations that lack them
+	for (TrieTree<Location>::iterator locIt = server.getLocations().begin(); locIt != server.getLocations().end();
+		 ++locIt)
+	{
+		if (!locIt->hasRootDirective() && !server.hasRootPathDirective())
+			locIt->setRoot(server.getRootPath());
+		if (!locIt->hasIndexesDirective() && !server.hasIndexDirective())
+			locIt->setIndexes(server.getIndexes());
+		if (!locIt->hasAllowedMethodsDirective() && !server.hasAllowedMethodsDirective())
+			locIt->setAllowedMethods(server.getAllowedMethods());
 	}
 	return server;
 }
@@ -543,8 +554,6 @@ void ConfigTranslator::_translateLocation(const AST::ASTNode &location_node, Loc
 					_translateLocationIndex(**it, location);
 				else if ((*it)->value == "cgi_path")
 					_translateLocationCgiPath(**it, location);
-				else if ((*it)->value == "cgi_param")
-					_translateLocationCgiParam(**it, location);
 				else if ((*it)->value == "client_max_body_size")
 					_translateLocationClientMaxBodySize(**it, location);
 				else
@@ -620,55 +629,55 @@ void ConfigTranslator::_translateLocationClientMaxBodySize(const AST::ASTNode &d
 	}
 }
 
-void ConfigTranslator::_translateLocationCgiParam(const AST::ASTNode &directive, Location &location)
-{
-	try
-	{
-		std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
-		if (it == directive.children.end())
-		{
-			Logger::warning("No arguments in location cgi param directive: " + directive.value +
-								" line: " + StrUtils::toString<int>(directive.line) +
-								" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
-							__FILE__, __LINE__, __PRETTY_FUNCTION__);
-			return;
-		}
-		if ((*it)->type != AST::ARG)
-		{
-			Logger::warning("Invalid key token in location cgi param directive: " + (*it)->value +
-								" line: " + StrUtils::toString<int>((*it)->line) +
-								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
-							__FILE__, __LINE__, __PRETTY_FUNCTION__);
-			return;
-		}
-		const std::string key = (*it)->value;
-		++it;
-		if (it == directive.children.end() || (*it)->type != AST::ARG)
-		{
-			Logger::warning("Missing value in location cgi param directive: " + directive.value +
-								" line: " + StrUtils::toString<int>(directive.line) +
-								" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
-							__FILE__, __LINE__, __PRETTY_FUNCTION__);
-			return;
-		}
-		const std::string value = (*it)->value;
-		location.setCgiParam(key, value);
-		while (++it != directive.children.end())
-		{
-			Logger::warning("Extra argument in location cgi param directive: " + (*it)->value +
-								" line: " + StrUtils::toString<int>((*it)->line) +
-								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
-							__FILE__, __LINE__, __PRETTY_FUNCTION__);
-		}
-	}
-	catch (const std::exception &e)
-	{
-		Logger::error("Error translating location cgi param directive: " + std::string(e.what()) +
-						  " line: " + StrUtils::toString<int>(directive.line) +
-						  " column: " + StrUtils::toString<int>(directive.column) + " skipping...",
-					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
-	}
-}
+// void ConfigTranslator::_translateLocationCgiParam(const AST::ASTNode &directive, Location &location)
+// {
+// 	try
+// 	{
+// 		std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
+// 		if (it == directive.children.end())
+// 		{
+// 			Logger::warning("No arguments in location cgi param directive: " + directive.value +
+// 								" line: " + StrUtils::toString<int>(directive.line) +
+// 								" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+// 							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+// 			return;
+// 		}
+// 		if ((*it)->type != AST::ARG)
+// 		{
+// 			Logger::warning("Invalid key token in location cgi param directive: " + (*it)->value +
+// 								" line: " + StrUtils::toString<int>((*it)->line) +
+// 								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+// 							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+// 			return;
+// 		}
+// 		const std::string key = (*it)->value;
+// 		++it;
+// 		if (it == directive.children.end() || (*it)->type != AST::ARG)
+// 		{
+// 			Logger::warning("Missing value in location cgi param directive: " + directive.value +
+// 								" line: " + StrUtils::toString<int>(directive.line) +
+// 								" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+// 							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+// 			return;
+// 		}
+// 		const std::string value = (*it)->value;
+// 		location.setCgiParam(key, value);
+// 		while (++it != directive.children.end())
+// 		{
+// 			Logger::warning("Extra argument in location cgi param directive: " + (*it)->value +
+// 								" line: " + StrUtils::toString<int>((*it)->line) +
+// 								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+// 							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+// 		}
+// 	}
+// 	catch (const std::exception &e)
+// 	{
+// 		Logger::error("Error translating location cgi param directive: " + std::string(e.what()) +
+// 						  " line: " + StrUtils::toString<int>(directive.line) +
+// 						  " column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+// 					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
+// 	}
+// }
 
 void ConfigTranslator::_translateLocationRoot(const AST::ASTNode &directive, Location &location)
 {

@@ -142,7 +142,7 @@ void HttpResponse::setResponseDefaultBody(int statusCode, const std::string &sta
 	}
 	else if (server && server->hasStatusPage(_statusCode))
 	{
-		std::string statusPagePath = server->getRootPath() + server->getStatusPages().find(_statusCode)->second;
+		std::string statusPagePath = server->getRootPath() + server->getStatusPaths().find(_statusCode)->second;
 		statusPagePath = FileUtils::normalizePath(statusPagePath);
 		if (FileUtils::isFileReadable(statusPagePath))
 		{
@@ -346,7 +346,7 @@ void HttpResponse::setBody(const Location *location, const Server *server)
 	}
 	else if (server && server->hasStatusPage(_statusCode))
 	{
-		std::string statusPagePath = server->getStatusPages().find(_statusCode)->second;
+		std::string statusPagePath = server->getStatusPaths().find(_statusCode)->second;
 		statusPagePath = FileUtils::normalizePath(statusPagePath);
 		if (FileUtils::isFileReadable(statusPagePath))
 		{

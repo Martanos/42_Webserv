@@ -17,18 +17,37 @@ private:
 	TrieTree<std::string> _serverNames;
 	std::vector<SocketAddress> _sockets;
 
-	// Main members
-	std::string _rootPath;
-	TrieTree<std::string> _indexes;
-	bool _hasAutoIndex;
-	bool _autoIndexValue;
-	double _clientMaxBodySize;
-	std::map<int, std::string> _statusPages;
-	TrieTree<Location> _locations;
-	bool _keepAlive;
+	// Identifier flags
+	bool _hasServerNameDirective;
+	bool _hasSocketDirective;
 
-	// Flags
-	bool _modified;
+	// Directive members
+	std::string _rootPath;
+	bool _autoIndexValue;
+	std::string _cgiPath;
+	double _clientMaxBodySize;
+	bool _keepAlive;
+	std::pair<int, std::string> _redirect;
+	TrieTree<std::string> _indexes;
+	std::map<int, std::string> _statusPages;
+	std::vector<std::string> _allowedMethods;
+
+	// Directive flags
+	bool _hasRootPathDirective;
+	bool _hasAutoIndexDirective;
+	bool _hasCgiPathDirective;
+	bool _hasClientMaxBodySizeDirective;
+	bool _hasKeepAliveDirective;
+	bool _hasRedirectDirective;
+	bool _hasIndexDirective;
+	bool _hasStatusPageDirective;
+	bool _hasAllowedMethodsDirective;
+
+	// Location blocks
+	TrieTree<Location> _locations;
+
+	// Location flags
+	bool _hasLocationBlocks;
 
 public:
 	Server();
@@ -36,40 +55,87 @@ public:
 	~Server();
 	Server &operator=(Server const &rhs);
 
-	// Investigators
+	/* Identifiers*/
+
+	// Identifier flag investigators
+	bool hasServerNameDirective() const;
+	bool hasSocketDirective() const;
+
+	// Identifier investigators
 	bool hasServerName(const std::string &serverName) const;
 	bool hasSocketAddress(const SocketAddress &socketAddress) const;
-	bool hasIndex(const std::string &index) const;
-	bool hasLocation(const std::string &path) const;
-	bool hasStatusPage(int status) const;
-	bool hasAutoIndex() const; // Line exists
-	bool isAutoIndex() const;  // Line value
-	bool isKeepAlive() const;
-	bool isModified() const;
-	bool hasRootPath() const;
 
-	// Accessors
+	// Identifier accessors
 	const TrieTree<std::string> &getServerNames() const;
 	const std::vector<SocketAddress> &getSocketAddresses() const;
-	const std::string &getRootPath() const;
-	const TrieTree<std::string> &getIndexes() const;
-	double getClientMaxBodySize() const;
-	const std::string &getStatusPath(int status) const;
-	const std::map<int, std::string> &getStatusPages() const;
-	const TrieTree<Location> &getLocations() const;
-	const Location *getLocation(const std::string &path) const;
 
-	// Mutators
+	// Identifier mutators
 	void insertServerName(const std::string &serverName);
 	void insertSocketAddress(const SocketAddress &socketAddress);
-	void insertIndex(const std::string &index);
-	void insertLocation(const Location &location);
-	void insertStatusPage(const std::string &path, const std::vector<int> &codes);
-	void setKeepAlive(const bool &keepAlive);
-	void setClientMaxBodySize(const double &clientMaxBodySize);
-	void setRoot(const std::string &root);
-	void setAutoindex(const bool &autoindex);
 
+	/* Directives */
+
+	// Directive flag investigators
+	bool hasRootPathDirective() const;
+	bool hasAutoIndexDirective() const;
+	bool hasCgiPathDirective() const;
+	bool hasClientMaxBodySizeDirective() const;
+	bool hasKeepAliveDirective() const;
+	bool hasRedirectDirective() const;
+	bool hasIndexesDirective() const;
+	bool hasStatusPagesDirective() const;
+	bool hasAllowedMethodsDirective() const;
+
+	// Directive investigators
+	bool hasIndex(const std::string &index) const;
+	bool hasStatusPage(int status) const;
+	bool hasAllowedMethod(const std::string &allowedMethod) const;
+
+	// Directive accessors
+	const std::string &getRootPath() const;
+	bool getAutoIndexValue() const;
+	const std::string &getCgiPath() const;
+	double getClientMaxBodySize() const;
+	bool getKeepAliveValue() const;
+	const std::pair<int, std::string> &getRedirect() const;
+	const TrieTree<std::string> &getIndexes() const;
+	const std::string &getStatusPath(int status) const;
+	const std::map<int, std::string> &getStatusPaths() const;
+	const std::vector<std::string> &getAllowedMethods() const;
+
+	// Directive Mutators
+	void setRootPath(const std::string &root);
+	void setAutoIndex(bool autoIndex);
+	void setCgiPath(const std::string &cgiPath);
+	void setClientMaxBodySize(double clientMaxBodySize);
+	void setKeepAlive(bool keepAlive);
+	void setRedirect(const std::pair<int, std::string> &redirect);
+	void insertIndex(const std::string &index);
+	void setIndexes(const TrieTree<std::string> &indexes);
+	void insertStatusPath(const std::vector<int> &codes, const std::string &path);
+	void setStatusPaths(const std::map<int, std::string> &statusPages);
+	void insertAllowedMethod(const std::string &allowedMethod);
+	void setAllowedMethods(const std::vector<std::string> &allowedMethods);
+
+	/* Locations */
+
+	// Location flag investigators
+	bool hasLocationBlocks() const;
+
+	// Location investigators
+	bool hasLocation(const std::string &path) const;
+	bool hasLongestPrefixLocation(const std::string &path) const;
+
+	// Location accessors
+	const TrieTree<Location> &getLocations() const;
+	TrieTree<Location> &getLocations();
+	const Location *getLocation(const std::string &path) const;
+
+	// Location Mutators
+	void insertLocation(const Location &location);
+
+	// Server Utils
+	bool isModified() const;
 	void reset();
 };
 

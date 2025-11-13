@@ -28,11 +28,9 @@ PutMethodHandler &PutMethodHandler::operator=(const PutMethodHandler &other)
 bool PutMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &response, const Server *server,
 									 const Location *location)
 {
-	(void)server;
-	(void)location;
 	if (!canHandle(request.getMethod()))
 	{
-		response.setStatus(405, "Method Not Allowed");
+		response.setResponseDefaultBody(405, "Method Not Allowed", server, location, HttpResponse::ERROR);
 		return false;
 	}
 

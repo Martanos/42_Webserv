@@ -6,23 +6,11 @@
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-Location::Location(const std::string &path)
+Location::Location(const std::string &locationPath)
 {
 	// Identifier members
-	_path = path;
-	_root = std::string();
-	_allowedMethods = std::vector<std::string>();
-	_statusPages = std::map<int, std::string>();
-	_redirect = std::pair<int, std::string>();
-	_indexes = TrieTree<std::string>();
-	_autoIndex = false;
-	_cgiPath = std::string();
-	_clientMaxBodySize = -1.0;
-	_cgiParams = std::map<std::string, std::string>();
-	_hasAutoIndex = false;
-
-	// Flags
-	_modified = false;
+	_locationPath = locationPath;
+	reset();
 }
 
 Location::Location(const Location &src)
@@ -39,24 +27,37 @@ Location::~Location()
 }
 
 /*
-** --------------------------------- OVERLOAD ---------------------------------
+** --------------------------------- OVERLOADS ---------------------------------
 */
 
 Location &Location::operator=(Location const &rhs)
 {
 	if (this != &rhs)
 	{
-		_path = rhs._path;
-		_root = rhs._root;
-		_allowedMethods = rhs._allowedMethods;
-		_redirect = rhs._redirect;
-		_hasAutoIndex = rhs._hasAutoIndex;
+		// Identifiers
+		_locationPath = rhs._locationPath;
+
+		// Directives
+		_rootPath = rhs._rootPath;
 		_autoIndexValue = rhs._autoIndexValue;
-		_indexes = rhs._indexes;
 		_cgiPath = rhs._cgiPath;
 		_clientMaxBodySize = rhs._clientMaxBodySize;
-		_cgiParams = rhs._cgiParams;
-		_modified = rhs._modified;
+		_keepAliveValue = rhs._keepAliveValue;
+		_redirect = rhs._redirect;
+		_indexes = rhs._indexes;
+		_statusPages = rhs._statusPages;
+		_allowedMethods = rhs._allowedMethods;
+
+		// Flags
+		_hasRootPathDirective = rhs._hasRootPathDirective;
+		_hasAutoIndexDirective = rhs._hasAutoIndexDirective;
+		_hasCgiPathDirective = rhs._hasCgiPathDirective;
+		_hasClientMaxBodySizeDirective = rhs._hasClientMaxBodySizeDirective;
+		_hasKeepAliveDirective = rhs._hasKeepAliveDirective;
+		_hasRedirectDirective = rhs._hasRedirectDirective;
+		_hasIndexDirective = rhs._hasIndexDirective;
+		_hasStatusPagesDirective = rhs._hasStatusPagesDirective;
+		_hasAllowedMethodsDirective = rhs._hasAllowedMethodsDirective;
 	}
 	return *this;
 }
@@ -64,106 +65,129 @@ Location &Location::operator=(Location const &rhs)
 std::ostream &operator<<(std::ostream &o, Location const &i)
 {
 	o << "--------------------------------" << std::endl;
-	o << "Path: " << i.getPath() << std::endl;
-	o << "Root: " << i.getRoot() << std::endl;
-	o << "Allowed Methods: ";
-	for (std::vector<std::string>::const_iterator it = i.getAllowedMethods().begin(); it != i.getAllowedMethods().end();
-		 ++it)
-		o << *it << " ";
-	o << std::endl;
-	o << "Redirect: " << i.getRedirect().first << " " << i.getRedirect().second << std::endl;
-	o << "Status pages: ";
-	for (std::map<int, std::string>::const_iterator it = i.getStatusPages().begin(); it != i.getStatusPages().end();
-		 ++it)
-		o << it->first << ": " << it->second << " ";
-	o << std::endl;
-	o << "AutoIndex: " << i.hasAutoIndex() << std::endl;
-	o << "Indexes: ";
-	std::vector<std::string> indexes = i.getIndexes().getAllKeys();
-	for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); ++it)
-		o << *it << " ";
-	o << std::endl;
-	o << "CgiPath: " << i.getCgiPath() << std::endl;
+	o << "Path: " << i.getLocationPath() << std::endl;
+	if (i.hasRootPathDirective())
+		o << "Root: " << i.getRootPath() << std::endl;
+	if (i.hasAutoIndexDirective())
+		o << "AutoIndex: " << (i.getAutoIndexValue() ? "on" : "off") << std::endl;
+	if (i.hasCgiPathDirective())
+		o << "CgiPath: " << i.getCgiPath() << std::endl;
+	if (i.hasClientMaxBodySizeDirective())
+		o << "Client Max Body Size: " << i.getClientMaxBodySize() << std::endl;
+	if (i.hasAllowedMethodsDirective())
+	{
+		o << "Allowed Methods: ";
+		const std::vector<std::string> &methods = i.getAllowedMethods();
+		for (size_t idx = 0; idx < methods.size(); ++idx)
+		{
+			o << methods[idx];
+			if (idx < methods.size() - 1)
+				o << ", ";
+		}
+		o << std::endl;
+	}
+	if (i.hasIndexDirective())
+	{
+		o << "Indexes: " << std::endl;
+		const std::vector<std::string> &indexes = i.getIndexes().getAllKeys();
+		for (size_t idx = 0; idx < indexes.size(); ++idx)
+		{
+			o << "  " << indexes[idx] << std::endl;
+		}
+	}
+	if (i.hasStatusPagesDirective())
+	{
+		o << "Status Pages: " << std::endl;
+		const std::map<int, std::string> &statusPages = i.getStatusPaths();
+		for (std::map<int, std::string>::const_iterator it = statusPages.begin(); it != statusPages.end(); ++it)
+		{
+			o << "  " << it->first << " -> " << it->second << std::endl;
+		}
+	}
+	if (i.hasRedirectDirective())
+	{
+		const std::pair<int, std::string> &redirect = i.getRedirect();
+		o << "Redirect: " << redirect.first << " -> " << redirect.second << std::endl;
+	}
 	o << "--------------------------------" << std::endl;
 	return o;
 }
 
 /*
-** --------------------------------- INVESTIGATORS ---------------------------------
+** --------------------------------- IDENTIFIER ACCESSORS ---------------------------------
 */
 
-bool Location::hasAllowedMethod(const std::string &allowedMethod) const
+const std::string &Location::getLocationPath() const
 {
-	return std::find(_allowedMethods.begin(), _allowedMethods.end(), allowedMethod) != _allowedMethods.end();
+	return _locationPath;
 }
 
+/*
+** --------------------------------- DIRECTIVE FLAGS ---------------------------------
+*/
+
+bool Location::hasRootPathDirective() const
+{
+	return _hasRootPathDirective;
+}
+bool Location::hasAutoIndexDirective() const
+{
+	return _hasAutoIndexDirective;
+}
+bool Location::hasCgiPathDirective() const
+{
+	return _hasCgiPathDirective;
+}
+bool Location::hasClientMaxBodySizeDirective() const
+{
+	return _hasClientMaxBodySizeDirective;
+}
+bool Location::hasKeepAliveDirective() const
+{
+	return _hasKeepAliveDirective;
+}
+bool Location::hasRedirectDirective() const
+{
+	return _hasRedirectDirective;
+}
+bool Location::hasIndexDirective() const
+{
+	return _hasIndexDirective;
+}
+bool Location::hasStatusPagesDirective() const
+{
+	return _hasStatusPagesDirective;
+}
+bool Location::hasAllowedMethodsDirective() const
+{
+	return _hasAllowedMethodsDirective;
+}
+
+/*
+** --------------------------------- DIRECTIVE INVESTIGATORS ---------------------------------
+*/
+
+bool Location::hasIndex(const std::string &index) const
+{
+	return _indexes.contains(index);
+}
 bool Location::hasStatusPage(const int &status) const
 {
 	return _statusPages.find(status) != _statusPages.end();
 }
-
-bool Location::hasRedirect() const
+bool Location::hasAllowedMethod(const std::string &allowedMethod) const
 {
-	return _redirect.first != 0 && !_redirect.second.empty();
-}
-
-bool Location::hasAutoIndex() const
-{
-	return _hasAutoIndex;
-}
-
-bool Location::isAutoIndex() const
-{
-	return _autoIndexValue;
-}
-bool Location::hasIndexes() const
-{
-	return _indexes.size() > 0;
-}
-
-bool Location::hasIndex(const std::string &index) const
-{
-	return _indexes.find(index) != NULL;
-}
-bool Location::hasCgiPath() const
-{
-	return !_cgiPath.empty();
-}
-
-bool Location::hasClientMaxBodySize() const
-{
-	return _clientMaxBodySize >= 0.0;
-}
-
-bool Location::hasCgiParams() const
-{
-	return !_cgiParams.empty();
-}
-
-bool Location::hasModified() const
-{
-	return _modified;
-}
-
-bool Location::hasRoot() const
-{
-	return !_root.empty();
+	return std::find(_allowedMethods.begin(), _allowedMethods.end(), allowedMethod) != _allowedMethods.end();
 }
 
 /*
 ** --------------------------------- ACCESSORS ---------------------------------
 */
 
-const std::string &Location::getPath() const
+const std::string &Location::getRootPath() const
 {
-	return _path;
+	return _rootPath;
 }
-
-const std::string &Location::getRoot() const
-{
-	return _root;
-}
-
 const std::vector<std::string> &Location::getAllowedMethods() const
 {
 	return _allowedMethods;
@@ -174,7 +198,7 @@ const std::pair<int, std::string> &Location::getRedirect() const
 	return _redirect;
 }
 
-const std::map<int, std::string> &Location::getStatusPages() const
+const std::map<int, std::string> &Location::getStatusPaths() const
 {
 	return _statusPages;
 }
@@ -194,9 +218,9 @@ double Location::getClientMaxBodySize() const
 	return _clientMaxBodySize;
 }
 
-const std::map<std::string, std::string> &Location::getCgiParams() const
+bool Location::getAutoIndexValue() const
 {
-	return _cgiParams;
+	return _autoIndexValue;
 }
 
 /*
@@ -210,14 +234,26 @@ void Location::setPath(const std::string &path)
 
 void Location::setRoot(const std::string &root)
 {
+	_hasRootDirective = true;
 	_root = root;
-	_modified = true;
 }
 
 void Location::insertAllowedMethod(const std::string &allowedMethod)
 {
+	_hasAllowedMethodsDirective = true;
 	_allowedMethods.push_back(allowedMethod);
-	_modified = true;
+}
+
+void Location::setAllowedMethods(const std::vector<std::string> &allowedMethods)
+{
+	_hasAllowedMethodsDirective = true;
+	_allowedMethods = allowedMethods;
+}
+
+void Location::setStatusPages(const std::map<int, std::string> &statusPages)
+{
+	_statusPages = statusPages;
+	_hasStatusPagesDirective = true;
 }
 
 void Location::insertStatusPage(const std::vector<int> &codes, const std::string &path)
@@ -226,44 +262,71 @@ void Location::insertStatusPage(const std::vector<int> &codes, const std::string
 	{
 		_statusPages.insert(std::make_pair(*it, path));
 	}
-	_modified = true;
+	_hasStatusPagesDirective = true;
 }
 
 void Location::setRedirect(const std::pair<int, std::string> &redirect)
 {
 	_redirect = redirect;
-	_modified = true;
+	_hasRedirectDirective = true;
 }
 
 void Location::setAutoIndex(const bool &autoIndex)
 {
 	_autoIndexValue = autoIndex;
-	_hasAutoIndex = true;
-	_modified = true;
+	_hasAutoIndexDirective = true;
 }
 
 void Location::insertIndex(const std::string &index)
 {
 	_indexes.insert(index, index);
-	_modified = true;
+	_hasIndexesDirective = true;
 }
 
 void Location::setCgiPath(const std::string &cgiPath)
 {
 	_cgiPath = cgiPath;
-	_modified = true;
+	_hasCgiPathDirective = true;
 }
 
 void Location::setClientMaxBodySize(double size)
 {
 	_clientMaxBodySize = size;
-	_modified = true;
+	_hasClientMaxBodySizeDirective = true;
 }
 
-void Location::setCgiParam(const std::string &key, const std::string &value)
+/*
+** --------------------------------- UTILITY ---------------------------------
+*/
+
+bool Location::wasModified() const
 {
-	_cgiParams[key] = value;
-	_modified = true;
+	return _hasAllowedMethodsDirective || _hasStatusPagesDirective || _hasRedirectDirective || _hasIndexDirective ||
+		   _hasCgiPathDirective || _hasClientMaxBodySizeDirective || _hasRootPathDirective || _hasAutoIndexDirective;
+}
+
+void Location::reset()
+{
+	// Directives
+	_rootPath.clear();
+	_allowedMethods.clear();
+	_statusPages.clear();
+	_redirect = std::pair<int, std::string>();
+	_indexes.clear();
+	_autoIndexValue = false;
+	_cgiPath.clear();
+	_clientMaxBodySize = -1.0;
+
+	// Flags
+	_hasRootPathDirective = false;
+	_hasAutoIndexDirective = false;
+	_hasCgiPathDirective = false;
+	_hasClientMaxBodySizeDirective = false;
+	_hasKeepAliveDirective = false;
+	_hasRedirectDirective = false;
+	_hasIndexDirective = false;
+	_hasStatusPagesDirective = false;
+	_hasAllowedMethodsDirective = false;
 }
 
 /* ************************************************************************** */

@@ -38,7 +38,7 @@ private:
 	void _translateLocationAutoindex(const AST::ASTNode &directive, Location &location);
 	void _translateLocationIndex(const AST::ASTNode &directive, Location &location);
 	void _translateLocationCgiPath(const AST::ASTNode &directive, Location &location);
-	void _translateLocationCgiParam(const AST::ASTNode &directive, Location &location);
+	// void _translateLocationCgiParam(const AST::ASTNode &directive, Location &location);
 	void _translateLocationClientMaxBodySize(const AST::ASTNode &directive, Location &location);
 
 public:

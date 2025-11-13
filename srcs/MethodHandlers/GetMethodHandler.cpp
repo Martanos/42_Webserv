@@ -24,12 +24,11 @@ GetMethodHandler &GetMethodHandler::operator=(const GetMethodHandler &other)
 bool GetMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &response, const Server *server,
 									 const Location *location)
 {
+	// Step 1: Validate method
 	if (!canHandle(request.getMethod()))
-	{
-		response.setResponseDefaultBody(405, "Method Not Allowed", server, location, HttpResponse::ERROR);
 		return false;
-	}
 
+	// step 2: Get sanitized file path
 	std::string filePath = request.getUri();
 
 	Logger::debug("GetMethodHandler: Serving file: " + filePath, __FILE__, __LINE__, __PRETTY_FUNCTION__);
@@ -37,38 +36,42 @@ bool GetMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &r
 	// Check if it's a directory
 	if (isDirectory(filePath))
 	{
-		// Attempt to serve configured index files before falling back to directory listing
-		if (location->hasIndexes())
+		// Location takes precedence over server for index and autoindex
+		if (location)
 		{
-			const std::vector<std::string> &indexes = location->getIndexes().getAllValues();
-			for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); ++it)
+			if (location->hasIndexesDirective())
+			{
+				const std::vector<std::string> &indexes = location->getIndexes().getAllValues();
+				for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); ++it)
+				{
+					std::string indexPath = filePath + "/" + *it;
+					Logger::debug("GetMethodHandler: Checking location index: " + indexPath, __FILE__, __LINE__,
+								  __PRETTY_FUNCTION__);
+					if (fileExists(indexPath))
+					{
+						Logger::debug("GetMethodHandler: Serving location index file: " + indexPath, __FILE__, __LINE__,
+									  __PRETTY_FUNCTION__);
+						return serveFile(indexPath, response, server, location);
+					}
+				}
+			}
+		}
+		else if (server)
+		{
+			const std::vector<std::string> serverIndexes = server->getIndexes().getAllValues();
+			for (std::vector<std::string>::const_iterator it = serverIndexes.begin(); it != serverIndexes.end(); ++it)
 			{
 				std::string indexPath = filePath + "/" + *it;
-				Logger::debug("GetMethodHandler: Checking location index: " + indexPath, __FILE__, __LINE__,
+				Logger::debug("GetMethodHandler: Checking server index: " + indexPath, __FILE__, __LINE__,
 							  __PRETTY_FUNCTION__);
 				if (fileExists(indexPath))
 				{
-					Logger::debug("GetMethodHandler: Serving location index file: " + indexPath, __FILE__, __LINE__,
+					Logger::debug("GetMethodHandler: Serving server index file: " + indexPath, __FILE__, __LINE__,
 								  __PRETTY_FUNCTION__);
 					return serveFile(indexPath, response, server, location);
 				}
 			}
 		}
-
-		const std::vector<std::string> serverIndexes = server->getIndexes().getAllValues();
-		for (std::vector<std::string>::const_iterator it = serverIndexes.begin(); it != serverIndexes.end(); ++it)
-		{
-			std::string indexPath = filePath + "/" + *it;
-			Logger::debug("GetMethodHandler: Checking server index: " + indexPath, __FILE__, __LINE__,
-						  __PRETTY_FUNCTION__);
-			if (fileExists(indexPath))
-			{
-				Logger::debug("GetMethodHandler: Serving server index file: " + indexPath, __FILE__, __LINE__,
-							  __PRETTY_FUNCTION__);
-				return serveFile(indexPath, response, server, location);
-			}
-		}
-
 		return serveDirectory(filePath, response, server, location);
 	}
 	else if (fileExists(filePath))
@@ -136,7 +139,6 @@ bool GetMethodHandler::serveFile(const std::string &filePath, HttpResponse &resp
 bool GetMethodHandler::serveDirectory(const std::string &dirPath, HttpResponse &response, const Server *server,
 									  const Location *location)
 {
-	// Check if autoindex is enabled
 	if (location->hasAutoIndex())
 	{
 		if (location->isAutoIndex())
@@ -165,11 +167,8 @@ bool GetMethodHandler::serveDirectory(const std::string &dirPath, HttpResponse &
 			return false;
 		}
 	}
-	else
-	{
-		response.setResponseDefaultBody(403, "Forbidden", server, location, HttpResponse::ERROR);
-		return false;
-	}
+	response.setResponseDefaultBody(403, "Forbidden", server, location, HttpResponse::ERROR);
+	return false;
 }
 
 std::string GetMethodHandler::generateDirectoryListing(const std::string &dirPath, const std::string &uri)
