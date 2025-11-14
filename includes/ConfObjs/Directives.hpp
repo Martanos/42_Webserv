@@ -1,19 +1,18 @@
-#ifndef LOCATION_HPP
-#define LOCATION_HPP
+#ifndef DIRECTIVES_HPP
+#define DIRECTIVES_HPP
 
 #include "../../includes/Wrapper/TrieTree.hpp"
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
-// Location configuration object
-// Basically a smaller server block with path matching
-class Location
+// Abstract class for directive-related functionality
+// Base class for directive-related functionality. Derived classes (Server/Location)
+// access directive storage and flags through protected members below.
+class Directives
 {
-private:
-	// Identifier members
-	std::string _locationPath;
-
+protected:
 	// Directive members
 	std::string _rootPath;
 	bool _autoIndexValue;
@@ -22,10 +21,10 @@ private:
 	bool _keepAliveValue;
 	std::pair<int, std::string> _redirect;
 	TrieTree<std::string> _indexes;
-	std::map<int, std::string> _statusPages;
+	std::map<int, std::string> _statusPaths;
 	std::vector<std::string> _allowedMethods;
 
-	// Flags
+	// Directive flags
 	bool _hasRootPathDirective;
 	bool _hasAutoIndexDirective;
 	bool _hasCgiPathDirective;
@@ -33,24 +32,13 @@ private:
 	bool _hasKeepAliveDirective;
 	bool _hasRedirectDirective;
 	bool _hasIndexDirective;
-	bool _hasStatusPagesDirective;
+	bool _hasStatusPathDirective;
 	bool _hasAllowedMethodsDirective;
 
-	// OCF ownership
-	Location();
-
 public:
-	explicit Location(const std::string &path);
-	Location(Location const &src);
-	~Location();
-	Location &operator=(Location const &rhs);
-
-	/* Identifiers */
-
-	// Identifier accessors
-	const std::string &getLocationPath() const;
-
-	/* Directives */
+	// Default constructor initializes directive storage and flags
+	Directives();
+	virtual ~Directives();
 
 	// Directive flags
 	bool hasRootPathDirective() const;
@@ -60,12 +48,12 @@ public:
 	bool hasKeepAliveDirective() const;
 	bool hasRedirectDirective() const;
 	bool hasIndexDirective() const;
-	bool hasStatusPagesDirective() const;
+	bool hasStatusPathDirective() const;
 	bool hasAllowedMethodsDirective() const;
 
 	// Directive Investigators
 	bool hasIndex(const std::string &index) const;
-	bool hasStatusPage(const int &status) const;
+	bool hasStatusPath(int status) const;
 	bool hasAllowedMethod(const std::string &allowedMethod) const;
 
 	// Directive Accessors
@@ -80,7 +68,7 @@ public:
 	const std::map<int, std::string> &getStatusPaths() const;
 	const std::vector<std::string> &getAllowedMethods() const;
 
-	// Mutators
+	// Directive Mutator
 	void setRootPath(const std::string &root);
 	void setAutoIndex(bool autoIndex);
 	void setCgiPath(const std::string &cgiPath);
@@ -93,12 +81,6 @@ public:
 	void setStatusPaths(const std::map<int, std::string> &statusPages);
 	void insertAllowedMethod(const std::string &allowedMethod);
 	void setAllowedMethods(const std::vector<std::string> &allowedMethods);
-	// Utility
-	bool wasModified() const;
-	void reset();
 };
 
-std::ostream &operator<<(std::ostream &o, Location const &i);
-
-#endif /* ******************************************************** LOCATION_H                                          \
-		*/
+#endif

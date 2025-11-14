@@ -1,9 +1,9 @@
 #ifndef CONFIG_TRANSLATOR_HPP
 #define CONFIG_TRANSLATOR_HPP
 
+#include "../../includes/ConfObjs/Location.hpp"
+#include "../../includes/ConfObjs/Server.hpp"
 #include "../../includes/ConfigParser/ConfigNameSpace.hpp"
-#include "../../includes/Core/Location.hpp"
-#include "../../includes/Core/Server.hpp"
 #include <vector>
 
 class ConfigTranslator
@@ -17,29 +17,31 @@ private:
 
 	// Translation helpers
 	void _translate(const AST::ASTNode &ast);
-	Server _translateServer(const AST::ASTNode &ast);
 
 	// Server specific translation helpers
+	Server _translateServer(const AST::ASTNode &ast);
 	void _translateServerName(const AST::ASTNode &directive, Server &server);
 	void _translateListen(const AST::ASTNode &directive, Server &server);
-	void _translateServerRoot(const AST::ASTNode &directive, Server &server);
-	void _translateServerIndex(const AST::ASTNode &directive, Server &server);
-	void _translateServerAutoindex(const AST::ASTNode &directive, Server &server);
-	void _translateServerClientMaxBodySize(const AST::ASTNode &directive, Server &server);
-	void _translateServerErrorPages(const AST::ASTNode &directive, Server &server);
 
 	// Location specific translation helpers
 	void _translateLocation(const AST::ASTNode &location_node, Location &location);
-	void _translateLocationPath(const AST::ASTNode &directive, Location &location);
-	void _translateLocationRoot(const AST::ASTNode &directive, Location &location);
-	void _translateLocationAllowedMethods(const AST::ASTNode &directive, Location &location);
-	void _translateLocationErrorPages(const AST::ASTNode &directive, Location &location);
-	void _translateLocationRedirect(const AST::ASTNode &directive, Location &location);
-	void _translateLocationAutoindex(const AST::ASTNode &directive, Location &location);
-	void _translateLocationIndex(const AST::ASTNode &directive, Location &location);
-	void _translateLocationCgiPath(const AST::ASTNode &directive, Location &location);
-	// void _translateLocationCgiParam(const AST::ASTNode &directive, Location &location);
-	void _translateLocationClientMaxBodySize(const AST::ASTNode &directive, Location &location);
+
+	// Directive translation helpers
+	void _translateDirective(std::vector<AST::ASTNode *>::const_iterator &directive, Directives &directives,
+							 std::string context);
+	void _translateRootPathDirective(const AST::ASTNode &directive, Directives &directives, std::string context);
+	void _translateAutoindexDirective(const AST::ASTNode &directive, Directives &directives, std::string context);
+	void _translateCgiPathDirective(const AST::ASTNode &directive, Directives &directives, std::string context);
+	void _translateClientMaxBodySizeDirective(const AST::ASTNode &directive, Directives &directives,
+											  std::string context);
+	void _translateKeepAliveDirective(const AST::ASTNode &directive, Directives &directives, std::string context);
+	void _translateRedirectDirective(const AST::ASTNode &directive, Directives &directives, std::string context);
+	void _translateIndexDirective(const AST::ASTNode &directive, Directives &directives, std::string context);
+	void _translateStatusPathDirective(const AST::ASTNode &directive, Directives &directives, std::string context);
+	void _translateAllowedMethodsDirective(const AST::ASTNode &directive, Directives &directives, std::string context);
+
+	// Utility
+	bool _parseSizeArgument(const std::string &rawValue, double &sizeOut);
 
 public:
 	explicit ConfigTranslator(const AST::ASTNode &ast);

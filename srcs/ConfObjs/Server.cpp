@@ -1,4 +1,4 @@
-#include "../../includes/Core/Server.hpp"
+#include "../../includes/ConfObjs/Server.hpp"
 #include "../../includes/HTTP/HTTP.hpp"
 
 /*
@@ -36,26 +36,36 @@ Server &Server::operator=(Server const &rhs)
 		_serverNames = rhs._serverNames;
 		_sockets = rhs._sockets;
 
-		// Directive members
-		_rootPath = rhs._rootPath;
-		_indexes = rhs._indexes;
-		_autoIndexValue = rhs._autoIndexValue;
-		_clientMaxBodySize = rhs._clientMaxBodySize;
-		_statusPages = rhs._statusPages;
-		_keepAlive = rhs._keepAlive;
-
-		// Location blocks
-		_locations = rhs._locations;
-
-		// Flags
+		// Identifier flags
 		_hasServerNameDirective = rhs._hasServerNameDirective;
 		_hasSocketDirective = rhs._hasSocketDirective;
+
+		// Directives members
+		_rootPath = rhs._rootPath;
+		_autoIndexValue = rhs._autoIndexValue;
+		_cgiPath = rhs._cgiPath;
+		_clientMaxBodySize = rhs._clientMaxBodySize;
+		_keepAliveValue = rhs._keepAliveValue;
+		_redirect = rhs._redirect;
+		_indexes = rhs._indexes;
+		_statusPaths = rhs._statusPaths;
+		_allowedMethods = rhs._allowedMethods;
+
+		// Directive flags
 		_hasRootPathDirective = rhs._hasRootPathDirective;
-		_hasIndexDirective = rhs._hasIndexDirective;
 		_hasAutoIndexDirective = rhs._hasAutoIndexDirective;
+		_hasCgiPathDirective = rhs._hasCgiPathDirective;
 		_hasClientMaxBodySizeDirective = rhs._hasClientMaxBodySizeDirective;
-		_hasStatusPageDirective = rhs._hasStatusPageDirective;
 		_hasKeepAliveDirective = rhs._hasKeepAliveDirective;
+		_hasRedirectDirective = rhs._hasRedirectDirective;
+		_hasIndexDirective = rhs._hasIndexDirective;
+		_hasStatusPathDirective = rhs._hasStatusPathDirective;
+		_hasAllowedMethodsDirective = rhs._hasAllowedMethodsDirective;
+
+		// Location members
+		_locations = rhs._locations;
+
+		// Location flags
 		_hasLocationBlocks = rhs._hasLocationBlocks;
 	}
 	return *this;
@@ -125,7 +135,7 @@ std::ostream &operator<<(std::ostream &o, Server const &i)
 		o << "No client max body size defined using default value of :" << HTTP::DEFAULT_CLIENT_MAX_BODY_SIZE
 		  << std::endl;
 
-	if (i.hasStatusPageDirective())
+	if (i.hasStatusPathDirective())
 	{
 		o << "Status pages: ";
 		for (std::map<int, std::string>::const_iterator it = i.getStatusPaths().begin(); it != i.getStatusPaths().end();
@@ -151,7 +161,7 @@ std::ostream &operator<<(std::ostream &o, Server const &i)
 		{
 			o << "Locations: ";
 			for (std::vector<Location>::const_iterator it = locations.begin(); it != locations.end(); ++it)
-				o << it->getPath() << " ";
+				o << it->getLocationPath() << " ";
 			o << std::endl;
 		}
 	}
@@ -220,124 +230,6 @@ void Server::insertSocketAddress(const SocketAddress &socketAddress)
 }
 
 /*
-** --------------------------------- DIRECTIVES ---------------------------------
-*/
-
-// Flag investigators
-
-bool Server::hasRootPathDirective() const
-{
-	return _hasRootPathDirective;
-}
-bool Server::hasIndexDirective() const
-{
-	return _hasIndexDirective;
-}
-bool Server::hasAutoIndexDirective() const
-{
-	return _hasAutoIndexDirective;
-}
-bool Server::hasClientMaxBodySizeDirective() const
-{
-	return _hasClientMaxBodySizeDirective;
-}
-bool Server::hasStatusPageDirective() const
-{
-	return _hasStatusPageDirective;
-}
-bool Server::hasKeepAliveDirective() const
-{
-	return _hasKeepAliveDirective;
-}
-
-// Directive investigators
-
-bool Server::hasIndex(const std::string &index) const
-{
-	return _indexes.contains(index);
-}
-
-bool Server::hasStatusPage(int status) const
-{
-	return _statusPages.find(status) != _statusPages.end();
-}
-
-// Directive accessors
-
-const std::string &Server::getRootPath() const
-{
-	return _rootPath;
-}
-const TrieTree<std::string> &Server::getIndexes() const
-{
-	return _indexes;
-}
-bool Server::getAutoIndexValue() const
-{
-	return _autoIndexValue;
-}
-double Server::getClientMaxBodySize() const
-{
-	return _clientMaxBodySize;
-}
-const std::string &Server::getStatusPath(int status) const
-{
-	return _statusPages.at(status);
-}
-const std::map<int, std::string> &Server::getStatusPaths() const
-{
-	return _statusPages;
-}
-bool Server::getKeepAliveValue() const
-{
-	return _keepAlive;
-}
-
-// Directive mutators
-
-void Server::insertIndex(const std::string &index)
-{
-	if (!hasIndex(index))
-	{
-		_indexes.insert(index, index);
-		_hasIndexDirective = true;
-	}
-}
-
-void Server::insertStatusPage(const std::string &path, const std::vector<int> &codes)
-{
-	for (std::vector<int>::const_iterator code_it = codes.begin(); code_it != codes.end(); ++code_it)
-	{
-		_statusPages.insert(std::make_pair(*code_it, path));
-		_hasStatusPageDirective = true;
-	}
-}
-
-void Server::setKeepAlive(const bool &keepAlive)
-{
-	_keepAlive = keepAlive;
-	_hasKeepAliveDirective = true;
-}
-
-void Server::setClientMaxBodySize(const double &clientMaxBodySize)
-{
-	_clientMaxBodySize = clientMaxBodySize;
-	_hasClientMaxBodySizeDirective = true;
-}
-
-void Server::setRoot(const std::string &root)
-{
-	_rootPath = root;
-	_hasRootPathDirective = true;
-}
-
-void Server::setAutoindex(const bool &autoindex)
-{
-	_autoIndexValue = autoindex;
-	_hasAutoIndexDirective = true;
-}
-
-/*
 ** --------------------------------- LOCATIONS ---------------------------------
 */
 
@@ -371,7 +263,7 @@ const Location *Server::getLocation(const std::string &path) const
 	const Location *location = _locations.findLongestPrefix(path);
 	if (location)
 	{
-		Logger::debug("Server::getLocation: Found location: " + location->getPath(), __FILE__, __LINE__,
+		Logger::debug("Server::getLocation: Found location: " + location->getLocationPath(), __FILE__, __LINE__,
 					  __PRETTY_FUNCTION__);
 	}
 	else
@@ -395,11 +287,11 @@ TrieTree<Location> &Server::getLocations()
 // Location Mutators
 void Server::insertLocation(const Location &location)
 {
-	Logger::debug("Server::insertLocation: Adding location: " + location.getPath(), __FILE__, __LINE__,
+	Logger::debug("Server::insertLocation: Adding location: " + location.getLocationPath(), __FILE__, __LINE__,
 				  __PRETTY_FUNCTION__);
-	if (!hasLocation(location.getPath()))
+	if (!hasLocation(location.getLocationPath()))
 	{
-		_locations.insert(location.getPath(), location);
+		_locations.insert(location.getLocationPath(), location);
 		_hasLocationBlocks = true;
 		Logger::debug("Server::insertLocation: Location added successfully", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
@@ -413,10 +305,10 @@ void Server::insertLocation(const Location &location)
 ** --------------------------------- SERVER UTILS ---------------------------------
 */
 
-bool Server::isModified() const
+bool Server::wasModified() const
 {
 	return _hasServerNameDirective || _hasSocketDirective || _hasRootPathDirective || _hasIndexDirective ||
-		   _hasAutoIndexDirective || _hasClientMaxBodySizeDirective || _hasStatusPageDirective ||
+		   _hasAutoIndexDirective || _hasClientMaxBodySizeDirective || _hasStatusPathDirective ||
 		   _hasKeepAliveDirective || _hasLocationBlocks;
 }
 
@@ -435,15 +327,15 @@ void Server::reset()
 	_indexes = TrieTree<std::string>();
 	_autoIndexValue = HTTP::DEFAULT_AUTOINDEX;
 	_clientMaxBodySize = HTTP::DEFAULT_CLIENT_MAX_BODY_SIZE;
-	_statusPages.clear();
-	_keepAlive = HTTP::DEFAULT_KEEP_ALIVE;
+	_statusPaths.clear();
+	_keepAliveValue = HTTP::DEFAULT_KEEP_ALIVE;
 
 	// Directive flags
 	_hasRootPathDirective = false;
 	_hasIndexDirective = false;
 	_hasAutoIndexDirective = false;
 	_hasClientMaxBodySizeDirective = false;
-	_hasStatusPageDirective = false;
+	_hasStatusPathDirective = false;
 	_hasKeepAliveDirective = false;
 
 	// Location blocks
