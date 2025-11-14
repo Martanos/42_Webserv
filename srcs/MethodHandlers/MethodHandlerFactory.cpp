@@ -1,4 +1,4 @@
-#include "../../includes/Core/MethodHandlerFactory.hpp"
+#include "../../includes/MethodHandlers/MethodHandlerFactory.hpp"
 #include <vector>
 
 // Static member definitions

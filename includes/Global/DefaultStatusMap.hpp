@@ -6,7 +6,6 @@
 #include <map>
 #include <sstream>
 #include <string>
-#include <vector>
 
 // Utility class that generates a static status map for the whole server
 // It returns a map key:value pair with key being response number and value

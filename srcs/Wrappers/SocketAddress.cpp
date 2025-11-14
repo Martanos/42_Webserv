@@ -1,7 +1,7 @@
-#include "../../includes/Wrapper/SocketAddress.hpp"
-#include "../../includes/Global/IPAddressParser.hpp"
+#include "../../includes/Wrappers/SocketAddress.hpp"
 #include "../../includes/Global/Logger.hpp"
-#include "../../includes/Global/StrUtils.hpp"
+#include "../../includes/Utils/IPAddressParser.hpp"
+#include "../../includes/Utils/StrUtils.hpp"
 #include <cstddef>
 #include <sstream>
 

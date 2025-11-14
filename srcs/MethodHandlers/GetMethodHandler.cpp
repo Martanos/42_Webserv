@@ -1,4 +1,4 @@
-#include "../../includes/Core/GetMethodHandler.hpp"
+#include "../../includes/MethodHandlers/GetMethodHandler.hpp"
 #include "../../includes/Global/MimeTypeResolver.hpp"
 #include <dirent.h>
 

@@ -1,4 +1,4 @@
-#include "../../includes/Core/PostMethodHandler.hpp"
+#include "../../includes/MethodHandlers/PostMethodHandler.hpp"
 #include <sys/stat.h>
 #include <unistd.h>
 

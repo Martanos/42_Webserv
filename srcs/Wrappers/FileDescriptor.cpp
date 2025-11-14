@@ -1,6 +1,5 @@
-#include "../../includes/Wrapper/FileDescriptor.hpp"
+#include "../../includes/Wrappers/FileDescriptor.hpp"
 #include "../../includes/Global/Logger.hpp"
-#include "../../includes/Global/StrUtils.hpp"
 #include <arpa/inet.h>
 #include <cerrno>
 #include <cstring>
@@ -13,6 +12,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <vector>
+
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */

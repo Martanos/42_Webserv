@@ -1,11 +1,9 @@
 #ifndef SERVERMANAGER_HPP
 #define SERVERMANAGER_HPP
 
-#include "../../includes/ConfigParser/ServerMap.hpp"
+#include "../../includes/Config/ServerMap.hpp"
 #include "../../includes/Core/Client.hpp"
 #include "../../includes/Core/EpollManager.hpp"
-#include "../../includes/Global/Logger.hpp"
-#include "../../includes/Wrapper/FileDescriptor.hpp"
 #include <map>
 #include <sys/epoll.h>
 #include <unistd.h>

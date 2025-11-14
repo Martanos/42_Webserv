@@ -1,0 +1,115 @@
+#ifndef HTTPREQUEST_HPP
+#define HTTPREQUEST_HPP
+
+#include "../../includes/Config/Server.hpp"
+#include "../../includes/Http/HttpBody.hpp"
+#include "../../includes/Http/HttpHeaders.hpp"
+#include "../../includes/Http/HttpResponse.hpp"
+#include "../../includes/Http/HttpURI.hpp"
+#include <cstdlib>
+#include <ctime>
+#include <map>
+#include <string>
+#include <vector>
+
+// This class ingests and parses http requests recieved from the client
+// It provides an interface for accessing the request data
+// HttpRequest handles http operations and response formatting
+// HttpURI handles the uri parsing and validation
+// HttpHeaders parses and stores the headers
+// HttpBody handles the body it has streaming capability as well
+class HttpRequest
+{
+public:
+	enum ParseState
+	{
+		PARSING_URI = 0,
+		PARSING_HEADERS = 1,
+		PARSING_BODY = 2,
+		PARSING_COMPLETE = 3,
+		PARSING_ERROR = 4
+	};
+
+private:
+	// Parsed message objects
+	HttpURI _uri;
+	HttpHeaders _headers;
+	HttpBody _body;
+
+	// Parsing state
+	ParseState _parseState;
+
+	// Internal redirect tracking
+	int _internalRedirectDepth;
+	static const int MAX_INTERNAL_REDIRECTS = 5;
+
+	// External configuration
+	const std::vector<Server> *_potentialServers;
+	Server *_selectedServer;
+	std::string _selectedServerHost;
+	std::string _selectedServerPort;
+	Location *_selectedLocation;
+	SocketAddress *_remoteAddress;
+	bool _identifyServer(HttpResponse &response);
+
+public:
+	HttpRequest();
+	HttpRequest(const HttpRequest &other);
+	HttpRequest &operator=(const HttpRequest &other);
+	~HttpRequest();
+
+	// Parsing methods
+	ParseState parseBuffer(std::vector<char> &holdingBuffer, HttpResponse &response);
+
+	// Sanitization methods
+	void sanitizeRequest(HttpResponse &response, const Server *server, const Location *location);
+	void reset();
+
+	// Mutators
+	void setParseState(ParseState parseState);
+	void setPotentialServers(const std::vector<Server> *potentialServers);
+	void setSelectedServer(Server *selectedServer);
+	void setSelectedLocation(const Location *selectedLocation);
+	void setRemoteAddress(const SocketAddress *remoteAddress);
+
+	// Internal redirect management
+	int getInternalRedirectDepth() const;
+	void incrementInternalRedirectDepth();
+	void resetInternalRedirectDepth();
+
+	// Request accessors
+	ParseState getParseState() const;
+	size_t getMessageSize() const;
+
+	// URI accessors
+	std::string getMethod() const;
+	std::string getUri() const;
+	std::string getRawUri() const;
+	std::string getVersion() const;
+	std::string getQueryString() const;
+	const std::map<std::string, std::vector<std::string> > &getQueryParameters() const;
+
+	// Headers accessors
+	std::map<std::string, std::vector<std::string> > getHeaders() const;
+	const std::vector<std::string> getHeader(const std::string &name) const;
+
+	// Body accessors
+	std::string getBodyData() const;
+	HttpBody::BodyType getBodyType() const;
+	size_t getContentLength() const;
+	bool isChunked();
+	bool isUsingTempFile() const;
+	std::string getTempFile() const;
+	const FileDescriptor &getTempFd() const;
+
+	// Server accessors
+	const std::vector<Server> *getPotentialServers() const;
+	Server *getSelectedServer() const;
+
+	Location *getSelectedLocation() const;
+	SocketAddress *getRemoteAddress() const;
+	const std::string &getSelectedServerHost() const;
+	const std::string &getSelectedServerPort() const;
+};
+
+#endif /* HTTPREQUEST_HPP */

@@ -2,11 +2,11 @@
 #ifndef CLIENT_HPP
 #define CLIENT_HPP
 
-#include "../../includes/Core/Server.hpp"
-#include "../../includes/HTTP/HttpRequest.hpp"
-#include "../../includes/HTTP/HttpResponse.hpp"
-#include "../../includes/Wrapper/FileDescriptor.hpp"
-#include "../../includes/Wrapper/SocketAddress.hpp"
+#include "../../includes/Config/Server.hpp"
+#include "../../includes/Http/HttpRequest.hpp"
+#include "../../includes/Http/HttpResponse.hpp"
+#include "../../includes/Wrappers/FileDescriptor.hpp"
+#include "../../includes/Wrappers/SocketAddress.hpp"
 #include <deque>
 #include <fcntl.h>
 #include <netinet/in.h>

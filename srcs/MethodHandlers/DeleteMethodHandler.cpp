@@ -1,4 +1,4 @@
-#include "../../includes/Core/DeleteMethodHandler.hpp"
+#include "../../includes/MethodHandlers/DeleteMethodHandler.hpp"
 
 DeleteMethodHandler::DeleteMethodHandler()
 {
@@ -86,7 +86,7 @@ bool DeleteMethodHandler::deleteFile(const std::string &filePath, HttpResponse &
 bool DeleteMethodHandler::isSafeToDelete(const std::string &filePath, const Server *server, const Location *location)
 {
 	// Check if the file is within the server's root directory
-	std::string rootPath = location->hasRoot() ? location->getRoot() : server->getRootPath();
+	std::string rootPath = location->hasRootPathDirective() ? location->getRootPath() : server->getRootPath();
 
 	// Ensure the file path starts with the root path
 	if (filePath.find(rootPath) != 0)

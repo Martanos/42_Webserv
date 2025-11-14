@@ -1,4 +1,4 @@
-#include "../../includes/Core/PutMethodHandler.hpp"
+#include "../../includes/MethodHandlers/PutMethodHandler.hpp"
 #include <cerrno>
 #include <cstring>
 #include <fstream>
@@ -38,8 +38,8 @@ bool PutMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &r
 	if (filePath.empty() || filePath[0] != '/')
 	{
 		std::string baseRoot;
-		if (location && location->hasRoot())
-			baseRoot = location->getRoot();
+		if (location && location->hasRootPathDirective())
+			baseRoot = location->getRootPath();
 		else if (server)
 			baseRoot = server->getRootPath();
 
