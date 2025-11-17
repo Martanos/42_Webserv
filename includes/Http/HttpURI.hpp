@@ -31,6 +31,7 @@ private:
 	std::string _method;
 	std::string _URI;
 	std::string _rawURI;
+	std::string _sanitizedURI;
 	std::string _version;
 
 	// Query parameters
@@ -46,7 +47,7 @@ public:
 
 	// Main parsing method
 	void parseBuffer(std::vector<char> &buffer, HttpResponse &response);
-	void sanitizeURI(const Server *server, const Location *location, HttpResponse &response);
+	void sanitizeURI(const Location *location, HttpResponse &response);
 
 	// Accessors
 	const std::string &getURI() const;
@@ -57,6 +58,7 @@ public:
 	const std::map<std::string, std::vector<std::string> > &getQueryParameters() const;
 	const std::string &getQueryString() const;
 	URIState getURIState() const;
+	const std::string &getSanitizedURI() const;
 
 	// Methods
 	void reset();

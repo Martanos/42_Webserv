@@ -51,19 +51,20 @@ HttpRequest &HttpRequest::operator=(const HttpRequest &rhs)
 *----------------------------------
 */
 
+// Identifies the server configuration the request is targeting based on the Host header
 bool HttpRequest::_identifyServer(HttpResponse &response)
 {
 	if (_potentialServers == NULL)
 	{
 		Logger::error("HttpRequest: No potential servers found", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-		response.setResponseDefaultBody(500, "Internal Server Error", NULL, NULL, HttpResponse::FATAL_ERROR);
+		response.setResponseDefaultBody(500, "Internal Server Error", NULL, HttpResponse::FATAL_ERROR);
 		return false;
 	}
 	const Header *hostHeader = _headers.getHeader("host");
 	if (hostHeader == NULL)
 	{
 		Logger::error("HttpRequest: No host header found", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-		response.setResponseDefaultBody(400, "No host header found", NULL, NULL, HttpResponse::FATAL_ERROR);
+		response.setResponseDefaultBody(400, "No host header found", NULL, HttpResponse::FATAL_ERROR);
 		return false;
 	}
 	std::string hostValue = (!hostHeader->getValues().empty()) ? hostHeader->getValues()[0] : "<none>";
@@ -134,12 +135,50 @@ bool HttpRequest::_identifyServer(HttpResponse &response)
 		_selectedServer = const_cast<Server *>(&servers.front());
 		return true;
 	}
-
-	response.setResponseDefaultBody(404, "Matching server configuration not found", NULL, NULL,
-									HttpResponse::FATAL_ERROR);
+	response.setResponseDefaultBody(404, "Matching server configuration not found", NULL, HttpResponse::FATAL_ERROR);
 	Logger::debug("HttpRequest: Matching server configuration not found for host: " + hostValue, __FILE__, __LINE__,
 				  __PRETTY_FUNCTION__);
 	return false;
+}
+
+// Attempts to route the request to a Location within the selected Server
+// Returns false if no matching Location is found
+bool HttpRequest::_identifyLocation(HttpResponse &response)
+{
+	try
+	{
+		_selectedLocation = _selectedServer->getLocation(_uri.getURI());
+		Logger::debug("HttpRequest: Matched location: " + _selectedLocation->getLocationPath() +
+						  " for URI: " + _uri.getURI(),
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
+	}
+	catch (const std::exception &e)
+	{
+		Logger::error("HttpRequest: Exception during location lookup: " + std::string(e.what()) +
+						  " for URI: " + _uri.getURI(),
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		response.setResponseDefaultBody(500, "Exception during location lookup: " + std::string(e.what()), NULL,
+										HttpResponse::FATAL_ERROR);
+		return false;
+	}
+	if (!_selectedLocation) // 1. Verify location can be found on server (returns Null if exact match / longest prefix
+							// match is not found)
+	{
+		response.setResponseDefaultBody(404, "No matching location found for URI: " + _uri.getURI(), NULL,
+										HttpResponse::ERROR);
+		return false;
+	}
+	// 3. Once location is found sanitize the request (can only be done after location is found)
+	_uri.sanitizeURI(_selectedLocation, response);
+	switch (_uri.getURIState())
+	{
+	case HttpURI::URI_PARSING_COMPLETE:
+		return true;
+	case HttpURI::URI_PARSING_ERROR:
+		return false;
+	default:
+		return false;
+	}
 }
 
 /*
@@ -197,13 +236,19 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 			{
 			case HttpHeaders::HEADERS_PARSING_COMPLETE:
 			{
-				if (!_identifyServer(response))
+				// Identify server and subsequently location once headers are fully parsed
+				if (!_identifyServer(response) || !_identifyLocation(response))
 				{
-					const Header *hostHeader = _headers.getHeader("host");
-					std::string hostValue =
-						(hostHeader && !hostHeader->getValues().empty()) ? hostHeader->getValues()[0] : "<none>";
-					Logger::error("HttpRequest: Failed to identify server for host value: " + hostValue, __FILE__,
-								  __LINE__, __PRETTY_FUNCTION__);
+					_parseState = PARSING_ERROR;
+					break;
+				}
+				// Sanitize URI now that server and location are known
+				_uri.sanitizeURI(_selectedLocation, response);
+				switch (_uri.getURIState())
+				{
+				case HttpURI::URI_PARSING_COMPLETE:
+					break;
+				case HttpURI::URI_PARSING_ERROR:
 					_parseState = PARSING_ERROR;
 					break;
 				}
@@ -269,21 +314,6 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 	Logger::debug("HttpRequest: parseBuffer returning state: " + StrUtils::toString(_parseState), __FILE__, __LINE__,
 				  __PRETTY_FUNCTION__);
 	return _parseState;
-}
-
-void HttpRequest::sanitizeRequest(HttpResponse &response, const Server *server, const Location *location)
-{
-	_uri.sanitizeURI(server, location, response);
-	switch (_uri.getURIState())
-	{
-	case HttpURI::URI_PARSING_COMPLETE:
-		break;
-	case HttpURI::URI_PARSING_ERROR:
-		_parseState = PARSING_ERROR;
-		break;
-	default:
-		break;
-	}
 }
 
 /*
@@ -437,17 +467,17 @@ const std::vector<Server> *HttpRequest::getPotentialServers() const
 	return _potentialServers;
 };
 
-Server *HttpRequest::getSelectedServer() const
+const Server *HttpRequest::getSelectedServer() const
 {
 	return _selectedServer;
 };
 
-Location *HttpRequest::getSelectedLocation() const
+const Location *HttpRequest::getSelectedLocation() const
 {
 	return _selectedLocation;
 };
 
-SocketAddress *HttpRequest::getRemoteAddress() const
+const SocketAddress *HttpRequest::getRemoteAddress() const
 {
 	return _remoteAddress;
 };

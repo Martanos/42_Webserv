@@ -9,11 +9,7 @@
 class Location : public Directives
 {
 private:
-	// Identifier members
 	std::string _locationPath;
-
-	// OCF ownership
-	Location();
 
 public:
 	explicit Location(const std::string &path);

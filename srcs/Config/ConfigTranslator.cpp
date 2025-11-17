@@ -104,46 +104,70 @@ Server ConfigTranslator::_translateServer(const AST::ASTNode &ast)
 	{
 		Location &location = *locIt;
 		if (server.hasRootPathDirective() && !location.hasRootPathDirective())
-			location.setRootPath(server.getRootPath());
+			location.setRootPath(*server.getRootPath());
 		if (server.hasAutoIndexDirective() && !location.hasAutoIndexDirective())
 			location.setAutoIndex(server.getAutoIndexValue());
-		if (server.hasCgiPathDirective() && !location.hasCgiPathDirective())
-			location.setCgiPath(server.getCgiPath());
 		if (server.hasClientMaxBodySizeDirective() && !location.hasClientMaxBodySizeDirective())
 			location.setClientMaxBodySize(server.getClientMaxBodySize());
 		if (server.hasKeepAliveDirective() && !location.hasKeepAliveDirective())
 			location.setKeepAlive(server.getKeepAliveValue());
-		if (server.hasRedirectDirective() && !location.hasRedirectDirective())
-			location.setRedirect(server.getRedirect());
 		if (server.hasIndexDirective() && !location.hasIndexDirective())
-			location.setIndexes(server.getIndexes());
+			location.setIndexes(*server.getIndexes());
 		if (server.hasStatusPathDirective() && !location.hasStatusPathDirective())
-			location.setStatusPaths(server.getStatusPaths());
+			location.setStatusPaths(*server.getStatusPaths());
 		if (server.hasAllowedMethodsDirective() && !location.hasAllowedMethodsDirective())
-			location.setAllowedMethods(server.getAllowedMethods());
+			location.setAllowedMethods(*server.getAllowedMethods());
+
+		if (location.getLocationType() == Directives::STATIC)
+		{
+			switch (server.getLocationType())
+			{
+			case Server::STATIC:
+				break;
+			case Server::REDIRECT:
+				location.setRedirect(*server.getRedirect());
+				break;
+			case Server::CGI:
+				location.setIsCgiPath(server.getisCgiPathValue());
+				break;
+			case Server::UPLOAD:
+				location.setIsUploadPath(server.getisUploadPathValue());
+				break;
+			}
+		}
 	}
 	// Default location block, only created if root path was set at server level
 	if (!server.getLocation("/") && server.wasModified() && server.hasRootPathDirective())
 	{
 		Location rootLocation("/");
 		if (server.hasRootPathDirective())
-			rootLocation.setRootPath(server.getRootPath());
+			rootLocation.setRootPath(*server.getRootPath());
 		if (server.hasAutoIndexDirective())
 			rootLocation.setAutoIndex(server.getAutoIndexValue());
-		if (server.hasCgiPathDirective())
-			rootLocation.setCgiPath(server.getCgiPath());
 		if (server.hasClientMaxBodySizeDirective())
 			rootLocation.setClientMaxBodySize(server.getClientMaxBodySize());
 		if (server.hasKeepAliveDirective())
 			rootLocation.setKeepAlive(server.getKeepAliveValue());
-		if (server.hasRedirectDirective())
-			rootLocation.setRedirect(server.getRedirect());
 		if (server.hasIndexDirective())
-			rootLocation.setIndexes(server.getIndexes());
+			rootLocation.setIndexes(*server.getIndexes());
 		if (server.hasStatusPathDirective())
-			rootLocation.setStatusPaths(server.getStatusPaths());
+			rootLocation.setStatusPaths(*server.getStatusPaths());
 		if (server.hasAllowedMethodsDirective())
-			rootLocation.setAllowedMethods(server.getAllowedMethods());
+			rootLocation.setAllowedMethods(*server.getAllowedMethods());
+		switch (server.getLocationType())
+		{
+		case Server::STATIC:
+			break;
+		case Server::REDIRECT:
+			rootLocation.setRedirect(*server.getRedirect());
+			break;
+		case Server::CGI:
+			rootLocation.setIsCgiPath(server.getisCgiPathValue());
+			break;
+		case Server::UPLOAD:
+			rootLocation.setIsUploadPath(server.getisUploadPathValue());
+			break;
+		}
 		if (rootLocation.wasModified())
 			server.insertLocation(rootLocation);
 	}
@@ -280,6 +304,8 @@ void ConfigTranslator::_translateDirective(std::vector<AST::ASTNode *>::const_it
 {
 	if ((*directive)->value == "root")
 		_translateRootPathDirective(**directive, directives, context);
+	else if ((*directive)->value == "upload_path")
+		_translateUploadPathDirective(**directive, directives, context);
 	else if ((*directive)->value == "autoindex")
 		_translateAutoindexDirective(**directive, directives, context);
 	else if ((*directive)->value == "cgi_path")
@@ -362,8 +388,10 @@ void ConfigTranslator::_translateAutoindexDirective(const AST::ASTNode &directiv
 		}
 		if ((*it)->type == AST::ARG)
 		{
-			if ((*it)->value == "on" || (*it)->value == "off")
-				directives.setAutoIndex((*it)->value == "on");
+			if ((*it)->value == "on")
+				directives.setAutoIndex(true);
+			else if ((*it)->value == "off")
+				directives.setAutoIndex(false);
 			else
 				Logger::warning("Invalid autoindex value: " + (*it)->value +
 									" line: " + StrUtils::toString<int>((*it)->line) +
@@ -395,6 +423,61 @@ void ConfigTranslator::_translateAutoindexDirective(const AST::ASTNode &directiv
 	}
 }
 
+void ConfigTranslator::_translateUploadPathDirective(const AST::ASTNode &directive, Directives &directives,
+													 std::string context)
+{
+	try
+	{
+		std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
+		if (it == directive.children.end())
+		{
+			Logger::warning("No arguments in " + context + " upload path directive: " + directive.value +
+								" line: " + StrUtils::toString<int>(directive.line) +
+								" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			return;
+		}
+		if ((*it)->type == AST::ARG)
+		{
+			if ((*it)->value == "true")
+			{
+				directives.setIsUploadPath(true);
+			}
+			else if ((*it)->value == "false")
+			{
+				directives.setIsUploadPath(false);
+			}
+			else
+			{
+				Logger::warning("Invalid upload_path value: " + (*it)->value +
+									" line: " + StrUtils::toString<int>((*it)->line) +
+									" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+								__FILE__, __LINE__, __PRETTY_FUNCTION__);
+				return;
+			}
+		}
+		else
+			Logger::warning("Unknown token in " + context + " upload path directive: " + (*it)->value +
+								" line: " + StrUtils::toString<int>((*it)->line) +
+								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+		while (++it != directive.children.end())
+		{
+			Logger::warning("Extra argument in " + context + " upload path directive: " + (*it)->value +
+								" line: " + StrUtils::toString<int>((*it)->line) +
+								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+		}
+	}
+	catch (const std::exception &e)
+	{
+		Logger::error("Error translating " + context + " upload path directive: " + std::string(e.what()) +
+						  " line: " + StrUtils::toString<int>(directive.line) +
+						  " column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
+	}
+}
+
 void ConfigTranslator::_translateCgiPathDirective(const AST::ASTNode &directive, Directives &directives,
 												  std::string context)
 {
@@ -411,24 +494,22 @@ void ConfigTranslator::_translateCgiPathDirective(const AST::ASTNode &directive,
 		}
 		if ((*it)->type == AST::ARG)
 		{
-			// Historically this directive expected an executable file path (interpreter).
-			// We now treat it as a BASE DIRECTORY that contains CGI scripts. Normal HTTP
-			// URI resolution will append the portion of the request URI after the location
-			// prefix to this directory when locating the actual script file.
-			// Per user request: accept the path verbatim without strict verification.
-			// (If the path does not exist or is not a directory, script resolution will
-			// later fail gracefully returning 404.)
-			std::string rawPath = (*it)->value;
-			if (rawPath.empty())
+			if ((*it)->value == "true")
 			{
-				Logger::warning("Empty cgi_path argument provided in " + context + " ignoring directive", __FILE__,
-								__LINE__, __PRETTY_FUNCTION__);
+				directives.setIsCgiPath(true);
+			}
+			else if ((*it)->value == "false")
+			{
+				directives.setIsCgiPath(false);
+			}
+			else
+			{
+				Logger::warning("Invalid cgi_path value: " + (*it)->value +
+									" line: " + StrUtils::toString<int>((*it)->line) +
+									" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+								__FILE__, __LINE__, __PRETTY_FUNCTION__);
 				return;
 			}
-			// Normalize: remove trailing slashes for consistent concatenation
-			while (rawPath.length() > 1 && rawPath[rawPath.length() - 1] == '/')
-				rawPath.erase(rawPath.length() - 1);
-			directives.setCgiPath(rawPath);
 		}
 		else
 			Logger::warning("Unknown token in " + context + " cgi path directive: " + (*it)->value +
@@ -597,7 +678,7 @@ void _translateRedirectDirective(const AST::ASTNode &directive, Directives &dire
 		}
 		else
 		{
-			Logger::warning("Unknown token in location return directive: " + (*it)->value +
+			Logger::warning("Unknown token in " + context + " return directive: " + (*it)->value +
 								" line: " + StrUtils::toString<int>((*it)->line) +
 								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
 							__FILE__, __LINE__, __PRETTY_FUNCTION__);

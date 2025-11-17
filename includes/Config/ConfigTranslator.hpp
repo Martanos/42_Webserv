@@ -31,6 +31,7 @@ private:
 							 std::string context);
 	void _translateRootPathDirective(const AST::ASTNode &directive, Directives &directives, std::string context);
 	void _translateAutoindexDirective(const AST::ASTNode &directive, Directives &directives, std::string context);
+	void _translateUploadPathDirective(const AST::ASTNode &directive, Directives &directives, std::string context);
 	void _translateCgiPathDirective(const AST::ASTNode &directive, Directives &directives, std::string context);
 	void _translateClientMaxBodySizeDirective(const AST::ASTNode &directive, Directives &directives,
 											  std::string context);

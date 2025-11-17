@@ -3,6 +3,7 @@
 #include "../../includes/Config/Server.hpp"
 #include "../../includes/Global/DefaultStatusMap.hpp"
 #include "../../includes/Global/Logger.hpp"
+#include "../../includes/Global/MimeTypeResolver.hpp"
 #include "../../includes/Http/HTTP.hpp"
 #include "../../includes/Utils/FileUtils.hpp"
 #include "../../includes/Utils/StrUtils.hpp"
@@ -121,9 +122,10 @@ void HttpResponse::setBody(const std::string &body)
 
 // Used for responses with no custom body
 // TODO: Update with new logic for status pages
-void HttpResponse::setResponseDefaultBody(int statusCode, const std::string &statusMessage, const Server *server,
-										  const Location *location, ResponseType responseType)
+void HttpResponse::setResponseDefaultBody(int statusCode, const std::string &statusMessage, const Location *location,
+										  ResponseType responseType)
 {
+	// Set default values
 	_statusCode = statusCode;
 	_statusMessage = statusMessage;
 	_responseType = responseType;
@@ -131,27 +133,32 @@ void HttpResponse::setResponseDefaultBody(int statusCode, const std::string &sta
 	_streamBody = false;
 	setHeader(Header("content-type: " + HTTP_RESPONSE_DEFAULT::CONTENT_TYPE));
 	setHeader(Header("content-length: " + StrUtils::toString(_body.length())));
-	if (location && location->hasStatusPage(_statusCode))
+
+	// check if location has a custom status path for this code
+	if (location && location->hasStatusPath(_statusCode))
 	{
-		std::string statusPagePath = location->getRoot() + location->getStatusPages().find(_statusCode)->second;
+		const std::string *rootPath = location->getRootPath();
+		if (!rootPath)
+		{
+			Logger::warning("HttpResponse: no valid root path found for custom status message using default message",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			return;
+		}
+		std::string statusPagePath = *rootPath + location->getStatusPaths()->find(_statusCode)->second;
 		statusPagePath = FileUtils::normalizePath(statusPagePath);
 		if (FileUtils::isFileReadable(statusPagePath))
 		{
 			_bodyFileDescriptor = FileDescriptor::createFromOpen(statusPagePath.c_str(), O_RDONLY);
 			_streamBody = true;
+			setHeader(Header("content-type: " + MimeTypeResolver::resolveMimeType(statusPagePath)));
+			setHeader(Header("content-length: " + StrUtils::toString(_bodyFileDescriptor.getFileSize())));
 		}
-	}
-	else if (server && server->hasStatusPage(_statusCode))
-	{
-		std::string statusPagePath = server->getRootPath() + server->getStatusPaths().find(_statusCode)->second;
-		statusPagePath = FileUtils::normalizePath(statusPagePath);
-		if (FileUtils::isFileReadable(statusPagePath))
-		{
-			_bodyFileDescriptor = FileDescriptor::createFromOpen(statusPagePath.c_str(), O_RDONLY);
-			_streamBody = true;
-		}
+		else
+			Logger::warning("HttpResponse: custom status page file not readable using default", __FILE__, __LINE__,
+							__PRETTY_FUNCTION__);
 	}
 }
+
 // Used when custom body is in memory
 void HttpResponse::setResponseCustomBody(int statusCode, const std::string &statusMessage, const std::string &body,
 										 const std::string &contentType, ResponseType responseType)
@@ -181,12 +188,13 @@ void HttpResponse::setResponseFile(int statusCode, const std::string &statusMess
 }
 
 // Used when a redirect is needed
-void HttpResponse::setRedirectResponse(const std::string &redirectPath, ResponseType responseType)
+void HttpResponse::setRedirectResponse(int statusCode, const std::string &redirectPath, ResponseType responseType)
 {
 	_responseType = responseType;
-	setStatus(301, "Moved Permanently");
+	setStatus(statusCode, DefaultStatusMap::getStatusMessage(statusCode));
 	setHeader(Header("location: " + redirectPath));
-	setResponseFile(301, "Moved Permanently", redirectPath, "text/html", responseType);
+	// TODO: Add dynamic body generation for redirects
+	_streamBody = false;
 }
 
 // Formats the response into a HTTP 1.1 compliant format
@@ -326,39 +334,6 @@ void HttpResponse::setLastModifiedHeader()
 	struct tm *tm = std::gmtime(&lastModified);
 	strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", tm);
 	setHeader(Header("last-modified: " + std::string(buffer) + " GMT"));
-}
-
-void HttpResponse::setBody(const Location *location, const Server *server)
-{
-	// Attempt to set body based on current response code and whether the location or server has a status page
-
-	// Location takes precedence over server
-	if (location && location->hasStatusPage(_statusCode))
-	{
-		std::string statusPagePath = location->getStatusPages().find(_statusCode)->second;
-		statusPagePath = FileUtils::normalizePath(statusPagePath);
-		if (FileUtils::isFileReadable(statusPagePath))
-		{
-			_bodyFileDescriptor = FileDescriptor::createFromOpen(statusPagePath.c_str(), O_RDONLY);
-			_streamBody = true;
-		}
-		else
-			_body = DefaultStatusMap::getStatusBody(_statusCode);
-	}
-	else if (server && server->hasStatusPage(_statusCode))
-	{
-		std::string statusPagePath = server->getStatusPaths().find(_statusCode)->second;
-		statusPagePath = FileUtils::normalizePath(statusPagePath);
-		if (FileUtils::isFileReadable(statusPagePath))
-		{
-			_bodyFileDescriptor = FileDescriptor::createFromOpen(statusPagePath.c_str(), O_RDONLY);
-			_streamBody = true;
-		}
-		else
-			_body = DefaultStatusMap::getStatusBody(_statusCode);
-	}
-	else
-		_body = DefaultStatusMap::getStatusBody(_statusCode);
 }
 
 void HttpResponse::sendResponse(const FileDescriptor &clientFd, ssize_t &totalBytesSent)

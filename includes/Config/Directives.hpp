@@ -12,13 +12,26 @@
 // access directive storage and flags through protected members below.
 class Directives
 {
+public:
+	enum LocationType
+	{
+		STATIC = 0,
+		REDIRECT = 1,
+		CGI = 2,
+		UPLOAD = 3
+	};
+
 protected:
+	// Location type of the directives
+	LocationType _locationType;
+
 	// Directive members
 	std::string _rootPath;
 	bool _autoIndexValue;
-	std::string _cgiPath;
-	double _clientMaxBodySize;
+	bool _isCgiPathValue;
+	bool _isUploadPathValue;
 	bool _keepAliveValue;
+	double _clientMaxBodySize;
 	std::pair<int, std::string> _redirect;
 	TrieTree<std::string> _indexes;
 	std::map<int, std::string> _statusPaths;
@@ -27,9 +40,10 @@ protected:
 	// Directive flags
 	bool _hasRootPathDirective;
 	bool _hasAutoIndexDirective;
-	bool _hasCgiPathDirective;
-	bool _hasClientMaxBodySizeDirective;
+	bool _hasisCgiPathDirective;
+	bool _hasisUploadPathDirective;
 	bool _hasKeepAliveDirective;
+	bool _hasClientMaxBodySizeDirective;
 	bool _hasRedirectDirective;
 	bool _hasIndexDirective;
 	bool _hasStatusPathDirective;
@@ -43,35 +57,39 @@ public:
 	// Directive flags
 	bool hasRootPathDirective() const;
 	bool hasAutoIndexDirective() const;
-	bool hasCgiPathDirective() const;
-	bool hasClientMaxBodySizeDirective() const;
+	bool hasisCgiPathDirective() const;
+	bool hasisUploadPathDirective() const;
 	bool hasKeepAliveDirective() const;
+	bool hasClientMaxBodySizeDirective() const;
 	bool hasRedirectDirective() const;
 	bool hasIndexDirective() const;
 	bool hasStatusPathDirective() const;
 	bool hasAllowedMethodsDirective() const;
 
 	// Directive Investigators
+	LocationType getLocationType() const;
 	bool hasIndex(const std::string &index) const;
 	bool hasStatusPath(int status) const;
 	bool hasAllowedMethod(const std::string &allowedMethod) const;
 
 	// Directive Accessors
-	const std::string &getRootPath() const;
+	const std::string *getRootPath() const;
 	bool getAutoIndexValue() const;
-	const std::string &getCgiPath() const;
-	double getClientMaxBodySize() const;
+	bool getisCgiPathValue() const;
+	bool getisUploadPathValue() const;
 	bool getKeepAliveValue() const;
-	const std::pair<int, std::string> &getRedirect() const;
-	const TrieTree<std::string> &getIndexes() const;
-	const std::string &getStatusPath(int status) const;
-	const std::map<int, std::string> &getStatusPaths() const;
-	const std::vector<std::string> &getAllowedMethods() const;
+	double getClientMaxBodySize() const;
+	const std::pair<int, std::string> *getRedirect() const;
+	const TrieTree<std::string> *getIndexes() const;
+	const std::string *getStatusPath(int status) const;
+	const std::map<int, std::string> *getStatusPaths() const;
+	const std::vector<std::string> *getAllowedMethods() const;
 
 	// Directive Mutator
 	void setRootPath(const std::string &root);
 	void setAutoIndex(bool autoIndex);
-	void setCgiPath(const std::string &cgiPath);
+	void setIsCgiPath(bool isCgiPath);
+	void setIsUploadPath(bool isUploadPath);
 	void setClientMaxBodySize(double clientMaxBodySize);
 	void setKeepAlive(bool keepAlive);
 	void setRedirect(const std::pair<int, std::string> &redirect);

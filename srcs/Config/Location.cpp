@@ -39,7 +39,8 @@ Location &Location::operator=(Location const &rhs)
 		// Directives
 		_rootPath = rhs._rootPath;
 		_autoIndexValue = rhs._autoIndexValue;
-		_cgiPath = rhs._cgiPath;
+		_isCgiPathValue = rhs._isCgiPathValue;
+		_isUploadPathValue = rhs._isUploadPathValue;
 		_clientMaxBodySize = rhs._clientMaxBodySize;
 		_keepAliveValue = rhs._keepAliveValue;
 		_redirect = rhs._redirect;
@@ -50,7 +51,8 @@ Location &Location::operator=(Location const &rhs)
 		// Flags
 		_hasRootPathDirective = rhs._hasRootPathDirective;
 		_hasAutoIndexDirective = rhs._hasAutoIndexDirective;
-		_hasCgiPathDirective = rhs._hasCgiPathDirective;
+		_hasisCgiPathDirective = rhs._hasisCgiPathDirective;
+		_hasisUploadPathDirective = rhs._hasisUploadPathDirective;
 		_hasClientMaxBodySizeDirective = rhs._hasClientMaxBodySizeDirective;
 		_hasKeepAliveDirective = rhs._hasKeepAliveDirective;
 		_hasRedirectDirective = rhs._hasRedirectDirective;
@@ -73,10 +75,14 @@ std::ostream &operator<<(std::ostream &o, Location const &i)
 		o << "AutoIndex: " << (i.getAutoIndexValue() ? "on" : "off") << std::endl;
 	else
 		o << "AutoIndex: (not set)" << std::endl;
-	if (i.hasCgiPathDirective())
-		o << "CgiPath: " << i.getCgiPath() << std::endl;
+	if (i.hasisCgiPathDirective())
+		o << "CgiPath: " << i.getisCgiPathValue() << std::endl;
 	else
 		o << "CgiPath: (not set)" << std::endl;
+	if (i.hasisUploadPathDirective())
+		o << "UploadPath: " << i.getisUploadPathValue() << std::endl;
+	else
+		o << "UploadPath: (not set)" << std::endl;
 	if (i.hasClientMaxBodySizeDirective())
 		o << "Client Max Body Size: " << i.getClientMaxBodySize() << std::endl;
 	else
@@ -87,15 +93,15 @@ std::ostream &operator<<(std::ostream &o, Location const &i)
 		o << "Keep Alive: (not set)" << std::endl;
 	if (i.hasRedirectDirective())
 	{
-		const std::pair<int, std::string> &redirect = i.getRedirect();
-		o << "Redirect: " << redirect.first << " -> " << redirect.second << std::endl;
+		const std::pair<int, std::string> *redirect = i.getRedirect();
+		o << "Redirect: " << redirect->first << " -> " << redirect->second << std::endl;
 	}
 	else
 		o << "Redirect: (not set)" << std::endl;
 	if (i.hasIndexDirective())
 	{
 		o << "Indexes: " << std::endl;
-		const std::vector<std::string> &indexes = i.getIndexes().getAllKeys();
+		const std::vector<std::string> indexes = i.getIndexes()->getAllKeys();
 		for (size_t idx = 0; idx < indexes.size(); ++idx)
 		{
 			o << "  " << indexes[idx] << std::endl;
@@ -108,8 +114,8 @@ std::ostream &operator<<(std::ostream &o, Location const &i)
 	if (i.hasStatusPathDirective())
 	{
 		o << "Status Pages: " << std::endl;
-		const std::map<int, std::string> &statusPages = i.getStatusPaths();
-		for (std::map<int, std::string>::const_iterator it = statusPages.begin(); it != statusPages.end(); ++it)
+		const std::map<int, std::string> *statusPages = i.getStatusPaths();
+		for (std::map<int, std::string>::const_iterator it = statusPages->begin(); it != statusPages->end(); ++it)
 		{
 			o << "  " << it->first << " -> " << it->second << std::endl;
 		}
@@ -121,11 +127,11 @@ std::ostream &operator<<(std::ostream &o, Location const &i)
 	if (i.hasAllowedMethodsDirective())
 	{
 		o << "Allowed Methods: ";
-		const std::vector<std::string> &methods = i.getAllowedMethods();
-		for (size_t idx = 0; idx < methods.size(); ++idx)
+		const std::vector<std::string> *methods = i.getAllowedMethods();
+		for (size_t idx = 0; idx < methods->size(); ++idx)
 		{
-			o << methods[idx];
-			if (idx < methods.size() - 1)
+			o << (*methods)[idx];
+			if (idx < methods->size() - 1)
 				o << ", ";
 		}
 		o << std::endl;
@@ -154,11 +160,14 @@ const std::string &Location::getLocationPath() const
 bool Location::wasModified() const
 {
 	return _hasAllowedMethodsDirective || _hasStatusPathDirective || _hasRedirectDirective || _hasIndexDirective ||
-		   _hasCgiPathDirective || _hasClientMaxBodySizeDirective || _hasRootPathDirective || _hasAutoIndexDirective;
+		   _hasisCgiPathDirective || _hasClientMaxBodySizeDirective || _hasRootPathDirective || _hasAutoIndexDirective;
 }
 
 void Location::reset()
 {
+	// Identifier
+	_locationType = STATIC;
+
 	// Directives
 	_rootPath.clear();
 	_allowedMethods.clear();
@@ -166,13 +175,15 @@ void Location::reset()
 	_redirect = std::pair<int, std::string>();
 	_indexes.clear();
 	_autoIndexValue = false;
-	_cgiPath.clear();
+	_isCgiPathValue = false;
+	_isUploadPathValue = false;
 	_clientMaxBodySize = -1.0;
 
 	// Flags
 	_hasRootPathDirective = false;
 	_hasAutoIndexDirective = false;
-	_hasCgiPathDirective = false;
+	_hasisCgiPathDirective = false;
+	_hasisUploadPathDirective = false;
 	_hasClientMaxBodySizeDirective = false;
 	_hasKeepAliveDirective = false;
 	_hasRedirectDirective = false;

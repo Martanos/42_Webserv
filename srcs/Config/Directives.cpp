@@ -2,11 +2,11 @@
 
 // Default constructor: initialize directive members and flags
 Directives::Directives()
-	: _rootPath(), _autoIndexValue(false), _cgiPath(), _clientMaxBodySize(-1.0), _keepAliveValue(false), _redirect(),
-	  _indexes(), _statusPaths(), _allowedMethods(), _hasRootPathDirective(false), _hasAutoIndexDirective(false),
-	  _hasCgiPathDirective(false), _hasClientMaxBodySizeDirective(false), _hasKeepAliveDirective(false),
-	  _hasRedirectDirective(false), _hasIndexDirective(false), _hasStatusPathDirective(false),
-	  _hasAllowedMethodsDirective(false)
+	: _rootPath(""), _autoIndexValue(false), _isCgiPathValue(false), _isUploadPathValue(false), _keepAliveValue(false),
+	  _clientMaxBodySize(-1.0), _redirect(std::pair<int, std::string>()), _hasRootPathDirective(false),
+	  _hasAutoIndexDirective(false), _hasisCgiPathDirective(false), _hasisUploadPathDirective(false),
+	  _hasKeepAliveDirective(false), _hasClientMaxBodySizeDirective(false), _hasRedirectDirective(false),
+	  _hasIndexDirective(false), _hasStatusPathDirective(false), _hasAllowedMethodsDirective(false)
 {
 }
 
@@ -30,17 +30,21 @@ bool Directives::hasAutoIndexDirective() const
 {
 	return _hasAutoIndexDirective;
 }
-bool Directives::hasCgiPathDirective() const
+bool Directives::hasisCgiPathDirective() const
 {
-	return _hasCgiPathDirective;
+	return _hasisCgiPathDirective;
 }
-bool Directives::hasClientMaxBodySizeDirective() const
+bool Directives::hasisUploadPathDirective() const
 {
-	return _hasClientMaxBodySizeDirective;
+	return _hasisUploadPathDirective;
 }
 bool Directives::hasKeepAliveDirective() const
 {
 	return _hasKeepAliveDirective;
+}
+bool Directives::hasClientMaxBodySizeDirective() const
+{
+	return _hasClientMaxBodySizeDirective;
 }
 bool Directives::hasRedirectDirective() const
 {
@@ -63,6 +67,11 @@ bool Directives::hasAllowedMethodsDirective() const
 ** --------------------------------- DIRECTIVE INVESTIGATORS ---------------------------------
 */
 
+Directives::LocationType Directives::getLocationType() const
+{
+	return _locationType;
+}
+
 bool Directives::hasIndex(const std::string &index) const
 {
 	return _indexes.contains(index);
@@ -80,51 +89,54 @@ bool Directives::hasAllowedMethod(const std::string &allowedMethod) const
 ** --------------------------------- ACCESSORS ---------------------------------
 */
 
-const std::string &Directives::getRootPath() const
+const std::string *Directives::getRootPath() const
 {
-	return _rootPath;
+	return &_rootPath;
 }
 bool Directives::getAutoIndexValue() const
 {
 	return _autoIndexValue;
 }
-const std::string &Directives::getCgiPath() const
+bool Directives::getisCgiPathValue() const
 {
-	return _cgiPath;
+	return _isCgiPathValue;
 }
-double Directives::getClientMaxBodySize() const
+bool Directives::getisUploadPathValue() const
 {
-	return _clientMaxBodySize;
+	return _isUploadPathValue;
 }
 bool Directives::getKeepAliveValue() const
 {
 	return _keepAliveValue;
 }
-const std::pair<int, std::string> &Directives::getRedirect() const
+double Directives::getClientMaxBodySize() const
 {
-	return _redirect;
+	return _clientMaxBodySize;
 }
-const TrieTree<std::string> &Directives::getIndexes() const
+const std::pair<int, std::string> *Directives::getRedirect() const
 {
-	return _indexes;
+	return &_redirect;
 }
-const std::string &Directives::getStatusPath(int status) const
+const TrieTree<std::string> *Directives::getIndexes() const
 {
-	std::map<int, std::string>::const_iterator it = _statusPaths.find(status);
-	if (it != _statusPaths.end())
+	return &_indexes;
+}
+const std::string *Directives::getStatusPath(int status) const
+{
+	for (std::map<int, std::string>::const_iterator it = _statusPaths.begin(); it != _statusPaths.end(); ++it)
 	{
-		return it->second;
+		if (it->first == status)
+			return &(it->second);
 	}
-	static const std::string emptyString;
-	return emptyString;
+	return NULL;
 }
-const std::map<int, std::string> &Directives::getStatusPaths() const
+const std::map<int, std::string> *Directives::getStatusPaths() const
 {
-	return _statusPaths;
+	return &_statusPaths;
 }
-const std::vector<std::string> &Directives::getAllowedMethods() const
+const std::vector<std::string> *Directives::getAllowedMethods() const
 {
-	return _allowedMethods;
+	return &_allowedMethods;
 }
 
 /*
@@ -140,10 +152,17 @@ void Directives::setAutoIndex(bool autoIndex)
 	_autoIndexValue = autoIndex;
 	_hasAutoIndexDirective = true;
 }
-void Directives::setCgiPath(const std::string &cgiPath)
+void Directives::setIsCgiPath(bool isCgiPath)
 {
-	_cgiPath = cgiPath;
-	_hasCgiPathDirective = true;
+	_locationType = isCgiPath ? CGI : STATIC;
+	_isCgiPathValue = isCgiPath;
+	_hasisCgiPathDirective = true;
+}
+void Directives::setIsUploadPath(bool isUploadPath)
+{
+	_locationType = isUploadPath ? UPLOAD : STATIC;
+	_isUploadPathValue = isUploadPath;
+	_hasisUploadPathDirective = true;
 }
 void Directives::setClientMaxBodySize(double size)
 {
@@ -157,6 +176,7 @@ void Directives::setKeepAlive(bool keepAlive)
 }
 void Directives::setRedirect(const std::pair<int, std::string> &redirect)
 {
+	_locationType = REDIRECT;
 	_redirect = redirect;
 	_hasRedirectDirective = true;
 }

@@ -45,12 +45,13 @@ private:
 
 	// External configuration
 	const std::vector<Server> *_potentialServers;
-	Server *_selectedServer;
+	const Server *_selectedServer;
 	std::string _selectedServerHost;
 	std::string _selectedServerPort;
-	Location *_selectedLocation;
+	const Location *_selectedLocation;
 	SocketAddress *_remoteAddress;
 	bool _identifyServer(HttpResponse &response);
+	bool _identifyLocation(HttpResponse &response);
 
 public:
 	HttpRequest();
@@ -61,8 +62,6 @@ public:
 	// Parsing methods
 	ParseState parseBuffer(std::vector<char> &holdingBuffer, HttpResponse &response);
 
-	// Sanitization methods
-	void sanitizeRequest(HttpResponse &response, const Server *server, const Location *location);
 	void reset();
 
 	// Mutators
@@ -104,10 +103,9 @@ public:
 
 	// Server accessors
 	const std::vector<Server> *getPotentialServers() const;
-	Server *getSelectedServer() const;
-
-	Location *getSelectedLocation() const;
-	SocketAddress *getRemoteAddress() const;
+	const Server *getSelectedServer() const;
+	const Location *getSelectedLocation() const;
+	const SocketAddress *getRemoteAddress() const;
 	const std::string &getSelectedServerHost() const;
 	const std::string &getSelectedServerPort() const;
 };

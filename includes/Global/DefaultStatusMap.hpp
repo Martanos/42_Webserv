@@ -15,6 +15,7 @@
 // a body This map is to be used as a fallback if the server does not define its
 // own body
 // TODO: Unknown status codes should return a body that explains the status code
+// TODO: Seperate out the object parameters
 class DefaultStatusMap
 {
 private:

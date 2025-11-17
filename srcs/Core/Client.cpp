@@ -188,58 +188,22 @@ void Client::_handleRequest()
 
 void Client::_routeRequest()
 {
-	// change keep alive setting depending on found server
-	if (_request.getSelectedServer()->getKeepAliveValue())
+	// Change keep alive setting depending on rules set in location
+	if (_request.getSelectedLocation()->getKeepAliveValue())
 		_keepAlive = true;
 	else
 		_keepAlive = false;
-	const Location *location = NULL;
-	try
-	{
-		location = _request.getSelectedServer()->getLocation(_request.getUri());
-		_request.setSelectedLocation(location);
-		Logger::debug("Client: Matched location: " + location->getLocationPath() + " for URI: " + _request.getUri(),
-					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
-	}
-	catch (const std::exception &e)
-	{
-		Logger::error("Client: Exception during location lookup: " + std::string(e.what()) +
-						  " for URI: " + _request.getUri(),
-					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
-		_response.setResponseDefaultBody(500, "Exception during location lookup: " + std::string(e.what()), NULL, NULL,
-										 HttpResponse::FATAL_ERROR);
-		return;
-	}
-	if (!location) // 1. Verify location can be found on server (returns Null if exact match / longest prefix match
-				   // is not found)
-	{
-		_response.setResponseDefaultBody(404, "No location found for URI: " + _request.getUri(),
-										 _request.getSelectedServer(), NULL, HttpResponse::ERROR);
-		return;
-	}
-	else if (std::find(location->getAllowedMethods().begin(), location->getAllowedMethods().end(),
-					   _request.getMethod()) == location->getAllowedMethods().end()) // 2. Verify method is allowed
+
+	// Verify method is allowed by location
+	const Location *location = _request.getSelectedLocation();
+	if (std::find(location->getAllowedMethods()->begin(), location->getAllowedMethods()->end(),
+				  _request.getMethod()) == location->getAllowedMethods()->end()) // 2. Verify method is allowed
 	{
 		Logger::warning("Client: " + _request.getMethod() + " method not allowed for URI: " + _request.getUri(),
 						__FILE__, __LINE__, __PRETTY_FUNCTION__);
-		_response.setResponseDefaultBody(405, "Method Not Allowed", _request.getSelectedServer(), location,
-										 HttpResponse::ERROR);
+		_response.setResponseDefaultBody(405, "Method Not Allowed", location, HttpResponse::ERROR);
 		return;
 	}
-
-	// 3. Once location is found sanitize the request (can only be done after location is found)
-	_request.sanitizeRequest(_response, _request.getSelectedServer(), location);
-	switch (_request.getParseState())
-	{
-	case HttpRequest::PARSING_COMPLETE:
-		break;
-	case HttpRequest::PARSING_ERROR:
-		return;
-	default:
-		break;
-	}
-
-	Logger::debug("Client: sanitized request URI: " + _request.getUri(), __FILE__, __LINE__, __PRETTY_FUNCTION__);
 
 	// Use method handlers
 	IMethodHandler *handler = MethodHandlerFactory::createHandler(_request.getMethod());
@@ -247,15 +211,27 @@ void Client::_routeRequest()
 	{
 		Logger::debug("Client: Created handler for method: " + _request.getMethod(), __FILE__, __LINE__,
 					  __PRETTY_FUNCTION__);
-		handler->handleRequest(_request, _response, _request.getSelectedServer(), location);
+		switch (location->getLocationType())
+		{
+		case Location::STATIC:
+		case Location::UPLOAD:
+			handler->handleRequest(_request, _response, _request.getSelectedServer(), location);
+			break;
+		case Location::CGI:
+			handler->handleCgiRequest(_request, _response, _request.getSelectedServer(), location);
+			break;
+		case Location::REDIRECT:
+			_response.setRedirectResponse(location->getRedirect()->first, location->getRedirect()->second,
+										  HttpResponse::SUCCESS); // IGNORE
+		}
 		delete handler;
 	}
 	else
 	{
 		Logger::error("Client: Failed to create handler for method: " + _request.getMethod(), __FILE__, __LINE__,
 					  __PRETTY_FUNCTION__);
-		_response.setResponseDefaultBody(403, "Method Not Implemented: " + _request.getMethod(),
-										 _request.getSelectedServer(), location, HttpResponse::ERROR);
+		_response.setResponseDefaultBody(403, "Method Not Implemented: " + _request.getMethod(), location,
+										 HttpResponse::ERROR);
 	}
 }
 

@@ -1,5 +1,6 @@
 #include "../../includes/Config/Server.hpp"
 #include "../../includes/Http/HTTP.hpp"
+#include <sys/stat.h>
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -43,7 +44,8 @@ Server &Server::operator=(Server const &rhs)
 		// Directives members
 		_rootPath = rhs._rootPath;
 		_autoIndexValue = rhs._autoIndexValue;
-		_cgiPath = rhs._cgiPath;
+		_isCgiPathValue = rhs._isCgiPathValue;
+		_isUploadPathValue = rhs._isUploadPathValue;
 		_clientMaxBodySize = rhs._clientMaxBodySize;
 		_keepAliveValue = rhs._keepAliveValue;
 		_redirect = rhs._redirect;
@@ -54,7 +56,8 @@ Server &Server::operator=(Server const &rhs)
 		// Directive flags
 		_hasRootPathDirective = rhs._hasRootPathDirective;
 		_hasAutoIndexDirective = rhs._hasAutoIndexDirective;
-		_hasCgiPathDirective = rhs._hasCgiPathDirective;
+		_hasisCgiPathDirective = rhs._hasisCgiPathDirective;
+		_hasisUploadPathDirective = rhs._hasisUploadPathDirective;
 		_hasClientMaxBodySizeDirective = rhs._hasClientMaxBodySizeDirective;
 		_hasKeepAliveDirective = rhs._hasKeepAliveDirective;
 		_hasRedirectDirective = rhs._hasRedirectDirective;
@@ -109,9 +112,9 @@ std::ostream &operator<<(std::ostream &o, Server const &i)
 	if (i.hasIndexDirective())
 	{
 		o << "Indexes: ";
-		if (!i.getIndexes().isEmpty())
+		if (i.getIndexes() && !i.getIndexes()->isEmpty())
 		{
-			std::vector<std::string> indexes = i.getIndexes().getAllKeys();
+			std::vector<std::string> indexes = i.getIndexes()->getAllKeys();
 			for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); ++it)
 				o << *it << " ";
 		}
@@ -138,8 +141,8 @@ std::ostream &operator<<(std::ostream &o, Server const &i)
 	if (i.hasStatusPathDirective())
 	{
 		o << "Status pages: ";
-		for (std::map<int, std::string>::const_iterator it = i.getStatusPaths().begin(); it != i.getStatusPaths().end();
-			 ++it)
+		for (std::map<int, std::string>::const_iterator it = i.getStatusPaths()->begin();
+			 it != i.getStatusPaths()->end(); ++it)
 			o << it->first << ": " << it->second << " ";
 		o << std::endl;
 	}
@@ -317,6 +320,7 @@ void Server::reset()
 	// Identifier members
 	_serverNames.clear();
 	_sockets.clear();
+	_locationType = STATIC;
 
 	// Identifier flags
 	_hasServerNameDirective = false;
