@@ -3,28 +3,25 @@
 
 #include "IMethodHandler.hpp"
 
-class PostMethodHandler : public IMethodHandler
-{
+class PostMethodHandler : public IMethodHandler {
 public:
-	PostMethodHandler();
-	PostMethodHandler(const PostMethodHandler &other);
-	~PostMethodHandler();
-	PostMethodHandler &operator=(const PostMethodHandler &other);
+  PostMethodHandler();
+  PostMethodHandler(const PostMethodHandler &other);
+  ~PostMethodHandler();
+  PostMethodHandler &operator=(const PostMethodHandler &other);
 
-	// IMethodHandler implementation
-	virtual bool handleRequest(const HttpRequest &request, HttpResponse &response, const Server *server,
-							   const Location *location);
-	virtual bool canHandle(const std::string &method) const;
+  // IMethodHandler implementation
+  virtual bool handleRequest(const HttpRequest &request, HttpResponse &response,
+                             const Location &location);
 
 private:
-	// Helper methods
-	bool handleCgiRequest(const HttpRequest &request, HttpResponse &response, const Server *server,
-						  const Location *location);
-	bool handleFileUpload(const HttpRequest &request, HttpResponse &response, const Server *server,
-						  const Location *location);
-	bool isCgiRequest(const std::string &uri, const Location *location);
-	std::string getUploadPath(const Server *server, const Location *location);
-	bool saveUploadedFile(const std::string &filePath, const std::string &content);
+  // Helper methods
+  bool _validateUploadPath(const Location &location, HttpResponse &response);
+  bool _generateUniqueFilename(const std::string &uploadPath,
+                               const HttpRequest &request,
+                               std::string &filePath);
+  bool _saveUploadedFile(const std::string &filePath,
+                         const HttpRequest &request);
 };
 
 #endif /* POSTMETHODHANDLER_HPP */
