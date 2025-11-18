@@ -25,43 +25,10 @@ PutMethodHandler &PutMethodHandler::operator=(const PutMethodHandler &other)
 	return *this;
 }
 
-bool PutMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &response, const Server *server,
-									 const Location *location)
+bool PutMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &response, const Location *location)
 {
-	if (!canHandle(request.getMethod()))
-	{
-		response.setResponseDefaultBody(405, "Method Not Allowed", server, location, HttpResponse::ERROR);
-		return false;
-	}
 
-	std::string filePath = request.getUri();
-	if (filePath.empty() || filePath[0] != '/')
-	{
-		std::string baseRoot;
-		if (location && location->hasRootPathDirective())
-			baseRoot = location->getRootPath();
-		else if (server)
-			baseRoot = server->getRootPath();
-
-		if (baseRoot.empty())
-		{
-			Logger::log(Logger::ERROR, "PutMethodHandler: Unable to determine base root for PUT request");
-			response.setResponseDefaultBody(500, "Internal Server Error", server, location, HttpResponse::ERROR);
-			return false;
-		}
-
-		std::string rawPath = request.getRawUri();
-		size_t queryPos = rawPath.find('?');
-		if (queryPos != std::string::npos)
-			rawPath = rawPath.substr(0, queryPos);
-		if (!rawPath.empty() && rawPath[0] == '/')
-			rawPath.erase(0, 1);
-		if (!baseRoot.empty() && baseRoot[baseRoot.size() - 1] != '/')
-			baseRoot += "/";
-		filePath = baseRoot + rawPath;
-	}
-
-	Logger::debug("PutMethodHandler: Writing to path: " + filePath, __FILE__, __LINE__, __PRETTY_FUNCTION__);
+	std::string filePath = request.getURI().getResolvedPath();
 
 	struct stat st;
 	bool existed = (stat(filePath.c_str(), &st) == 0);
@@ -69,14 +36,14 @@ bool PutMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &r
 	if (!_ensureDirectory(filePath))
 	{
 		Logger::log(Logger::ERROR, "PutMethodHandler: Failed to ensure directory for path: " + filePath);
-		response.setResponseDefaultBody(500, "Internal Server Error", server, location, HttpResponse::ERROR);
+		response.setResponseDefaultBody(500, "Internal Server Error", location, HttpResponse::ERROR);
 		return false;
 	}
 
 	if (!_writeBodyToFile(request, filePath))
 	{
 		Logger::log(Logger::ERROR, "PutMethodHandler: Failed to write file: " + filePath);
-		response.setResponseDefaultBody(500, "Internal Server Error", server, location, HttpResponse::ERROR);
+		response.setResponseDefaultBody(500, "Internal Server Error", location, HttpResponse::ERROR);
 		return false;
 	}
 
@@ -92,11 +59,6 @@ bool PutMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &r
 	Logger::debug("PutMethodHandler: Successfully handled PUT for path: " + filePath, __FILE__, __LINE__,
 				  __PRETTY_FUNCTION__);
 	return true;
-}
-
-bool PutMethodHandler::canHandle(const std::string &method) const
-{
-	return method == "PUT";
 }
 
 bool PutMethodHandler::_ensureDirectory(const std::string &filePath) const
@@ -162,9 +124,9 @@ bool PutMethodHandler::_writeBodyToFile(const HttpRequest &request, const std::s
 		return false;
 	}
 
-	if (request.isUsingTempFile())
+	if (request.getBody().getIsUsingTempFile())
 	{
-		const std::string tempPath = request.getTempFile();
+		const std::string tempPath = request.getBody().getTempFilePath();
 		std::ifstream input(tempPath.c_str(), std::ios::binary);
 		if (!input.is_open())
 		{
@@ -175,7 +137,7 @@ bool PutMethodHandler::_writeBodyToFile(const HttpRequest &request, const std::s
 	}
 	else
 	{
-		const std::string body = request.getBodyData();
+		const std::string body = request.getBody().getRawBody();
 		if (!body.empty())
 			output.write(body.c_str(), body.size());
 	}

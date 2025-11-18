@@ -66,7 +66,7 @@ void HttpHeaders::parseBuffer(std::vector<char> &buffer, HttpResponse &response,
 			// If it can't be found check that the buffer has not currently exceeded the size limit of a header
 			if (buffer.size() > HTTP::DEFAULT_CLIENT_MAX_HEADERS_SIZE)
 			{
-				response.setResponseDefaultBody(413, "Request Header Too Large", NULL, NULL, HttpResponse::FATAL_ERROR);
+				response.setResponseDefaultBody(413, "Request Header Too Large", NULL, HttpResponse::FATAL_ERROR);
 				Logger::debug("Header size limit exceeded", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 				_headersState = HEADERS_PARSING_ERROR;
 			}
@@ -90,8 +90,7 @@ void HttpHeaders::parseBuffer(std::vector<char> &buffer, HttpResponse &response,
 		}
 		else if (rawHeader.size() + 2 > HTTP::DEFAULT_CLIENT_MAX_HEADERS_SIZE)
 		{
-			response.setResponseDefaultBody(413, "Request Line Header Too Large", NULL, NULL,
-											HttpResponse::FATAL_ERROR);
+			response.setResponseDefaultBody(413, "Request Line Header Too Large", NULL, HttpResponse::FATAL_ERROR);
 			Logger::debug("Header line size limit exceeded", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			_headersState = HEADERS_PARSING_ERROR;
 			return;
@@ -99,7 +98,7 @@ void HttpHeaders::parseBuffer(std::vector<char> &buffer, HttpResponse &response,
 		_rawHeadersSize += rawHeader.size() + 2;
 		if (_rawHeadersSize > HTTP::DEFAULT_CLIENT_MAX_HEADERS_SIZE)
 		{
-			response.setResponseDefaultBody(413, "Request headers total size too large", NULL, NULL,
+			response.setResponseDefaultBody(413, "Request headers total size too large", NULL,
 											HttpResponse::FATAL_ERROR);
 			Logger::debug("Header total size limit exceeded", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			_headersState = HEADERS_PARSING_ERROR;
@@ -129,7 +128,7 @@ void HttpHeaders::parseHeaderLine(const std::string &rawHeader, HttpResponse &re
 					Logger::debug("Singleton header " + header.getDirective() + " found multiple times", __FILE__,
 								  __LINE__, __PRETTY_FUNCTION__);
 					_headersState = HEADERS_PARSING_ERROR;
-					response.setResponseDefaultBody(400, "Duplicate singleton header found", NULL, NULL,
+					response.setResponseDefaultBody(400, "Duplicate singleton header found", NULL,
 													HttpResponse::FATAL_ERROR);
 					return;
 				}
@@ -142,7 +141,7 @@ void HttpHeaders::parseHeaderLine(const std::string &rawHeader, HttpResponse &re
 	catch (const std::exception &e)
 	{
 		Logger::log(Logger::ERROR, "Error parsing header: " + std::string(e.what()));
-		response.setResponseDefaultBody(400, "Error parsing header: " + std::string(e.what()), NULL, NULL,
+		response.setResponseDefaultBody(400, "Error parsing header: " + std::string(e.what()), NULL,
 										HttpResponse::FATAL_ERROR);
 		_headersState = HEADERS_PARSING_ERROR;
 	}
@@ -175,7 +174,7 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 				_headersState = HEADERS_PARSING_ERROR;
 				response.setResponseDefaultBody(400,
 												"Content-Length and Transfer-Encoding headers cannot be used together",
-												NULL, NULL, HttpResponse::FATAL_ERROR);
+												NULL, HttpResponse::FATAL_ERROR);
 				return;
 			}
 			char *endPtr;
@@ -185,7 +184,7 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 				Logger::debug("Invalid Content-Length header: " + headerValues[0], __FILE__, __LINE__,
 							  __PRETTY_FUNCTION__);
 				_headersState = HEADERS_PARSING_ERROR;
-				response.setResponseDefaultBody(400, "Invalid Content-Length header: " + headerValues[0], NULL, NULL,
+				response.setResponseDefaultBody(400, "Invalid Content-Length header: " + headerValues[0], NULL,
 												HttpResponse::FATAL_ERROR);
 				return;
 			}
@@ -218,7 +217,7 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 				_headersState = HEADERS_PARSING_ERROR;
 				response.setResponseDefaultBody(400,
 												"Content-Length and Transfer-Encoding headers cannot be used together",
-												NULL, NULL, HttpResponse::FATAL_ERROR);
+												NULL, HttpResponse::FATAL_ERROR);
 				return;
 			}
 			// As per requirements, only chunked is supported
@@ -231,7 +230,7 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 				Logger::debug("Invalid Transfer-Encoding header: " + headerValues[0], __FILE__, __LINE__,
 							  __PRETTY_FUNCTION__);
 				_headersState = HEADERS_PARSING_ERROR;
-				response.setResponseDefaultBody(400, "Invalid Transfer-Encoding header: " + headerValues[0], NULL, NULL,
+				response.setResponseDefaultBody(400, "Invalid Transfer-Encoding header: " + headerValues[0], NULL,
 												HttpResponse::FATAL_ERROR);
 				return;
 			}
@@ -250,7 +249,7 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 			{
 				Logger::debug("Invalid Connection header: " + headerValues[0], __FILE__, __LINE__, __PRETTY_FUNCTION__);
 				_headersState = HEADERS_PARSING_ERROR;
-				response.setResponseDefaultBody(400, "Invalid Connection header: " + headerValues[0], NULL, NULL,
+				response.setResponseDefaultBody(400, "Invalid Connection header: " + headerValues[0], NULL,
 												HttpResponse::FATAL_ERROR);
 				return;
 			}
@@ -263,7 +262,7 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 			{
 				Logger::debug("Empty Host header", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 				_headersState = HEADERS_PARSING_ERROR;
-				response.setResponseDefaultBody(400, "Empty Host header", NULL, NULL, HttpResponse::FATAL_ERROR);
+				response.setResponseDefaultBody(400, "Empty Host header", NULL, HttpResponse::FATAL_ERROR);
 				return;
 			}
 		}
@@ -272,7 +271,7 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 	{
 		Logger::debug("Host header is required for this server", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		_headersState = HEADERS_PARSING_ERROR;
-		response.setResponseDefaultBody(400, "Host header is required for this server", NULL, NULL,
+		response.setResponseDefaultBody(400, "Host header is required for this server", NULL,
 										HttpResponse::FATAL_ERROR);
 		return;
 	}

@@ -39,7 +39,7 @@ const std::vector<Server> &ConfigTranslator::getServers() const
 // Iterate through the AST and translate the server blocks
 void ConfigTranslator::_translate(const AST::ASTNode &ast)
 {
-	Server	server;
+	Server server;
 
 	for (std::vector<AST::ASTNode *>::const_iterator it = ast.children.begin(); it != ast.children.end(); ++it)
 	{
@@ -47,20 +47,17 @@ void ConfigTranslator::_translate(const AST::ASTNode &ast)
 		{
 			server = _translateServer(**it);
 			if (!server.wasModified())
-				Logger::warning("No valid members in server block"
-					+ StrUtils::toString<int>((*it)->line) + " column: "
-					+ StrUtils::toString<int>((*it)->column) + " skipping...",
-					__FILE__, __LINE__, __PRETTY_FUNCTION__);
+				Logger::warning("No valid members in server block" + StrUtils::toString<int>((*it)->line) +
+									" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+								__FILE__, __LINE__, __PRETTY_FUNCTION__);
 			else if (server.getServerNames().isEmpty())
-				Logger::warning("No server names in server block"
-					+ StrUtils::toString<int>((*it)->line) + " column: "
-					+ StrUtils::toString<int>((*it)->column) + " skipping...",
-					__FILE__, __LINE__, __PRETTY_FUNCTION__);
+				Logger::warning("No server names in server block" + StrUtils::toString<int>((*it)->line) +
+									" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+								__FILE__, __LINE__, __PRETTY_FUNCTION__);
 			else if (server.getSocketAddresses().empty())
-				Logger::warning("No socket addresses in server block"
-					+ StrUtils::toString<int>((*it)->line) + " column: "
-					+ StrUtils::toString<int>((*it)->column) + " skipping...",
-					__FILE__, __LINE__, __PRETTY_FUNCTION__);
+				Logger::warning("No socket addresses in server block" + StrUtils::toString<int>((*it)->line) +
+									" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+								__FILE__, __LINE__, __PRETTY_FUNCTION__);
 			else
 				_servers.push_back(server);
 		}
@@ -73,7 +70,7 @@ void ConfigTranslator::_translate(const AST::ASTNode &ast)
 
 Server ConfigTranslator::_translateServer(const AST::ASTNode &ast)
 {
-	Server	server;
+	Server server;
 
 	// Traverse the server block and translate recognizable members
 	for (std::vector<AST::ASTNode *>::const_iterator it = ast.children.begin(); it != ast.children.end(); ++it)
@@ -94,61 +91,57 @@ Server ConfigTranslator::_translateServer(const AST::ASTNode &ast)
 			if (location.wasModified())
 				server.insertLocation(location);
 			else
-				Logger::warning("No valid members in location block"
-					+ StrUtils::toString<int>((*it)->line) + " column: "
-					+ StrUtils::toString<int>((*it)->column) + " skipping...",
-					__FILE__, __LINE__, __PRETTY_FUNCTION__);
+				Logger::warning("No valid members in location block" + StrUtils::toString<int>((*it)->line) +
+									" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+								__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		}
 		else
-			Logger::warning("Unknown token in server block: " + (*it)->value
-				+ " line: " + StrUtils::toString<int>((*it)->line) + " column: "
-				+ StrUtils::toString<int>((*it)->column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			Logger::warning("Unknown token in server block: " + (*it)->value +
+								" line: " + StrUtils::toString<int>((*it)->line) +
+								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
 	// Inheritence step: propagate server-level members to locations that lack them
-	for (TrieTree<Location>::iterator locIt = server.getLocations().begin(); locIt != server.getLocations().end(); ++locIt)
+	for (TrieTree<Location>::iterator locIt = server.getLocations().begin(); locIt != server.getLocations().end();
+		 ++locIt)
 	{
 		Location &location = *locIt;
 		if (server.hasRootPathDirective() && !location.hasRootPathDirective())
 			location.setRootPath(*server.getRootPath());
 		if (server.hasAutoIndexDirective() && !location.hasAutoIndexDirective())
 			location.setAutoIndex(server.getAutoIndexValue());
-		if (server.hasClientMaxBodySizeDirective()
-			&& !location.hasClientMaxBodySizeDirective())
+		if (server.hasClientMaxBodySizeDirective() && !location.hasClientMaxBodySizeDirective())
 			location.setClientMaxBodySize(server.getClientMaxBodySize());
 		if (server.hasKeepAliveDirective() && !location.hasKeepAliveDirective())
 			location.setKeepAlive(server.getKeepAliveValue());
 		if (server.hasIndexDirective() && !location.hasIndexDirective())
 			location.setIndexes(*server.getIndexes());
-		if (server.hasStatusPathDirective()
-			&& !location.hasStatusPathDirective())
+		if (server.hasStatusPathDirective() && !location.hasStatusPathDirective())
 			location.setStatusPaths(*server.getStatusPaths());
-		if (server.hasAllowedMethodsDirective()
-			&& !location.hasAllowedMethodsDirective())
+		if (server.hasAllowedMethodsDirective() && !location.hasAllowedMethodsDirective())
 			location.setAllowedMethods(*server.getAllowedMethods());
 		if (location.getLocationType() == Directives::STATIC)
 		{
 			switch (server.getLocationType())
 			{
 			case Server::STATIC:
-				break ;
+				break;
 			case Server::REDIRECT:
 				location.setRedirect(*server.getRedirect());
-				break ;
+				break;
 			case Server::CGI:
 				location.setIsCgiPath(server.getisCgiPathValue());
-				break ;
+				break;
 			case Server::UPLOAD:
 				location.setUploadPath(*server.getUploadPath());
-				break ;
+				break;
 			}
 		}
 	}
 	// Default location block, only created if root path was set at server level
-	if (!server.getLocation("/") && server.wasModified()
-		&& server.hasRootPathDirective())
+	if (!server.getLocation("/") && server.wasModified() && server.hasRootPathDirective())
 	{
-		Location rootLocation("/");
+		Location rootLocation(server.getRootPath()->empty() ? "/" : "/");
 		if (server.hasRootPathDirective())
 			rootLocation.setRootPath(*server.getRootPath());
 		if (server.hasAutoIndexDirective())
@@ -166,16 +159,16 @@ Server ConfigTranslator::_translateServer(const AST::ASTNode &ast)
 		switch (server.getLocationType())
 		{
 		case Server::STATIC:
-			break ;
+			break;
 		case Server::REDIRECT:
 			rootLocation.setRedirect(*server.getRedirect());
-			break ;
+			break;
 		case Server::CGI:
 			rootLocation.setIsCgiPath(server.getisCgiPathValue());
-			break ;
+			break;
 		case Server::UPLOAD:
 			rootLocation.setUploadPath(*server.getUploadPath());
-			break ;
+			break;
 		}
 		if (rootLocation.wasModified())
 			server.insertLocation(rootLocation);
@@ -184,100 +177,88 @@ Server ConfigTranslator::_translateServer(const AST::ASTNode &ast)
 }
 
 // Server name verification
-void ConfigTranslator::_translateServerName(const AST::ASTNode &directive,
-	Server &server)
+void ConfigTranslator::_translateServerName(const AST::ASTNode &directive, Server &server)
 {
-	for (std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin(); it != directive.children.end(); ++it)
+	for (std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin(); it != directive.children.end();
+		 ++it)
 	{
 		try
 		{
 			if ((*it)->type == AST::ARG)
 			{
 				if ((*it)->value.empty())
-					Logger::warning("Empty server name"
-						+ StrUtils::toString<int>((*it)->line) + " column: "
-						+ StrUtils::toString<int>((*it)->column)
-						+ " skipping...", __FILE__, __LINE__,
-						__PRETTY_FUNCTION__);
+					Logger::warning("Empty server name" + StrUtils::toString<int>((*it)->line) +
+										" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+									__FILE__, __LINE__, __PRETTY_FUNCTION__);
 				else if (!server.hasServerName((*it)->value))
 				{
 					if (StrUtils::hasConsecutiveDots((*it)->value))
-						Logger::warning("Consecutive dots in server name: "
-							+ (*it)->value + " line: "
-							+ StrUtils::toString<int>((*it)->line) + " column: "
-							+ StrUtils::toString<int>((*it)->column), __FILE__,
-							__LINE__, __PRETTY_FUNCTION__);
+						Logger::warning("Consecutive dots in server name: " + (*it)->value +
+											" line: " + StrUtils::toString<int>((*it)->line) +
+											" column: " + StrUtils::toString<int>((*it)->column),
+										__FILE__, __LINE__, __PRETTY_FUNCTION__);
 					else if (StrUtils::hasSpaces((*it)->value))
-						Logger::warning("Spaces in server name: " + (*it)->value
-							+ " line: " + StrUtils::toString<int>((*it)->line)
-							+ " column: "
-							+ StrUtils::toString<int>((*it)->column), __FILE__,
-							__LINE__, __PRETTY_FUNCTION__);
+						Logger::warning("Spaces in server name: " + (*it)->value +
+											" line: " + StrUtils::toString<int>((*it)->line) +
+											" column: " + StrUtils::toString<int>((*it)->column),
+										__FILE__, __LINE__, __PRETTY_FUNCTION__);
 					else if (StrUtils::hasControlCharacters((*it)->value))
-						Logger::warning("Control characters in server name: "
-							+ (*it)->value + " line: "
-							+ StrUtils::toString<int>((*it)->line) + " column: "
-							+ StrUtils::toString<int>((*it)->column), __FILE__,
-							__LINE__, __PRETTY_FUNCTION__);
+						Logger::warning("Control characters in server name: " + (*it)->value +
+											" line: " + StrUtils::toString<int>((*it)->line) +
+											" column: " + StrUtils::toString<int>((*it)->column),
+										__FILE__, __LINE__, __PRETTY_FUNCTION__);
 					server.insertServerName((*it)->value);
 				}
 				else
-					Logger::warning("Unknown token in server name block: "
-						+ (*it)->value + " line: "
-						+ StrUtils::toString<int>((*it)->line) + " column: "
-						+ StrUtils::toString<int>((*it)->column)
-						+ " skipping...", __FILE__, __LINE__,
-						__PRETTY_FUNCTION__);
+					Logger::warning("Unknown token in server name block: " + (*it)->value +
+										" line: " + StrUtils::toString<int>((*it)->line) +
+										" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+									__FILE__, __LINE__, __PRETTY_FUNCTION__);
 			}
 		}
 		catch (const std::exception &e)
 		{
-			Logger::error("Error translating server name: "
-				+ std::string(e.what()) + " line: "
-				+ StrUtils::toString<int>(directive.line) + " column: "
-				+ StrUtils::toString<int>((*it)->column), __FILE__, __LINE__,
-				__PRETTY_FUNCTION__);
+			Logger::error("Error translating server name: " + std::string(e.what()) +
+							  " line: " + StrUtils::toString<int>(directive.line) +
+							  " column: " + StrUtils::toString<int>((*it)->column),
+						  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		}
 	}
 }
 
 // Translate listen directives into server members
-void ConfigTranslator::_translateListen(const AST::ASTNode &directive,
-	Server &server)
+void ConfigTranslator::_translateListen(const AST::ASTNode &directive, Server &server)
 {
 	try
 	{
 		std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
 		if (it == directive.children.end())
-			return (Logger::warning("No arguments in listen directive"
-					+ directive.value + " line: "
-					+ StrUtils::toString<int>(directive.line) + " column: "
-					+ StrUtils::toString<int>(directive.column)
-					+ " skipping...", __FILE__, __LINE__, __PRETTY_FUNCTION__));
+			return (Logger::warning("No arguments in listen directive" + directive.value +
+										" line: " + StrUtils::toString<int>(directive.line) +
+										" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+									__FILE__, __LINE__, __PRETTY_FUNCTION__));
 		else if ((*it)->type == AST::ARG)
 		{
 			SocketAddress socket((*it)->value);
 			server.insertSocketAddress(socket);
 		}
 		else
-			Logger::warning("Unknown token in listen directive: " + (*it)->value
-				+ " line: " + StrUtils::toString<int>((*it)->line) + " column: "
-				+ StrUtils::toString<int>((*it)->column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			Logger::warning("Unknown token in listen directive: " + (*it)->value +
+								" line: " + StrUtils::toString<int>((*it)->line) +
+								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		while (++it != directive.children.end())
-			Logger::warning("Extra argument in listen directive: "
-				+ (*it)->value + " line: "
-				+ StrUtils::toString<int>((*it)->line) + " column: "
-				+ StrUtils::toString<int>((*it)->column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			Logger::warning("Extra argument in listen directive: " + (*it)->value +
+								" line: " + StrUtils::toString<int>((*it)->line) +
+								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
 	catch (const std::exception &e)
 	{
-		Logger::error("Error translating listen directive: "
-			+ std::string(e.what()) + " line: "
-			+ StrUtils::toString<int>(directive.line) + " column: "
-			+ StrUtils::toString<int>(directive.column) + " skipping...",
-			__FILE__, __LINE__, __PRETTY_FUNCTION__);
+		Logger::error("Error translating listen directive: " + std::string(e.what()) +
+						  " line: " + StrUtils::toString<int>(directive.line) +
+						  " column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
 }
 
@@ -286,35 +267,32 @@ void ConfigTranslator::_translateListen(const AST::ASTNode &directive,
 */
 
 // Location verification
-void ConfigTranslator::_translateLocation(const AST::ASTNode &location_node,
-	Location &location)
+void ConfigTranslator::_translateLocation(const AST::ASTNode &location_node, Location &location)
 {
 	try
 	{
-		for (std::vector<AST::ASTNode *>::const_iterator it = location_node.children.begin(); it != location_node.children.end(); ++it)
+		for (std::vector<AST::ASTNode *>::const_iterator it = location_node.children.begin();
+			 it != location_node.children.end(); ++it)
 		{
-			Logger::debug("Processing child: type="
-				+ StrUtils::toString<int>((*it)->type) + ", value="
-				+ (*it)->value, __FILE__, __LINE__, __PRETTY_FUNCTION__);
+			Logger::debug("Processing child: type=" + StrUtils::toString<int>((*it)->type) + ", value=" + (*it)->value,
+						  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			if ((*it)->type == AST::DIRECTIVE)
 			{
 				_translateDirective(it, location, "location");
 			}
 			else
-				Logger::warning("Unknown token in location block: "
-					+ (*it)->value + " line: "
-					+ StrUtils::toString<int>((*it)->line) + " column: "
-					+ StrUtils::toString<int>((*it)->column) + " skipping...",
-					__FILE__, __LINE__, __PRETTY_FUNCTION__);
+				Logger::warning("Unknown token in location block: " + (*it)->value +
+									" line: " + StrUtils::toString<int>((*it)->line) +
+									" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+								__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		}
 	}
 	catch (const std::exception &e)
 	{
-		Logger::error("Error translating location block: "
-			+ std::string(e.what()) + " line: "
-			+ StrUtils::toString<int>(location_node.line) + " column: "
-			+ StrUtils::toString<int>(location_node.column), __FILE__, __LINE__,
-			__PRETTY_FUNCTION__);
+		Logger::error("Error translating location block: " + std::string(e.what()) +
+						  " line: " + StrUtils::toString<int>(location_node.line) +
+						  " column: " + StrUtils::toString<int>(location_node.column),
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
 }
 
@@ -324,7 +302,7 @@ void ConfigTranslator::_translateLocation(const AST::ASTNode &location_node,
 
 // Routes a directive to the appropriate translation helper
 void ConfigTranslator::_translateDirective(std::vector<AST::ASTNode *>::const_iterator &directive,
-	Directives &directives, std::string context)
+										   Directives &directives, std::string context)
 {
 	if ((*directive)->value == "root")
 		_translateRootPathDirective(**directive, directives, context);
@@ -347,75 +325,68 @@ void ConfigTranslator::_translateDirective(std::vector<AST::ASTNode *>::const_it
 	else if ((*directive)->value == "allowed_methods")
 		_translateAllowedMethodsDirective(**directive, directives, context);
 	else
-		Logger::warning("Unknown directive in " + context + " block: "
-			+ (*directive)->value + " line: "
-			+ StrUtils::toString<int>((*directive)->line) + " column: "
-			+ StrUtils::toString<int>((*directive)->column) + " skipping...",
-			__FILE__, __LINE__, __PRETTY_FUNCTION__);
+		Logger::warning("Unknown directive in " + context + " block: " + (*directive)->value +
+							" line: " + StrUtils::toString<int>((*directive)->line) +
+							" column: " + StrUtils::toString<int>((*directive)->column) + " skipping...",
+						__FILE__, __LINE__, __PRETTY_FUNCTION__);
 }
 
-void ConfigTranslator::_translateRootPathDirective(const AST::ASTNode &directive,
-	Directives &directives, std::string context)
+void ConfigTranslator::_translateRootPathDirective(const AST::ASTNode &directive, Directives &directives,
+												   std::string context)
 {
 	try
 	{
 		std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
 		if (it == directive.children.end())
 		{
-			Logger::warning("No arguments in " + context + " root directive"
-				+ directive.value + " line: "
-				+ StrUtils::toString<int>(directive.line) + " column: "
-				+ StrUtils::toString<int>(directive.column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
-			return ;
+			Logger::warning("No arguments in " + context + " root directive" + directive.value +
+								" line: " + StrUtils::toString<int>(directive.line) +
+								" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			return;
 		}
 		if ((*it)->type == AST::ARG)
 		{
-			std::string error = StrUtils::validateDirectoryPath((*it)->value,
-					context + " root");
+			std::string error = StrUtils::validateDirectoryPath((*it)->value, context + " root");
 			if (!error.empty())
 				Logger::warning(error, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			directives.setRootPath((*it)->value);
 		}
 		else
-			Logger::warning("Unknown token in " + context + " root directive: "
-				+ (*it)->value + " line: "
-				+ StrUtils::toString<int>((*it)->line) + " column: "
-				+ StrUtils::toString<int>((*it)->column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			Logger::warning("Unknown token in " + context + " root directive: " + (*it)->value +
+								" line: " + StrUtils::toString<int>((*it)->line) +
+								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		while (++it != directive.children.end())
 		{
-			Logger::warning("Extra argument in " + context + " root directive: "
-				+ (*it)->value + " line: "
-				+ StrUtils::toString<int>((*it)->line) + " column: "
-				+ StrUtils::toString<int>((*it)->column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			Logger::warning("Extra argument in " + context + " root directive: " + (*it)->value +
+								" line: " + StrUtils::toString<int>((*it)->line) +
+								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		}
 	}
 	catch (const std::exception &e)
 	{
-		Logger::error("Error translating " + context + " root directive: "
-			+ std::string(e.what()) + " line: "
-			+ StrUtils::toString<int>(directive.line) + " column: "
-			+ StrUtils::toString<int>(directive.column) + " skipping...",
-			__FILE__, __LINE__, __PRETTY_FUNCTION__);
+		Logger::error("Error translating " + context + " root directive: " + std::string(e.what()) +
+						  " line: " + StrUtils::toString<int>(directive.line) +
+						  " column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
 }
 
-void ConfigTranslator::_translateAutoindexDirective(const AST::ASTNode &directive,
-	Directives &directives, std::string context)
+void ConfigTranslator::_translateAutoindexDirective(const AST::ASTNode &directive, Directives &directives,
+													std::string context)
 {
 	try
 	{
 		std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
 		if (it == directive.children.end())
 		{
-			Logger::warning("No arguments in " + context
-				+ " autoindex directive" + directive.value + " line: "
-				+ StrUtils::toString<int>(directive.line) + " column: "
-				+ StrUtils::toString<int>(directive.column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
-			return ;
+			Logger::warning("No arguments in " + context + " autoindex directive" + directive.value +
+								" line: " + StrUtils::toString<int>(directive.line) +
+								" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			return;
 		}
 		if ((*it)->type == AST::ARG)
 		{
@@ -424,107 +395,97 @@ void ConfigTranslator::_translateAutoindexDirective(const AST::ASTNode &directiv
 			else if ((*it)->value == "off")
 				directives.setAutoIndex(false);
 			else
-				Logger::warning("Invalid autoindex value: " + (*it)->value
-					+ " line: " + StrUtils::toString<int>((*it)->line)
-					+ " column: " + StrUtils::toString<int>((*it)->column)
-					+ " skipping...", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+				Logger::warning("Invalid autoindex value: " + (*it)->value +
+									" line: " + StrUtils::toString<int>((*it)->line) +
+									" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+								__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		}
 		else
 		{
-			Logger::warning("Unknown token in " + context
-				+ " autoindex directive: " + (*it)->value + " line: "
-				+ StrUtils::toString<int>((*it)->line) + " column: "
-				+ StrUtils::toString<int>((*it)->column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			Logger::warning("Unknown token in " + context + " autoindex directive: " + (*it)->value +
+								" line: " + StrUtils::toString<int>((*it)->line) +
+								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		}
 		while (++it != directive.children.end())
 		{
-			Logger::warning("Extra argument in " + context
-				+ " autoindex directive: " + (*it)->value + " line: "
-				+ StrUtils::toString<int>((*it)->line) + " column: "
-				+ StrUtils::toString<int>((*it)->column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			Logger::warning("Extra argument in " + context + " autoindex directive: " + (*it)->value +
+								" line: " + StrUtils::toString<int>((*it)->line) +
+								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		}
 	}
 	catch (const std::exception &e)
 	{
-		Logger::error("Error translating " + context + " autoindex directive: "
-			+ std::string(e.what()) + " line: "
-			+ StrUtils::toString<int>(directive.line) + " column: "
-			+ StrUtils::toString<int>(directive.column) + " skipping...",
-			__FILE__, __LINE__, __PRETTY_FUNCTION__);
+		Logger::error("Error translating " + context + " autoindex directive: " + std::string(e.what()) +
+						  " line: " + StrUtils::toString<int>(directive.line) +
+						  " column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
 }
 
-void ConfigTranslator::_translateUploadPathDirective(const AST::ASTNode &directive,
-	Directives &directives, std::string context)
+void ConfigTranslator::_translateUploadPathDirective(const AST::ASTNode &directive, Directives &directives,
+													 std::string context)
 {
 	try
 	{
 		std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
 		if (it == directive.children.end())
 		{
-			Logger::warning("No arguments in " + context
-				+ " upload path directive: " + directive.value + " line: "
-				+ StrUtils::toString<int>(directive.line) + " column: "
-				+ StrUtils::toString<int>(directive.column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
-			return ;
+			Logger::warning("No arguments in " + context + " upload path directive: " + directive.value +
+								" line: " + StrUtils::toString<int>(directive.line) +
+								" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			return;
 		}
 		if ((*it)->type == AST::ARG)
 		{
-			std::string error = StrUtils::validateDirectoryPath((*it)->value,
-					context + " upload_path");
+			std::string error = StrUtils::validateDirectoryPath((*it)->value, context + " upload_path");
 			if (!error.empty())
 			{
-				Logger::warning("Invalid upload_path value: " + (*it)->value
-					+ " error: " + error + " line: "
-					+ StrUtils::toString<int>((*it)->line) + " column: "
-					+ StrUtils::toString<int>((*it)->column) + " skipping...",
-					__FILE__, __LINE__, __PRETTY_FUNCTION__);
+				Logger::warning("Invalid upload_path value: " + (*it)->value + " error: " + error +
+									" line: " + StrUtils::toString<int>((*it)->line) +
+									" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+								__FILE__, __LINE__, __PRETTY_FUNCTION__);
 			}
 			else
 				directives.setUploadPath((*it)->value);
 		}
 		else
-			Logger::warning("Unknown token in " + context
-				+ " upload path directive: " + (*it)->value + " line: "
-				+ StrUtils::toString<int>((*it)->line) + " column: "
-				+ StrUtils::toString<int>((*it)->column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			Logger::warning("Unknown token in " + context + " upload path directive: " + (*it)->value +
+								" line: " + StrUtils::toString<int>((*it)->line) +
+								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		while (++it != directive.children.end())
 		{
-			Logger::warning("Extra argument in " + context
-				+ " upload path directive: " + (*it)->value + " line: "
-				+ StrUtils::toString<int>((*it)->line) + " column: "
-				+ StrUtils::toString<int>((*it)->column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			Logger::warning("Extra argument in " + context + " upload path directive: " + (*it)->value +
+								" line: " + StrUtils::toString<int>((*it)->line) +
+								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		}
 	}
 	catch (const std::exception &e)
 	{
-		Logger::error("Error translating " + context
-			+ " upload path directive: " + std::string(e.what()) + " line: "
-			+ StrUtils::toString<int>(directive.line) + " column: "
-			+ StrUtils::toString<int>(directive.column) + " skipping...",
-			__FILE__, __LINE__, __PRETTY_FUNCTION__);
+		Logger::error("Error translating " + context + " upload path directive: " + std::string(e.what()) +
+						  " line: " + StrUtils::toString<int>(directive.line) +
+						  " column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
 }
 
-void ConfigTranslator::_translateCgiPathDirective(const AST::ASTNode &directive,
-	Directives &directives, std::string context)
+void ConfigTranslator::_translateCgiPathDirective(const AST::ASTNode &directive, Directives &directives,
+												  std::string context)
 {
 	try
 	{
 		std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
 		if (it == directive.children.end())
 		{
-			Logger::warning("No arguments in " + context
-				+ " cgi path directive: " + directive.value + " line: "
-				+ StrUtils::toString<int>(directive.line) + " column: "
-				+ StrUtils::toString<int>(directive.column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
-			return ;
+			Logger::warning("No arguments in " + context + " cgi path directive: " + directive.value +
+								" line: " + StrUtils::toString<int>(directive.line) +
+								" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			return;
 		}
 		if ((*it)->type == AST::ARG)
 		{
@@ -538,160 +499,144 @@ void ConfigTranslator::_translateCgiPathDirective(const AST::ASTNode &directive,
 			}
 			else
 			{
-				Logger::warning("Invalid cgi_path value: " + (*it)->value
-					+ " line: " + StrUtils::toString<int>((*it)->line)
-					+ " column: " + StrUtils::toString<int>((*it)->column)
-					+ " skipping...", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-				return ;
+				Logger::warning("Invalid cgi_path value: " + (*it)->value +
+									" line: " + StrUtils::toString<int>((*it)->line) +
+									" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+								__FILE__, __LINE__, __PRETTY_FUNCTION__);
+				return;
 			}
 		}
 		else
-			Logger::warning("Unknown token in " + context
-				+ " cgi path directive: " + (*it)->value + " line: "
-				+ StrUtils::toString<int>((*it)->line) + " column: "
-				+ StrUtils::toString<int>((*it)->column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			Logger::warning("Unknown token in " + context + " cgi path directive: " + (*it)->value +
+								" line: " + StrUtils::toString<int>((*it)->line) +
+								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		while (++it != directive.children.end())
 		{
-			Logger::warning("Extra argument in " + context
-				+ " cgi path directive: " + (*it)->value + " line: "
-				+ StrUtils::toString<int>((*it)->line) + " column: "
-				+ StrUtils::toString<int>((*it)->column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			Logger::warning("Extra argument in " + context + " cgi path directive: " + (*it)->value +
+								" line: " + StrUtils::toString<int>((*it)->line) +
+								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		}
 	}
 	catch (const std::exception &e)
 	{
-		Logger::error("Error translating " + context + " cgi path directive: "
-			+ std::string(e.what()) + " line: "
-			+ StrUtils::toString<int>(directive.line) + " column: "
-			+ StrUtils::toString<int>(directive.column) + " skipping...",
-			__FILE__, __LINE__, __PRETTY_FUNCTION__);
+		Logger::error("Error translating " + context + " cgi path directive: " + std::string(e.what()) +
+						  " line: " + StrUtils::toString<int>(directive.line) +
+						  " column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
 }
 
-void ConfigTranslator::_translateClientMaxBodySizeDirective(const AST::ASTNode &directive,
-	Directives &directives, std::string context)
+void ConfigTranslator::_translateClientMaxBodySizeDirective(const AST::ASTNode &directive, Directives &directives,
+															std::string context)
 {
-	double	size;
+	double size;
 
 	try
 	{
 		std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
 		if (it == directive.children.end())
 		{
-			Logger::warning("No arguments in " + context
-				+ " client max body size directive" + directive.value
-				+ " line: " + StrUtils::toString<int>(directive.line)
-				+ " column: " + StrUtils::toString<int>(directive.column)
-				+ " skipping...", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-			return ;
+			Logger::warning("No arguments in " + context + " client max body size directive" + directive.value +
+								" line: " + StrUtils::toString<int>(directive.line) +
+								" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			return;
 		}
 		else if ((*it)->type == AST::ARG)
 		{
 			size = 0.0;
 			if (!_parseSizeArgument((*it)->value, size))
-				Logger::warning("Invalid client max body size in " + context
-					+ ": " + (*it)->value + " line: "
-					+ StrUtils::toString<int>((*it)->line) + " column: "
-					+ StrUtils::toString<int>((*it)->column) + " skipping...",
-					__FILE__, __LINE__, __PRETTY_FUNCTION__);
+				Logger::warning("Invalid client max body size in " + context + ": " + (*it)->value +
+									" line: " + StrUtils::toString<int>((*it)->line) +
+									" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+								__FILE__, __LINE__, __PRETTY_FUNCTION__);
 			else
 				directives.setClientMaxBodySize(size);
 		}
 		else
-			Logger::warning("Unknown token in " + context
-				+ " client max body size directive: " + (*it)->value + " line: "
-				+ StrUtils::toString<int>((*it)->line) + " column: "
-				+ StrUtils::toString<int>((*it)->column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			Logger::warning("Unknown token in " + context + " client max body size directive: " + (*it)->value +
+								" line: " + StrUtils::toString<int>((*it)->line) +
+								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		while (++it != directive.children.end())
 		{
-			Logger::warning("Extra argument in " + context
-				+ " client max body size directive: " + (*it)->value + " line: "
-				+ StrUtils::toString<int>((*it)->line) + " column: "
-				+ StrUtils::toString<int>((*it)->column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			Logger::warning("Extra argument in " + context + " client max body size directive: " + (*it)->value +
+								" line: " + StrUtils::toString<int>((*it)->line) +
+								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		}
 	}
 	catch (const std::exception &e)
 	{
-		Logger::error("Error translating " + context
-			+ " client max body size directive: " + std::string(e.what())
-			+ " line: " + StrUtils::toString<int>(directive.line) + " column: "
-			+ StrUtils::toString<int>(directive.column) + " skipping...",
-			__FILE__, __LINE__, __PRETTY_FUNCTION__);
+		Logger::error("Error translating " + context + " client max body size directive: " + std::string(e.what()) +
+						  " line: " + StrUtils::toString<int>(directive.line) +
+						  " column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
 }
 
-void	_translateKeepAliveDirective(const AST::ASTNode &directive,
-		Directives &directives, std::string context)
+void _translateKeepAliveDirective(const AST::ASTNode &directive, Directives &directives, std::string context)
 {
 	try
 	{
 		std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
 		if (it == directive.children.end())
 		{
-			Logger::warning("No arguments in " + context
-				+ " keep alive directive" + directive.value + " line: "
-				+ StrUtils::toString<int>(directive.line) + " column: "
-				+ StrUtils::toString<int>(directive.column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
-			return ;
+			Logger::warning("No arguments in " + context + " keep alive directive" + directive.value +
+								" line: " + StrUtils::toString<int>(directive.line) +
+								" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			return;
 		}
 		else if ((*it)->type == AST::ARG)
 		{
 			if ((*it)->value == "on" || (*it)->value == "off")
 				directives.setKeepAlive((*it)->value == "on");
 			else
-				Logger::warning("Invalid keep alive value in " + context + ": "
-					+ (*it)->value + " line: "
-					+ StrUtils::toString<int>((*it)->line) + " column: "
-					+ StrUtils::toString<int>((*it)->column) + " skipping...",
-					__FILE__, __LINE__, __PRETTY_FUNCTION__);
+				Logger::warning("Invalid keep alive value in " + context + ": " + (*it)->value +
+									" line: " + StrUtils::toString<int>((*it)->line) +
+									" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+								__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		}
 		else
-			Logger::warning("Unknown token in " + context
-				+ " keep alive directive: " + (*it)->value + " line: "
-				+ StrUtils::toString<int>((*it)->line) + " column: "
-				+ StrUtils::toString<int>((*it)->column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			Logger::warning("Unknown token in " + context + " keep alive directive: " + (*it)->value +
+								" line: " + StrUtils::toString<int>((*it)->line) +
+								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		while (++it != directive.children.end())
 		{
-			Logger::warning("Extra argument in " + context
-				+ " keep alive directive: " + (*it)->value + " line: "
-				+ StrUtils::toString<int>((*it)->line) + " column: "
-				+ StrUtils::toString<int>((*it)->column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			Logger::warning("Extra argument in " + context + " keep alive directive: " + (*it)->value +
+								" line: " + StrUtils::toString<int>((*it)->line) +
+								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		}
 	}
 	catch (const std::exception &e)
 	{
-		Logger::error("Error translating " + context + " keep alive directive: "
-			+ std::string(e.what()) + " line: "
-			+ StrUtils::toString<int>(directive.line) + " column: "
-			+ StrUtils::toString<int>(directive.column) + " skipping...",
-			__FILE__, __LINE__, __PRETTY_FUNCTION__);
+		Logger::error("Error translating " + context + " keep alive directive: " + std::string(e.what()) +
+						  " line: " + StrUtils::toString<int>(directive.line) +
+						  " column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
 }
 
-void	_translateRedirectDirective(const AST::ASTNode &directive,
-		Directives &directives, std::string context)
+void _translateRedirectDirective(const AST::ASTNode &directive, Directives &directives, std::string context)
 {
-	long long	code;
-	char		*end;
+	long long code;
+	char *end;
 
 	try
 	{
 		std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
 		if (it == directive.children.end())
 		{
-			Logger::warning("No arguments in " + context
-				+ " redirect directive: " + directive.value + " line: "
-				+ StrUtils::toString<int>(directive.line) + " column: "
-				+ StrUtils::toString<int>(directive.column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
-			return ;
+			Logger::warning("No arguments in " + context + " redirect directive: " + directive.value +
+								" line: " + StrUtils::toString<int>(directive.line) +
+								" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			return;
 		}
 		code = 0;
 		std::string path = "";
@@ -700,35 +645,31 @@ void	_translateRedirectDirective(const AST::ASTNode &directive,
 		{
 			errno = 0;
 			code = std::strtoll((*it)->value.c_str(), &end, 10);
-			if (errno != 0 || end == (*it)->value.c_str() || *end != '\0'
-				|| code > 400 || code < 299)
+			if (errno != 0 || end == (*it)->value.c_str() || *end != '\0' || code > 400 || code < 299)
 			{
-				Logger::warning("Invalid return (code in " + context
-					+ " redirect directive: " + (*it)->value + " line: "
-					+ StrUtils::toString<int>((*it)->line) + " column: "
-					+ StrUtils::toString<int>((*it)->column) + " skipping...",
-					__FILE__, __LINE__, __PRETTY_FUNCTION__);
-				return ;
+				Logger::warning("Invalid return (code in " + context + " redirect directive: " + (*it)->value +
+									" line: " + StrUtils::toString<int>((*it)->line) +
+									" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+								__FILE__, __LINE__, __PRETTY_FUNCTION__);
+				return;
 			}
 		}
 		else
 		{
-			Logger::warning("Unknown token in " + context
-				+ " redirect directive: " + (*it)->value + " line: "
-				+ StrUtils::toString<int>((*it)->line) + " column: "
-				+ StrUtils::toString<int>((*it)->column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
-			return ;
+			Logger::warning("Unknown token in " + context + " redirect directive: " + (*it)->value +
+								" line: " + StrUtils::toString<int>((*it)->line) +
+								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			return;
 		}
 		++it;
 		if (it == directive.children.end())
 		{
-			Logger::warning("No return (path in " + context
-				+ " redirect directive: " + (*it)->value + " line: "
-				+ StrUtils::toString<int>(directive.line) + " column: "
-				+ StrUtils::toString<int>(directive.column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
-			return ;
+			Logger::warning("No return (path in " + context + " redirect directive: " + (*it)->value +
+								" line: " + StrUtils::toString<int>(directive.line) +
+								" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			return;
 		}
 		if ((*it)->type == AST::ARG)
 		{
@@ -736,45 +677,40 @@ void	_translateRedirectDirective(const AST::ASTNode &directive,
 		}
 		else
 		{
-			Logger::warning("Unknown token in " + context
-				+ " return (directive: " + (*it)->value + " line: "
-				+ StrUtils::toString<int>((*it)->line) + " column: "
-				+ StrUtils::toString<int>((*it)->column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
-			return ;
+			Logger::warning("Unknown token in " + context + " return (directive: " + (*it)->value +
+								" line: " + StrUtils::toString<int>((*it)->line) +
+								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			return;
 		}
 		directives.setRedirect(std::make_pair(static_cast<int>(code), path));
 		while (++it != directive.children.end())
-			Logger::warning("Extra argument in " + context
-				+ " redirect directive: " + (*it)->value + " line: "
-				+ StrUtils::toString<int>((*it)->line) + " column: "
-				+ StrUtils::toString<int>((*it)->column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			Logger::warning("Extra argument in " + context + " redirect directive: " + (*it)->value +
+								" line: " + StrUtils::toString<int>((*it)->line) +
+								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
 	catch (const std::exception &e)
 	{
-		Logger::error("Error translating " + context + " redirect directive: "
-			+ std::string(e.what()) + " line: "
-			+ StrUtils::toString<int>(directive.line) + " column: "
-			+ StrUtils::toString<int>(directive.column) + " skipping...",
-			__FILE__, __LINE__, __PRETTY_FUNCTION__);
+		Logger::error("Error translating " + context + " redirect directive: " + std::string(e.what()) +
+						  " line: " + StrUtils::toString<int>(directive.line) +
+						  " column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
 }
 
-void	_translateIndexDirective(const AST::ASTNode &directive,
-		Directives &directives, std::string context)
+void _translateIndexDirective(const AST::ASTNode &directive, Directives &directives, std::string context)
 {
 	try
 	{
 		std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
 		if (it == directive.children.end())
 		{
-			Logger::warning("No arguments in " + context + " directive"
-				+ directive.value + " line: "
-				+ StrUtils::toString<int>(directive.line) + " column: "
-				+ StrUtils::toString<int>(directive.column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
-			return ;
+			Logger::warning("No arguments in " + context + " directive" + directive.value +
+								" line: " + StrUtils::toString<int>(directive.line) +
+								" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			return;
 		}
 		for (; it != directive.children.end(); ++it)
 		{
@@ -782,143 +718,128 @@ void	_translateIndexDirective(const AST::ASTNode &directive,
 			{
 				if (directives.hasIndex((*it)->value))
 				{
-					Logger::warning("Duplicate index in " + context
-						+ " index directive: " + (*it)->value + " line: "
-						+ StrUtils::toString<int>((*it)->line) + " column: "
-						+ StrUtils::toString<int>((*it)->column)
-						+ " skipping...", __FILE__, __LINE__,
-						__PRETTY_FUNCTION__);
-					continue ;
+					Logger::warning("Duplicate index in " + context + " index directive: " + (*it)->value +
+										" line: " + StrUtils::toString<int>((*it)->line) +
+										" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+									__FILE__, __LINE__, __PRETTY_FUNCTION__);
+					continue;
 				}
 				directives.insertIndex((*it)->value);
 			}
 			else
-				Logger::warning("Unknown token in " + context
-					+ " index directive: " + (*it)->value + " line: "
-					+ StrUtils::toString<int>((*it)->line) + " column: "
-					+ StrUtils::toString<int>((*it)->column) + " skipping...",
-					__FILE__, __LINE__, __PRETTY_FUNCTION__);
+				Logger::warning("Unknown token in " + context + " index directive: " + (*it)->value +
+									" line: " + StrUtils::toString<int>((*it)->line) +
+									" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+								__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		}
 	}
 	catch (const std::exception &e)
 	{
-		Logger::error("Error translating " + context + " index directive: "
-			+ std::string(e.what()) + " line: "
-			+ StrUtils::toString<int>(directive.line) + " column: "
-			+ StrUtils::toString<int>(directive.column) + " skipping...",
-			__FILE__, __LINE__, __PRETTY_FUNCTION__);
+		Logger::error("Error translating " + context + " index directive: " + std::string(e.what()) +
+						  " line: " + StrUtils::toString<int>(directive.line) +
+						  " column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
 }
 
-void	_translateStatusPathDirective(const AST::ASTNode &directive,
-		Directives &directives, std::string context)
+void _translateStatusPathDirective(const AST::ASTNode &directive, Directives &directives, std::string context)
 {
-	char	*end;
-	double	code;
+	char *end;
+	double code;
 
 	try
 	{
 		const std::vector<AST::ASTNode *> &children = directive.children;
 		if (children.size() < 2)
 		{
-			Logger::warning("Error in " + context
-				+ " status_page directive requires at least one status code and a path line: "
-				+ StrUtils::toString<int>(directive.line) + " column: "
-				+ StrUtils::toString<int>(directive.column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
-			return ;
+			Logger::warning("Error in " + context +
+								" status_page directive requires at least one status code and a path line: " +
+								StrUtils::toString<int>(directive.line) +
+								" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			return;
 		}
 		std::vector<int> codes;
-		for (std::vector<AST::ASTNode *>::const_iterator it = children.begin(); it != children.end()
-			- 1; ++it)
+		for (std::vector<AST::ASTNode *>::const_iterator it = children.begin(); it != children.end() - 1; ++it)
 		{
 			if ((*it)->type != AST::ARG)
 			{
-				Logger::warning("Unknown token in " + context
-					+ " status_page directive: " + (*it)->value + " line: "
-					+ StrUtils::toString<int>((*it)->line) + " column: "
-					+ StrUtils::toString<int>((*it)->column) + " skipping...",
-					__FILE__, __LINE__, __PRETTY_FUNCTION__);
-				continue ;
+				Logger::warning("Unknown token in " + context + " status_page directive: " + (*it)->value +
+									" line: " + StrUtils::toString<int>((*it)->line) +
+									" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+								__FILE__, __LINE__, __PRETTY_FUNCTION__);
+				continue;
 			}
 			end = NULL;
 			code = std::strtod((*it)->value.c_str(), &end);
-			if (end == (*it)->value.c_str() || *end != '\0' || code < 100
-				|| code > 599)
+			if (end == (*it)->value.c_str() || *end != '\0' || code < 100 || code > 599)
 			{
-				Logger::warning("Invalid status code in " + context
-					+ " status_page directive: " + (*it)->value + " line: "
-					+ StrUtils::toString<int>((*it)->line) + " column: "
-					+ StrUtils::toString<int>((*it)->column) + " skipping...",
-					__FILE__, __LINE__, __PRETTY_FUNCTION__);
-				continue ;
+				Logger::warning("Invalid status code in " + context + " status_page directive: " + (*it)->value +
+									" line: " + StrUtils::toString<int>((*it)->line) +
+									" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+								__FILE__, __LINE__, __PRETTY_FUNCTION__);
+				continue;
 			}
 			codes.push_back(static_cast<int>(code));
 		}
 		if (codes.empty())
 		{
-			Logger::warning("No valid status codes provided in " + context
-				+ " status_page directive line: "
-				+ StrUtils::toString<int>(directive.line) + " column: "
-				+ StrUtils::toString<int>(directive.column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
-			return ;
+			Logger::warning("No valid status codes provided in " + context +
+								" status_page directive line: " + StrUtils::toString<int>(directive.line) +
+								" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			return;
 		}
 		const AST::ASTNode *pathNode = children.back();
 		if (pathNode->type != AST::ARG)
 		{
-			Logger::warning("Invalid path token in " + context
-				+ " status_page directive line: "
-				+ StrUtils::toString<int>(pathNode->line) + " column: "
-				+ StrUtils::toString<int>(pathNode->column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
-			return ;
+			Logger::warning("Invalid path token in " + context +
+								" status_page directive line: " + StrUtils::toString<int>(pathNode->line) +
+								" column: " + StrUtils::toString<int>(pathNode->column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			return;
 		}
 		const std::string &path = pathNode->value;
 		if (path.empty())
 		{
-			Logger::warning("Empty path in " + context
-				+ " status_page directive line: "
-				+ StrUtils::toString<int>(pathNode->line) + " column: "
-				+ StrUtils::toString<int>(pathNode->column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
-			return ;
+			Logger::warning("Empty path in " + context +
+								" status_page directive line: " + StrUtils::toString<int>(pathNode->line) +
+								" column: " + StrUtils::toString<int>(pathNode->column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			return;
 		}
 		if (StrUtils::hasConsecutiveDots(path))
-			Logger::warning("Status page path contains consecutive dots: "
-				+ path + " line: " + StrUtils::toString<int>(pathNode->line)
-				+ " column: " + StrUtils::toString<int>(pathNode->column),
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			Logger::warning("Status page path contains consecutive dots: " + path +
+								" line: " + StrUtils::toString<int>(pathNode->line) +
+								" column: " + StrUtils::toString<int>(pathNode->column),
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		else if (StrUtils::hasControlCharacters(path))
-			Logger::warning("Status page path contains control characters: "
-				+ path + " line: " + StrUtils::toString<int>(pathNode->line)
-				+ " column: " + StrUtils::toString<int>(pathNode->column),
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			Logger::warning("Status page path contains control characters: " + path +
+								" line: " + StrUtils::toString<int>(pathNode->line) +
+								" column: " + StrUtils::toString<int>(pathNode->column),
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		directives.insertStatusPath(codes, path);
 	}
 	catch (const std::exception &e)
 	{
-		Logger::error("Error translating error_page directive: "
-			+ std::string(e.what()) + " line: "
-			+ StrUtils::toString<int>(directive.line) + " column: "
-			+ StrUtils::toString<int>(directive.column) + " skipping...",
-			__FILE__, __LINE__, __PRETTY_FUNCTION__);
+		Logger::error("Error translating error_page directive: " + std::string(e.what()) +
+						  " line: " + StrUtils::toString<int>(directive.line) +
+						  " column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
 }
 
-void	_translateAllowedMethodsDirective(const AST::ASTNode &directive,
-		Directives &directives, std::string context)
+void _translateAllowedMethodsDirective(const AST::ASTNode &directive, Directives &directives, std::string context)
 {
 	try
 	{
 		std::vector<AST::ASTNode *>::const_iterator it = directive.children.begin();
 		if (it == directive.children.end())
 		{
-			Logger::warning("No arguments in " + context
-				+ " allowed_methods directive" + directive.value + " line: "
-				+ StrUtils::toString<int>(directive.line) + " column: "
-				+ StrUtils::toString<int>(directive.column) + " skipping...",
-				__FILE__, __LINE__, __PRETTY_FUNCTION__);
+			Logger::warning("No arguments in " + context + " allowed_methods directive" + directive.value +
+								" line: " + StrUtils::toString<int>(directive.line) +
+								" column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 		}
 		else
 		{
@@ -928,34 +849,28 @@ void	_translateAllowedMethodsDirective(const AST::ASTNode &directive,
 				{
 					if (directives.hasAllowedMethod((*it)->value))
 					{
-						Logger::warning("Duplicate allowed method in " + context
-							+ " allowed_methods directive: " + (*it)->value
-							+ " line: " + StrUtils::toString<int>((*it)->line)
-							+ " column: "
-							+ StrUtils::toString<int>((*it)->column)
-							+ " skipping...", __FILE__, __LINE__,
-							__PRETTY_FUNCTION__);
-						continue ;
+						Logger::warning("Duplicate allowed method in " + context + " allowed_methods directive: " +
+											(*it)->value + " line: " + StrUtils::toString<int>((*it)->line) +
+											" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+										__FILE__, __LINE__, __PRETTY_FUNCTION__);
+						continue;
 					}
 					directives.insertAllowedMethod((*it)->value);
 				}
 				else
-					Logger::warning("Unknown token in " + context
-						+ " allowed_methods directive: " + (*it)->value
-						+ " line: " + StrUtils::toString<int>((*it)->line)
-						+ " column: " + StrUtils::toString<int>((*it)->column)
-						+ " skipping...", __FILE__, __LINE__,
-						__PRETTY_FUNCTION__);
+					Logger::warning("Unknown token in " + context + " allowed_methods directive: " + (*it)->value +
+										" line: " + StrUtils::toString<int>((*it)->line) +
+										" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
+									__FILE__, __LINE__, __PRETTY_FUNCTION__);
 			}
 		}
 	}
 	catch (const std::exception &e)
 	{
-		Logger::error("Error translating " + context
-			+ " allowed_methods directive: " + std::string(e.what()) + " line: "
-			+ StrUtils::toString<int>(directive.line) + " column: "
-			+ StrUtils::toString<int>(directive.column) + " skipping...",
-			__FILE__, __LINE__, __PRETTY_FUNCTION__);
+		Logger::error("Error translating " + context + " allowed_methods directive: " + std::string(e.what()) +
+						  " line: " + StrUtils::toString<int>(directive.line) +
+						  " column: " + StrUtils::toString<int>(directive.column) + " skipping...",
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
 }
 
@@ -963,14 +878,13 @@ void	_translateAllowedMethodsDirective(const AST::ASTNode &directive,
 ** --------------------------------- UTILITY ---------------------------------
 */
 
-bool ConfigTranslator::_parseSizeArgument(const std::string &rawValue,
-	double &sizeOut)
+bool ConfigTranslator::_parseSizeArgument(const std::string &rawValue, double &sizeOut)
 {
-	double		multiplier;
-	const char	suffix = rawValue[rawValue.size() - 1];
-	char		upper;
-	char		*end;
-	double		parsed;
+	double multiplier;
+	const char suffix = rawValue[rawValue.size() - 1];
+	char upper;
+	char *end;
+	double parsed;
 
 	if (rawValue.empty())
 		return (false);

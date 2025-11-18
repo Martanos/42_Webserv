@@ -1,4 +1,11 @@
 #include "../../includes/MethodHandlers/MethodHandlerFactory.hpp"
+#include "../../includes/Global/Logger.hpp"
+#include "../../includes/MethodHandlers/DeleteMethodHandler.hpp"
+#include "../../includes/MethodHandlers/GetMethodHandler.hpp"
+#include "../../includes/MethodHandlers/PostMethodHandler.hpp"
+#include "../../includes/MethodHandlers/PutMethodHandler.hpp"
+#include "../../includes/Utils/StrUtils.hpp"
+#include <map>
 #include <vector>
 
 // Static member definitions

@@ -99,7 +99,8 @@ public:
 							   const std::string &contentType, ResponseType responseType);
 	void setResponseFile(int statusCode, const std::string &statusMessage, const std::string &filePath,
 						 const std::string &contentType, ResponseType responseType);
-	void setRedirectResponse(int statusCode, const std::string &redirectPath, ResponseType responseType);
+	void setRedirectResponse(int statusCode, const std::string &statusMessage, const std::string &redirectPath,
+							 ResponseType responseType);
 	std::string toString() const;
 	void sendResponse(const FileDescriptor &clientSocketFd, ssize_t &totalBytesSent);
 	void reset();

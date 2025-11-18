@@ -84,8 +84,11 @@ void CgiEnv::printEnv() const
 
 void CgiEnv::_transposeData(const HttpRequest &request, const Server *server, const Location *location)
 {
-	Logger::debug("CgiEnv: Begin transpose for raw URI: " + request.getRawUri(), __FILE__, __LINE__,
-				  __PRETTY_FUNCTION__);
+	const HttpURI &uri = request.uri();
+	const HttpHeaders &headersRef = request.headers();
+	const HttpBody &body = request.body();
+
+	Logger::debug("CgiEnv: Begin transpose for raw URI: " + uri.getRawURI(), __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	try
 	{
 		// Server info
@@ -102,9 +105,9 @@ void CgiEnv::_transposeData(const HttpRequest &request, const Server *server, co
 
 		// Request info
 		Logger::debug("CgiEnv: Setting REQUEST_METHOD", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-		setEnv("REQUEST_METHOD", request.getMethod());
+		setEnv("REQUEST_METHOD", uri.getMethod());
 		Logger::debug("CgiEnv: Setting QUERY_STRING", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-		setEnv("QUERY_STRING", request.getQueryString());
+		setEnv("QUERY_STRING", uri.getQueryString());
 
 		// Client info
 		if (request.getRemoteAddress())
@@ -115,19 +118,19 @@ void CgiEnv::_transposeData(const HttpRequest &request, const Server *server, co
 			setEnv("REMOTE_PORT", request.getRemoteAddress()->getPortString());
 		}
 		Logger::debug("CgiEnv: Setting REQUEST_URI", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-		setEnv("REQUEST_URI", request.getRawUri());
+		setEnv("REQUEST_URI", uri.getRawURI());
 		Logger::debug("CgiEnv: Core meta variables set", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 
 		// Body meta
-		switch (request.getBodyType())
+		switch (body.getBodyType())
 		{
 		case HttpBody::BODY_TYPE_CHUNKED:
 		case HttpBody::BODY_TYPE_CONTENT_LENGTH:
 		{
 			setEnv("CONTENT_LENGTH", StrUtils::toString(request.getContentLength()));
-			std::vector<std::string> contentType = request.getHeader("content-type");
-			if (!contentType.empty())
-				setEnv("CONTENT_TYPE", contentType[0]);
+			const Header *contentType = headersRef.getHeader("content-type");
+			if (contentType && !contentType->getValues().empty())
+				setEnv("CONTENT_TYPE", contentType->getValues()[0]);
 			break;
 		}
 		default:
@@ -135,7 +138,7 @@ void CgiEnv::_transposeData(const HttpRequest &request, const Server *server, co
 		}
 
 		// Resolve script path
-		std::string cleanUri = StrUtils::sanitizeUriPath(request.getRawUri());
+		std::string cleanUri = StrUtils::sanitizeUriPath(uri.getRawURI());
 		std::string scriptPath;
 		if (location && !location->getCgiPath().empty())
 		{
@@ -168,19 +171,19 @@ void CgiEnv::_transposeData(const HttpRequest &request, const Server *server, co
 					  __PRETTY_FUNCTION__);
 
 		// Headers
-		const std::map<std::string, std::vector<std::string> > &headers = request.getHeaders();
-		for (std::map<std::string, std::vector<std::string> >::const_iterator it = headers.begin(); it != headers.end();
-			 ++it)
+		const std::vector<Header> &headers = headersRef.getHeaders();
+		for (std::vector<Header>::const_iterator it = headers.begin(); it != headers.end(); ++it)
 		{
-			if (it->second.empty())
+			const std::vector<std::string> &values = it->getValues();
+			if (values.empty())
 				continue;
-			std::string headerName = it->first;
+			std::string headerName = it->getDirective();
 			if (headerName == "authorization" || headerName == "proxy-authorization")
 				continue;
 			if (headerName == "content-length" || headerName == "content-type")
 				continue;
 			std::string cgiHeaderName = "HTTP_" + _convertHeaderNameToCgi(headerName);
-			setEnv(cgiHeaderName, it->second[0]);
+			setEnv(cgiHeaderName, values[0]);
 		}
 
 		// Add minimal shell environment for CGI (PATH for interpreter resolution)

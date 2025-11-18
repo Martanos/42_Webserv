@@ -15,39 +15,41 @@ INC_DIR = includes
 OBJ_DIR = obj/srcs
 # Source files
 SRC_FILES = main.cpp \
-             1.ConfigParser/ConfigParser.cpp \
-             1.ConfigParser/ConfigTokeniser.cpp \
-             1.ConfigParser/ConfigFileReader.cpp \
-             1.ConfigParser/ConfigTranslator.cpp \
-             2.ServerMap/ServerMap.cpp \
-             2.ServerMap/Server.cpp \
-             2.ServerMap/Location.cpp \
-             3.ServerManager/ServerManager.cpp \
-             3.ServerManager/EpollManager.cpp \
-             4.Client/Client.cpp \
-			 5.HTTPmanagement/HttpURI.cpp \
-			 5.HTTPmanagement/HttpHeaders.cpp \
-			 5.HTTPmanagement/HttpBody.cpp \
-			 5.HTTPmanagement/Header.cpp \
-             5.HTTPmanagement/HttpRequest.cpp \
-             5.HTTPmanagement/HttpResponse.cpp \
-			MethodHandlers/IMethodHandler.cpp \
-			MethodHandlers/GetMethodHandler.cpp \
-			MethodHandlers/PostMethodHandler.cpp \
-			MethodHandlers/DeleteMethodHandler.cpp \
-			MethodHandlers/PutMethodHandler.cpp \
-			MethodHandlers/MethodHandlerFactory.cpp \
-			Wrappers/FileDescriptor.cpp \
-			Wrappers/SocketAddress.cpp \
-			Wrappers/FileManager.cpp \
-			Wrappers/Logger.cpp \
-			Wrappers/MimeTypeResolver.cpp \
-			Wrappers/PerformanceMonitor.cpp \
-			Wrappers/ListeningSocket.cpp \
-			cgiexec/CgiEnv.cpp \
-			cgiexec/CgiExecutor.cpp \
-			cgiexec/CgiHandler.cpp \
-			cgiexec/CgiResponse.cpp
+		Cgi/CgiEnv.cpp \
+		Cgi/CgiExecutor.cpp \
+		Cgi/CgiHandler.cpp \
+		Cgi/CgiResponse.cpp \
+		Config/ConfigFileReader.cpp \
+		Config/ConfigParser.cpp \
+		Config/ConfigTokeniser.cpp \
+		Config/ConfigTranslator.cpp \
+		Config/Directives.cpp \
+		Config/Location.cpp \
+		Config/Server.cpp \
+		Config/ServerMap.cpp \
+		Containers/RingBuffer.cpp \
+		Core/Client.cpp \
+		Core/EpollManager.cpp \
+		Core/ServerManager.cpp \
+		Global/Logger.cpp \
+		Global/MimeTypeResolver.cpp \
+		Global/PerformanceMonitor.cpp \
+		Http/Header.cpp \
+		Http/HttpBody.cpp \
+		Http/HttpHeaders.cpp \
+		Http/HttpRequest.cpp \
+		Http/HttpResponse.cpp \
+		Http/HttpURI.cpp \
+		MethodHandlers/DeleteMethodHandler.cpp \
+		MethodHandlers/GetMethodHandler.cpp \
+		MethodHandlers/IMethodHandler.cpp \
+		MethodHandlers/MethodHandlerFactory.cpp \
+		MethodHandlers/PostMethodHandler.cpp \
+		MethodHandlers/PutMethodHandler.cpp \
+		Wrappers/FileDescriptor.cpp \
+		Wrappers/FileManager.cpp \
+		Wrappers/ListeningSocket.cpp \
+		Wrappers/SocketAddress.cpp
 
 # Object files with proper path
 OBJ = $(addprefix $(OBJ_DIR)/, $(SRC_FILES:.cpp=.o))

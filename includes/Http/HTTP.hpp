@@ -30,11 +30,6 @@ static const unsigned short DEFAULT_PORT = 80;
 static const bool DEFAULT_AUTOINDEX = false;
 static const bool DEFAULT_KEEP_ALIVE = true;
 
-inline bool isSupportedMethod(const std::string &method)
-{
-	return method == "GET" || method == "POST" || method == "DELETE" || method == "PUT";
-}
-
 } // namespace HTTP
 
 #endif /* HTTP_HPP */

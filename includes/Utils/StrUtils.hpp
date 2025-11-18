@@ -257,49 +257,37 @@ inline std::string removeControlCharacters(const std::string &str)
 // ============================================================
 
 // Decode percent-encoded URL string
-inline std::string percentDecode(const std::string &input)
+static inline std::string percentDecode(const std::string &input, bool plusAsSpace = false)
 {
 	std::string output;
-	output.reserve(input.length()); // Optimize memory allocation
+	output.reserve(input.length());
 
 	for (size_t i = 0; i < input.length(); ++i)
 	{
-		if (input[i] == '%')
+		if (input[i] == '%' && i + 2 < input.length())
 		{
-			// Check if we have enough characters for %XX
-			if (i + 2 < input.length())
+			char c1 = input[i + 1];
+			char c2 = input[i + 2];
+
+			if (std::isxdigit(static_cast<unsigned char>(c1)) && std::isxdigit(static_cast<unsigned char>(c2)))
 			{
-				const char c1 = input[i + 1];
-				const char c2 = input[i + 2];
+				char hex[3] = {c1, c2, '\0'};
+				char *endPtr = NULL;
+				long value = std::strtol(hex, &endPtr, 16);
 
-				// Validate hex digits (C++98 compatible)
-				if (std::isxdigit(static_cast<unsigned char>(c1)) && std::isxdigit(static_cast<unsigned char>(c2)))
+				if (endPtr && *endPtr == '\0')
 				{
-					// Convert hex to decimal
-					char hex[3] = {c1, c2, '\0'};
-					char *endPtr = NULL;
-					long value = std::strtol(hex, &endPtr, 16);
-
-					if (endPtr && *endPtr == '\0') // Successful conversion
-					{
-						output += static_cast<char>(value);
-						i += 2; // Skip the two hex digits
-						continue;
-					}
+					output += static_cast<unsigned char>(value);
+					i += 2;
+					continue;
 				}
 			}
-			// Invalid percent encoding - keep the '%' literally
-			output += input[i];
 		}
-		else if (input[i] == '+')
-		{
-			// Query string convention: '+' represents space
+
+		if (plusAsSpace && input[i] == '+')
 			output += ' ';
-		}
 		else
-		{
 			output += input[i];
-		}
 	}
 
 	return output;

@@ -52,6 +52,7 @@ public:
 	void append(const std::vector<char> &buffer, std::vector<char>::iterator start, std::vector<char>::iterator end);
 	void reset();
 	void clear();
+	bool moveTo(const std::string &destination, bool overwrite = false);
 };
 
 #endif /* ***************************************************** FILEMANAGER_H                                          \

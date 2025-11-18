@@ -2,7 +2,6 @@
 #define HTTPURI_HPP
 
 #include "../../includes/Config/Location.hpp"
-#include "../../includes/Config/Server.hpp"
 #include "../../includes/Http/HttpResponse.hpp"
 #include <cstddef>
 #include <string>
@@ -24,19 +23,31 @@ public:
 	};
 
 private:
+	// Parsing
 	URIState _uriState;
-	size_t _uriSize;
+	size_t _rawURISize;
 
 	// Request line
 	std::string _method;
-	std::string _URI;
-	std::string _rawURI;
-	std::string _sanitizedURI;
 	std::string _version;
 
+	// Path Versions
+	std::string _rawPath;
+	std::string _decodedPath;
+	std::string _resolvedPath;
+
 	// Query parameters
-	std::string _queryString;
+	std::string _rawQueryString;
+	std::string _decodedQueryString;
 	std::map<std::string, std::vector<std::string> > _queryParameters;
+
+	// Validation methods
+	bool _validateMethod(const std::string &method, HttpResponse &response) const;
+	bool _validatePath(const std::string &path, HttpResponse &response) const;
+	bool _validateVersion(const std::string &version, HttpResponse &response) const;
+
+	// Query parameter parsing
+	void _parseQueryParameters(const std::string &queryString);
 
 public:
 	// Constructor
@@ -47,21 +58,30 @@ public:
 
 	// Main parsing method
 	void parseBuffer(std::vector<char> &buffer, HttpResponse &response);
-	void sanitizeURI(const Location *location, HttpResponse &response);
 
-	// Accessors
-	const std::string &getURI() const;
-	const std::string &getRawURI() const;
-	const std::string &getVersion() const;
-	const std::string &getMethod() const;
-	size_t getURIsize() const;
-	const std::map<std::string, std::vector<std::string> > &getQueryParameters() const;
-	const std::string &getQueryString() const;
+	// Sanitization and resolution
+	void resolveURI(const Location *location, HttpResponse &response);
+
+	// URI state accessor
 	URIState getURIState() const;
-	const std::string &getSanitizedURI() const;
 
-	// Methods
+	// Request line accessors
+	const std::string &getMethod() const;
+	const std::string &getRawPath() const;
+	const std::string &getVersion() const;
+
+	// URI versions accessors
+	const std::string &getDecodedPath() const;
+	const std::string &getResolvedPath() const;
+
+	// Query parameters accessors
+	const std::string &getRawQueryString() const;
+	const std::string &getDecodedQueryString() const;
+	const std::map<std::string, std::vector<std::string> > &getQueryParameters() const;
+
+	// Utils
 	void reset();
+	size_t getRawURISize() const;
 };
 
 #endif /* ********************************************************* HTTPURI_H                                          \

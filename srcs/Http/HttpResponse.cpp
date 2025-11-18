@@ -188,12 +188,13 @@ void HttpResponse::setResponseFile(int statusCode, const std::string &statusMess
 }
 
 // Used when a redirect is needed
-void HttpResponse::setRedirectResponse(int statusCode, const std::string &redirectPath, ResponseType responseType)
+void HttpResponse::setRedirectResponse(int statusCode, const std::string &statusMessage,
+									   const std::string &redirectPath, ResponseType responseType)
 {
 	_responseType = responseType;
-	setStatus(statusCode, DefaultStatusMap::getStatusMessage(statusCode));
+	_statusCode = statusCode;
+	_statusMessage = statusMessage;
 	setHeader(Header("location: " + redirectPath));
-	// TODO: Add dynamic body generation for redirects
 	_streamBody = false;
 }
 
