@@ -16,7 +16,7 @@ public:
 	~PutMethodHandler();
 	PutMethodHandler &operator=(const PutMethodHandler &other);
 
-	virtual bool handleRequest(const HttpRequest &request, HttpResponse &response, const Location *location);
+	virtual bool handleRequest(const HttpRequest &request, HttpResponse &response, const Location &location);
 };
 
 #endif /* PUTMETHODHANDLER_HPP */

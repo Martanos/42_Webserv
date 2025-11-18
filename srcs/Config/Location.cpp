@@ -40,7 +40,7 @@ Location &Location::operator=(Location const &rhs)
 		_rootPath = rhs._rootPath;
 		_autoIndexValue = rhs._autoIndexValue;
 		_isCgiPathValue = rhs._isCgiPathValue;
-		_isUploadPathValue = rhs._isUploadPathValue;
+		_uploadPath = rhs._uploadPath;
 		_clientMaxBodySize = rhs._clientMaxBodySize;
 		_keepAliveValue = rhs._keepAliveValue;
 		_redirect = rhs._redirect;
@@ -52,7 +52,7 @@ Location &Location::operator=(Location const &rhs)
 		_hasRootPathDirective = rhs._hasRootPathDirective;
 		_hasAutoIndexDirective = rhs._hasAutoIndexDirective;
 		_hasisCgiPathDirective = rhs._hasisCgiPathDirective;
-		_hasisUploadPathDirective = rhs._hasisUploadPathDirective;
+		_hasUploadPathDirective = rhs._hasUploadPathDirective;
 		_hasClientMaxBodySizeDirective = rhs._hasClientMaxBodySizeDirective;
 		_hasKeepAliveDirective = rhs._hasKeepAliveDirective;
 		_hasRedirectDirective = rhs._hasRedirectDirective;
@@ -68,7 +68,7 @@ std::ostream &operator<<(std::ostream &o, Location const &i)
 	o << "--------------------------------" << std::endl;
 	o << "Path: " << i.getLocationPath() << std::endl;
 	if (i.hasRootPathDirective())
-		o << "Root: " << i.getRootPath() << std::endl;
+		o << "Root: " << *i.getRootPath() << std::endl;
 	else
 		o << "Root: (not set)" << std::endl;
 	if (i.hasAutoIndexDirective())
@@ -76,11 +76,11 @@ std::ostream &operator<<(std::ostream &o, Location const &i)
 	else
 		o << "AutoIndex: (not set)" << std::endl;
 	if (i.hasisCgiPathDirective())
-		o << "CgiPath: " << i.getisCgiPathValue() << std::endl;
+		o << "CgiPath: " << (i.getisCgiPathValue() ? "enabled" : "disabled") << std::endl;
 	else
 		o << "CgiPath: (not set)" << std::endl;
-	if (i.hasisUploadPathDirective())
-		o << "UploadPath: " << i.getisUploadPathValue() << std::endl;
+	if (i.hasUploadPathDirective())
+		o << "UploadPath: " << *i.getUploadPath() << std::endl;
 	else
 		o << "UploadPath: (not set)" << std::endl;
 	if (i.hasClientMaxBodySizeDirective())
@@ -160,7 +160,8 @@ const std::string &Location::getLocationPath() const
 bool Location::wasModified() const
 {
 	return _hasAllowedMethodsDirective || _hasStatusPathDirective || _hasRedirectDirective || _hasIndexDirective ||
-		   _hasisCgiPathDirective || _hasClientMaxBodySizeDirective || _hasRootPathDirective || _hasAutoIndexDirective;
+		   _hasisCgiPathDirective || _hasUploadPathDirective || _hasClientMaxBodySizeDirective ||
+		   _hasRootPathDirective || _hasAutoIndexDirective;
 }
 
 void Location::reset()
@@ -174,16 +175,16 @@ void Location::reset()
 	_statusPaths.clear();
 	_redirect = std::pair<int, std::string>();
 	_indexes.clear();
+	_uploadPath.clear();
 	_autoIndexValue = false;
 	_isCgiPathValue = false;
-	_isUploadPathValue = false;
 	_clientMaxBodySize = -1.0;
 
 	// Flags
 	_hasRootPathDirective = false;
 	_hasAutoIndexDirective = false;
 	_hasisCgiPathDirective = false;
-	_hasisUploadPathDirective = false;
+	_hasUploadPathDirective = false;
 	_hasClientMaxBodySizeDirective = false;
 	_hasKeepAliveDirective = false;
 	_hasRedirectDirective = false;

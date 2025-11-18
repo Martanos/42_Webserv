@@ -1,4 +1,5 @@
 #include "../../includes/Cgi/CgiHandler.hpp"
+#include "../../includes/Global/Logger.hpp"
 #include "../../includes/Utils/StrUtils.hpp"
 #include <sys/stat.h>
 
@@ -50,99 +51,11 @@ CgiHandler &CgiHandler::operator=(const CgiHandler &other)
 ** --------------------------------- METHODS ----------------------------------
 */
 
-bool PostMethodHandler::handleCgiRequest(const HttpRequest &request, HttpResponse &response, const Server *server,
-										 const Location *location)
-{
-	CgiHandler cgiHandler;
-	HttpRequest redirectRequest;
-	const Location *newLocation = server->getLocation(redirectPath);
-
-	Logger::debug("PostMethodHandler: Handling CGI request", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-	// Check for internal redirect loop
-	if (request.getInternalRedirectDepth() >= 5)
-	// MAX_INTERNAL_REDIRECTS from HttpRequest
-	{
-		Logger::error("PostMethodHandler: Internal redirect loop detected (depth exceeded)", __FILE__, __LINE__,
-					  __PRETTY_FUNCTION__);
-		response.setResponseDefaultBody(500, "Internal Redirect Loop Detected", server, location, HttpResponse::ERROR);
-		return (false);
-	}
-	CgiHandler::ExecutionResult result = cgiHandler.execute(request, response, server, location);
-	// Check for internal redirect
-	if (result == CgiHandler::SUCCESS && cgiHandler.isInternalRedirect())
-	{
-		std::string redirectPath = cgiHandler.getInternalRedirectPath();
-		Logger::info("PostMethodHandler: Processing internal redirect to: " + redirectPath, __FILE__, __LINE__,
-					 __PRETTY_FUNCTION__);
-		// Create a modified request for the redirect
-		redirectRequest = request;
-		redirectRequest.incrementInternalRedirectDepth();
-		// Find the location for the redirect path
-		if (!newLocation)
-		{
-			Logger::error("PostMethodHandler: No location found for internal redirect: " + redirectPath, __FILE__,
-						  __LINE__, __PRETTY_FUNCTION__);
-			response.setResponseDefaultBody(500, "Internal Redirect Failed", server, location, HttpResponse::ERROR);
-			return (false);
-		}
-		// For internal redirect, we need to re-process as a GET request to the new path
-		// This is a simplified approach -you might need to adjust based on your architecture
-		// The proper way would be to call the appropriate handler for the redirect path
-		// For now,just log and return an error since full re - routing requires
-		// access to the handler factory which we don't have in this context
-		Logger::warning("PostMethodHandler: Internal redirect detected but full re-routing not implemented. "
-						"Treating as external redirect instead.",
-						__FILE__, __LINE__, __PRETTY_FUNCTION__);
-		// Fall through to populate the response with redirect headers
-		// The client will follow the redirect
-	}
-	switch (result)
-	{
-	case CgiHandler::SUCCESS:
-		Logger::debug("PostMethodHandler: CGI execution successful", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-		return (true);
-	case CgiHandler::ERROR_INVALID_SCRIPT_PATH:
-		response.setResponseDefaultBody(404, "Not Found", server, location, HttpResponse::ERROR);
-		break;
-	case CgiHandler::ERROR_SCRIPT_NOT_FOUND:
-		response.setResponseDefaultBody(404, "Not Found", server, location, HttpResponse::ERROR);
-		break;
-	case CgiHandler::ERROR_EXECUTION_FAILED:
-		response.setResponseDefaultBody(500, "Internal Server Error", server, location, HttpResponse::ERROR);
-		break;
-	case CgiHandler::ERROR_RESPONSE_PARSING_FAILED:
-		response.setResponseDefaultBody(500, "Internal Server Error", server, location, HttpResponse::ERROR);
-		break;
-	case CgiHandler::ERROR_TIMEOUT:
-		response.setResponseDefaultBody(504, "Gateway Timeout", server, location, HttpResponse::ERROR);
-		break;
-	default:
-		response.setResponseDefaultBody(500, "Internal Server Error", server, location, HttpResponse::ERROR);
-		break;
-	}
-	return (false);
-}
-
-bool PostMethodHandler::isCgiRequest(const std::string &uri, const Location *location)
-{
-	size_t dotPos;
-
-	if (!location->hasCgiPath())
-		return (false);
-	// Simple check: if URI contains .php, .py, .cgi, etc.
-	dotPos = uri.find_last_of('.');
-	if (dotPos == std::string::npos)
-		return (false);
-	std::string extension = uri.substr(dotPos + 1);
-	StrUtils::toLowerCase(extension);
-	return (extension == "php" || extension == "py" || extension == "cgi" || extension == "pl" || extension == "sh");
-}
-
 // Main method to facilitate CGI execution
 CgiHandler::ExecutionResult CgiHandler::execute(const HttpRequest &request, HttpResponse &response,
 												const Server *server, const Location *location)
 {
-	const HttpURI &uri = request.uri();
+	const HttpURI &uri = request.getURI();
 	ExecutionResult result;
 	int statusCode;
 
@@ -152,12 +65,12 @@ CgiHandler::ExecutionResult CgiHandler::execute(const HttpRequest &request, Http
 	if (!server || !location)
 	{
 		Logger::error("Invalid server or location for CGI execution", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-		response.setResponseDefaultBody(500, "Invalid server or location for CGI execution", server, location,
+		response.setResponseDefaultBody(500, "Invalid server or location for CGI execution", location,
 										HttpResponse::ERROR);
 		return (ERROR_INTERNAL_ERROR);
 	}
-	// Resolve script path using RAW URI (HTTP target), not the filesystem path already translated
-	std::string scriptPath = resolveCgiScriptPath(uri.getRawURI(), server, location);
+	// Resolve script path using the resolved request target derived from the routing logic
+	std::string scriptPath = resolveCgiScriptPath(uri.getResolvedPath(), server, location);
 	Logger::debug("CgiHandler: Resolved script path: " + scriptPath, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	// Skip pre-validation; executor will validate existence/executability.
 	Logger::debug("CgiHandler: Skipping pre-validation; delegating to executor", __FILE__, __LINE__,
@@ -173,14 +86,10 @@ CgiHandler::ExecutionResult CgiHandler::execute(const HttpRequest &request, Http
 	Logger::debug("CgiHandler: SCRIPT_FILENAME set to: " + scriptPath, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	// Determine interpreter
 	Logger::debug("CgiHandler: Determining interpreter", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-	std::string interpreter = determineInterpreter(scriptPath, location);
-	Logger::debug("CgiHandler: Interpreter determined: " +
-					  (interpreter.empty() ? std::string("(shebang/none)") : interpreter),
-				  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	// Execute CGI script
 	std::string output, error;
 	Logger::debug("CgiHandler: Executing CGI script", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-	result = executeCgiScript(scriptPath, interpreter, request, output, error);
+	result = executeCgiScript(scriptPath, request, output, error);
 	Logger::debug("CgiHandler: executeCgiScript returned result code: " + StrUtils::toString(result), __FILE__,
 				  __LINE__, __PRETTY_FUNCTION__);
 	if (result != SUCCESS)
@@ -189,13 +98,13 @@ CgiHandler::ExecutionResult CgiHandler::execute(const HttpRequest &request, Http
 		switch (result)
 		{
 		case ERROR_SCRIPT_NOT_FOUND:
-			response.setResponseDefaultBody(404, "Script Not Found", server, location, HttpResponse::ERROR);
+			response.setResponseDefaultBody(404, "Script Not Found", location, HttpResponse::ERROR);
 			break;
 		case ERROR_TIMEOUT:
-			response.setResponseDefaultBody(504, "Gateway Timeout", server, location, HttpResponse::ERROR);
+			response.setResponseDefaultBody(504, "Gateway Timeout", location, HttpResponse::ERROR);
 			break;
 		default:
-			response.setResponseDefaultBody(500, "CGI Execution Failed", server, location, HttpResponse::ERROR);
+			response.setResponseDefaultBody(500, "CGI Execution Failed", location, HttpResponse::ERROR);
 			break;
 		}
 		logExecutionDetails(request, scriptPath, result);
@@ -216,8 +125,8 @@ CgiHandler::ExecutionResult CgiHandler::execute(const HttpRequest &request, Http
 			_internalRedirectPath = locationValue;
 			Logger::info("CGI internal redirect detected: " + locationValue, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			logExecutionDetails(request, scriptPath, result);
-			return (SUCCESS); // Don't populate response,
-			let caller handle redirect
+			// Don't populate the response buffer; let the caller decide how to handle the redirect.
+			return (SUCCESS);
 		}
 	}
 	// Suppress body for 204/304 status codes
@@ -247,9 +156,8 @@ int CgiHandler::getTimeout() const
 ** --------------------------------- PRIVATE ----------------------------------
 */
 
-CgiHandler::ExecutionResult CgiHandler::executeCgiScript(const std::string &scriptPath, const std::string &interpreter,
-														 const HttpRequest &request, std::string &output,
-														 std::string &error)
+CgiHandler::ExecutionResult CgiHandler::executeCgiScript(const std::string &scriptPath, const HttpRequest &request,
+														 std::string &output, std::string &error)
 {
 	char **envArray;
 
@@ -262,7 +170,7 @@ CgiHandler::ExecutionResult CgiHandler::executeCgiScript(const std::string &scri
 	}
 	// Execute the script
 	CgiExecutor::ExecutionResult execResult =
-		_executor.execute(scriptPath, interpreter, envArray, request.body().getRawBody(), output, error);
+		_executor.execute(scriptPath, std::string(), envArray, request.getBody().getRawBody(), output, error);
 	// Clean up environment array
 	_cgiEnv.freeEnvArray(envArray);
 	// Log stderr if present
@@ -311,31 +219,6 @@ CgiHandler::ExecutionResult CgiHandler::processResponse(const std::string &outpu
 	return (SUCCESS);
 }
 
-std::string CgiHandler::determineInterpreter(const std::string &scriptPath, const Location *location) const
-{
-	(void)scriptPath; // Interpreter detection via shebang by default
-
-	// If location cgi_path points to an executable FILE (legacy style),
-	use it as interpreter.
-		// If it points to a DIRECTORY (preferred),
-		do not set interpreter here;
-	executor will use shebang.if (location)
-	{
-		std::string configured = location->getCgiPath();
-		if (!configured.empty())
-		{
-			struct stat st;
-			if (stat(configured.c_str(), &st) == 0 && S_ISREG(st.st_mode))
-			{
-				return (configured); // treat as interpreter binary
-			}
-		}
-	}
-
-	// Let executor infer interpreter via shebang
-	return ("");
-}
-
 bool CgiHandler::validateScriptPath(const std::string &scriptPath) const
 {
 	if (scriptPath.empty())
@@ -367,8 +250,9 @@ bool CgiHandler::validateScriptPath(const std::string &scriptPath) const
 void CgiHandler::logExecutionDetails(const HttpRequest &request, const std::string &scriptPath,
 									 ExecutionResult result) const
 {
-	const HttpURI &uri = request.uri();
-	std::string logMessage = "CGI execution: " + uri.getMethod() + " " + uri.getURI() + " -> " + scriptPath + " (";
+	const HttpURI &uri = request.getURI();
+	std::string logMessage =
+		"CGI execution: " + uri.getMethod() + " " + uri.getResolvedPath() + " -> " + scriptPath + " (";
 
 	switch (result)
 	{
@@ -446,36 +330,23 @@ bool CgiHandler::isInternalRedirectPath(const std::string &location) const
 
 std::string CgiHandler::resolveCgiScriptPath(const std::string &uri, const Server *server, const Location *location)
 {
-	// Resolve filesystem path for CGI script using cgi_path directory when provided.
-	// Take the part of the URI after the matched location path and append to cgi_path.
 	std::string cleanUri = StrUtils::sanitizeUriPath(uri);
-	if (location && !location->getCgiPath().empty())
+	const std::string *basePath = NULL;
+
+	if (location && location->getRootPath() && !location->getRootPath()->empty())
+		basePath = location->getRootPath();
+	else if (server && server->getRootPath() && !server->getRootPath()->empty())
+		basePath = server->getRootPath();
+
+	if (basePath && !basePath->empty())
 	{
-		std::string base = location->getCgiPath();
-		// already normalized (no trailing slash) by translator
-		std::string locPrefix = location->getLocationPath();
-		// Ensure locPrefix ends with '/'
-		if (!locPrefix.empty() && locPrefix[locPrefix.size() - 1] != '/')
-			locPrefix += "/";
-		std::string tail = cleanUri;
-		// Strip the location prefix from URI if present
-		if (cleanUri.find(locPrefix) == 0)
-			tail = cleanUri.substr(locPrefix.size());
-		// Prevent directory traversal in tail (sanitizeUriPath returns absolute path)
-		// Remove any leading slashes from tail for safe concatenation
-		while (!tail.empty() && tail[0] == '/')
-			tail.erase(0, 1);
-		return (base + "/" + tail);
+		std::string normalizedBase = *basePath;
+		if (!normalizedBase.empty() && normalizedBase[normalizedBase.size() - 1] == '/')
+			normalizedBase.erase(normalizedBase.size() - 1);
+		return (normalizedBase + cleanUri);
 	}
-	// Fallback: resolve relative to location root or server root
-	std::string scriptPath;
-	if (location && !location->getRootPath().empty())
-		scriptPath = location->getRootPath() + cleanUri;
-	else if (server && !server->getRootPath().empty())
-		scriptPath = server->getRootPath() + cleanUri;
-	else
-		scriptPath = cleanUri;
-	return (scriptPath);
+
+	return (cleanUri);
 }
 
 /* ************************************************************************** */

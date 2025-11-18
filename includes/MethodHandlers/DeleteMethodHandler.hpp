@@ -9,7 +9,7 @@ class DeleteMethodHandler : public IMethodHandler
 {
 private:
 	// Helper methods
-	bool deleteFile(const std::string &filePath, HttpResponse &response, const Location *location);
+	bool deleteFile(const std::string &filePath, HttpResponse &response, const Location &location);
 
 public:
 	DeleteMethodHandler();
@@ -18,7 +18,7 @@ public:
 	DeleteMethodHandler &operator=(const DeleteMethodHandler &other);
 
 	// IMethodHandler implementation
-	virtual bool handleRequest(const HttpRequest &request, HttpResponse &response, const Location *location);
+	virtual bool handleRequest(const HttpRequest &request, HttpResponse &response, const Location &location);
 };
 
 #endif /* DELETEMETHODHANDLER_HPP */

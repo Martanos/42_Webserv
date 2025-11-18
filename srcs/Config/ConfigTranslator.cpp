@@ -577,7 +577,8 @@ void ConfigTranslator::_translateClientMaxBodySizeDirective(const AST::ASTNode &
 	}
 }
 
-void _translateKeepAliveDirective(const AST::ASTNode &directive, Directives &directives, std::string context)
+void ConfigTranslator::_translateKeepAliveDirective(const AST::ASTNode &directive, Directives &directives,
+													std::string context)
 {
 	try
 	{
@@ -622,7 +623,8 @@ void _translateKeepAliveDirective(const AST::ASTNode &directive, Directives &dir
 	}
 }
 
-void _translateRedirectDirective(const AST::ASTNode &directive, Directives &directives, std::string context)
+void ConfigTranslator::_translateRedirectDirective(const AST::ASTNode &directive, Directives &directives,
+												   std::string context)
 {
 	long long code;
 	char *end;
@@ -699,7 +701,8 @@ void _translateRedirectDirective(const AST::ASTNode &directive, Directives &dire
 	}
 }
 
-void _translateIndexDirective(const AST::ASTNode &directive, Directives &directives, std::string context)
+void ConfigTranslator::_translateIndexDirective(const AST::ASTNode &directive, Directives &directives,
+												std::string context)
 {
 	try
 	{
@@ -742,7 +745,8 @@ void _translateIndexDirective(const AST::ASTNode &directive, Directives &directi
 	}
 }
 
-void _translateStatusPathDirective(const AST::ASTNode &directive, Directives &directives, std::string context)
+void ConfigTranslator::_translateStatusPathDirective(const AST::ASTNode &directive, Directives &directives,
+													 std::string context)
 {
 	char *end;
 	double code;
@@ -829,7 +833,8 @@ void _translateStatusPathDirective(const AST::ASTNode &directive, Directives &di
 	}
 }
 
-void _translateAllowedMethodsDirective(const AST::ASTNode &directive, Directives &directives, std::string context)
+void ConfigTranslator::_translateAllowedMethodsDirective(const AST::ASTNode &directive, Directives &directives,
+														 std::string context)
 {
 	try
 	{

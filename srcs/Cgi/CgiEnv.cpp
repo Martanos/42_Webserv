@@ -84,50 +84,38 @@ void CgiEnv::printEnv() const
 
 void CgiEnv::_transposeData(const HttpRequest &request, const Server *server, const Location *location)
 {
-	const HttpURI &uri = request.uri();
-	const HttpHeaders &headersRef = request.headers();
-	const HttpBody &body = request.body();
+	const HttpURI &uri = request.getURI();
+	const HttpHeaders &headersRef = request.getHeaders();
+	const HttpBody &body = request.getBody();
+	std::string rawUri = uri.getRawPath();
+	if (!uri.getRawQueryString().empty())
+		rawUri += "?" + uri.getRawQueryString();
 
-	Logger::debug("CgiEnv: Begin transpose for raw URI: " + uri.getRawURI(), __FILE__, __LINE__, __PRETTY_FUNCTION__);
+	Logger::debug("CgiEnv: Begin transpose for raw URI: " + rawUri, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	try
 	{
-		// Server info
-		Logger::debug("CgiEnv: Setting SERVER_NAME", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		setEnv("SERVER_NAME", request.getSelectedServerHost());
-		Logger::debug("CgiEnv: Setting SERVER_PORT", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		setEnv("SERVER_PORT", request.getSelectedServerPort());
-		Logger::debug("CgiEnv: Setting SERVER_PROTOCOL", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		setEnv("SERVER_PROTOCOL", "HTTP/1.1");
-		Logger::debug("CgiEnv: Setting SERVER_SOFTWARE", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		setEnv("SERVER_SOFTWARE", "webserv/1.0");
-		Logger::debug("CgiEnv: Setting GATEWAY_INTERFACE", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		setEnv("GATEWAY_INTERFACE", "CGI/1.1");
 
-		// Request info
-		Logger::debug("CgiEnv: Setting REQUEST_METHOD", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		setEnv("REQUEST_METHOD", uri.getMethod());
-		Logger::debug("CgiEnv: Setting QUERY_STRING", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-		setEnv("QUERY_STRING", uri.getQueryString());
+		setEnv("QUERY_STRING", uri.getRawQueryString());
 
-		// Client info
 		if (request.getRemoteAddress())
 		{
-			Logger::debug("CgiEnv: Setting REMOTE_ADDR", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			setEnv("REMOTE_ADDR", request.getRemoteAddress()->getHost());
-			Logger::debug("CgiEnv: Setting REMOTE_PORT", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			setEnv("REMOTE_PORT", request.getRemoteAddress()->getPortString());
 		}
-		Logger::debug("CgiEnv: Setting REQUEST_URI", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-		setEnv("REQUEST_URI", uri.getRawURI());
-		Logger::debug("CgiEnv: Core meta variables set", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		setEnv("REQUEST_URI", rawUri);
 
-		// Body meta
 		switch (body.getBodyType())
 		{
 		case HttpBody::BODY_TYPE_CHUNKED:
 		case HttpBody::BODY_TYPE_CONTENT_LENGTH:
 		{
-			setEnv("CONTENT_LENGTH", StrUtils::toString(request.getContentLength()));
+			setEnv("CONTENT_LENGTH", StrUtils::toString(body.getRawBodySize()));
 			const Header *contentType = headersRef.getHeader("content-type");
 			if (contentType && !contentType->getValues().empty())
 				setEnv("CONTENT_TYPE", contentType->getValues()[0]);
@@ -137,40 +125,26 @@ void CgiEnv::_transposeData(const HttpRequest &request, const Server *server, co
 			break;
 		}
 
-		// Resolve script path
-		std::string cleanUri = StrUtils::sanitizeUriPath(uri.getRawURI());
-		std::string scriptPath;
-		if (location && !location->getCgiPath().empty())
+		std::string cleanUri = StrUtils::sanitizeUriPath(uri.getResolvedPath());
+		const std::string *basePath = NULL;
+		if (location && location->getRootPath() && !location->getRootPath()->empty())
+			basePath = location->getRootPath();
+		else if (server && server->getRootPath() && !server->getRootPath()->empty())
+			basePath = server->getRootPath();
+
+		std::string scriptPath = cleanUri;
+		if (basePath && !basePath->empty())
 		{
-			std::string base = location->getCgiPath();
-			std::string locPrefix = location->getLocationPath();
-			if (!locPrefix.empty() && locPrefix[locPrefix.size() - 1] != '/')
-				locPrefix += "/";
-			std::string tail = cleanUri;
-			if (cleanUri.find(locPrefix) == 0)
-				tail = cleanUri.substr(locPrefix.size());
-			while (!tail.empty() && tail[0] == '/')
-				tail.erase(0, 1);
-			scriptPath = base + "/" + tail;
-		}
-		else if (location && !location->getRootPath().empty())
-		{
-			scriptPath = location->getRootPath() + cleanUri;
-		}
-		else if (server && !server->getRootPath().empty())
-		{
-			scriptPath = server->getRootPath() + cleanUri;
-		}
-		else
-		{
-			scriptPath = cleanUri;
+			std::string normalizedBase = *basePath;
+			if (!normalizedBase.empty() && normalizedBase[normalizedBase.size() - 1] == '/')
+				normalizedBase.erase(normalizedBase.size() - 1);
+			scriptPath = normalizedBase + cleanUri;
 		}
 		setEnv("SCRIPT_NAME", cleanUri);
 		setEnv("SCRIPT_FILENAME", scriptPath);
 		Logger::debug("CgiEnv: SCRIPT_NAME=" + cleanUri + " SCRIPT_FILENAME=" + scriptPath, __FILE__, __LINE__,
 					  __PRETTY_FUNCTION__);
 
-		// Headers
 		const std::vector<Header> &headers = headersRef.getHeaders();
 		for (std::vector<Header>::const_iterator it = headers.begin(); it != headers.end(); ++it)
 		{
@@ -178,15 +152,13 @@ void CgiEnv::_transposeData(const HttpRequest &request, const Server *server, co
 			if (values.empty())
 				continue;
 			std::string headerName = it->getDirective();
-			if (headerName == "authorization" || headerName == "proxy-authorization")
-				continue;
-			if (headerName == "content-length" || headerName == "content-type")
+			if (headerName == "authorization" || headerName == "proxy-authorization" ||
+				headerName == "content-length" || headerName == "content-type")
 				continue;
 			std::string cgiHeaderName = "HTTP_" + _convertHeaderNameToCgi(headerName);
 			setEnv(cgiHeaderName, values[0]);
 		}
 
-		// Add minimal shell environment for CGI (PATH for interpreter resolution)
 		const char *systemPath = std::getenv("PATH");
 		if (systemPath)
 			setEnv("PATH", systemPath);
@@ -200,7 +172,7 @@ void CgiEnv::_transposeData(const HttpRequest &request, const Server *server, co
 	{
 		Logger::error(std::string("CgiEnv: Exception during transpose: ") + e.what(), __FILE__, __LINE__,
 					  __PRETTY_FUNCTION__);
-		throw; // rethrow so caller can handle (will surface as 500)
+		throw;
 	}
 }
 

@@ -139,7 +139,7 @@ bool GetMethodHandler::_serveSymlink(const std::string &symlinkPath, HttpRespons
 bool GetMethodHandler::_serveDirectory(const HttpRequest &request, HttpResponse &response, const Location &location)
 {
 	std::string dirPath = request.getURI().getResolvedPath();
-	if (dirPath.back() != '/')
+	if (dirPath.empty() || dirPath[dirPath.size() - 1] != '/')
 	{
 		// Redirect to path with trailing slash
 		response.setRedirectResponse(301, "Moved Permanently: Directory path must end with '/'", dirPath + "/",

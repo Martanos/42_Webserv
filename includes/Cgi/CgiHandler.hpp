@@ -38,14 +38,13 @@ private:
 
 private:
 	// Internal methods
-	ExecutionResult executeCgiScript(const std::string &scriptPath, const std::string &interpreter,
-									 const HttpRequest &request, std::string &output, std::string &error);
+	ExecutionResult executeCgiScript(const std::string &scriptPath, const HttpRequest &request, std::string &output,
+									 std::string &error);
 
 	ExecutionResult processResponse(const std::string &output, const std::string &error, HttpResponse &response,
 									const Server *server);
 
 	// Utility methods
-	std::string determineInterpreter(const std::string &scriptPath, const Location *location) const;
 	bool validateScriptPath(const std::string &scriptPath) const;
 	void logExecutionDetails(const HttpRequest &request, const std::string &scriptPath, ExecutionResult result) const;
 	bool isInternalRedirectPath(const std::string &location) const;

@@ -1,4 +1,5 @@
 #include "../../includes/MethodHandlers/PutMethodHandler.hpp"
+#include "../../includes/Global/Logger.hpp"
 #include <cerrno>
 #include <cstring>
 #include <fstream>
@@ -25,7 +26,7 @@ PutMethodHandler &PutMethodHandler::operator=(const PutMethodHandler &other)
 	return *this;
 }
 
-bool PutMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &response, const Location *location)
+bool PutMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &response, const Location &location)
 {
 
 	std::string filePath = request.getURI().getResolvedPath();
@@ -36,14 +37,14 @@ bool PutMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &r
 	if (!_ensureDirectory(filePath))
 	{
 		Logger::log(Logger::ERROR, "PutMethodHandler: Failed to ensure directory for path: " + filePath);
-		response.setResponseDefaultBody(500, "Internal Server Error", location, HttpResponse::ERROR);
+		response.setResponseDefaultBody(500, "Internal Server Error", &location, HttpResponse::ERROR);
 		return false;
 	}
 
 	if (!_writeBodyToFile(request, filePath))
 	{
 		Logger::log(Logger::ERROR, "PutMethodHandler: Failed to write file: " + filePath);
-		response.setResponseDefaultBody(500, "Internal Server Error", location, HttpResponse::ERROR);
+		response.setResponseDefaultBody(500, "Internal Server Error", &location, HttpResponse::ERROR);
 		return false;
 	}
 

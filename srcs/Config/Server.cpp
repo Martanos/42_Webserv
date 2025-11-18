@@ -45,7 +45,7 @@ Server &Server::operator=(Server const &rhs)
 		_rootPath = rhs._rootPath;
 		_autoIndexValue = rhs._autoIndexValue;
 		_isCgiPathValue = rhs._isCgiPathValue;
-		_isUploadPathValue = rhs._isUploadPathValue;
+		_uploadPath = rhs._uploadPath;
 		_clientMaxBodySize = rhs._clientMaxBodySize;
 		_keepAliveValue = rhs._keepAliveValue;
 		_redirect = rhs._redirect;
@@ -57,7 +57,7 @@ Server &Server::operator=(Server const &rhs)
 		_hasRootPathDirective = rhs._hasRootPathDirective;
 		_hasAutoIndexDirective = rhs._hasAutoIndexDirective;
 		_hasisCgiPathDirective = rhs._hasisCgiPathDirective;
-		_hasisUploadPathDirective = rhs._hasisUploadPathDirective;
+		_hasUploadPathDirective = rhs._hasUploadPathDirective;
 		_hasClientMaxBodySizeDirective = rhs._hasClientMaxBodySizeDirective;
 		_hasKeepAliveDirective = rhs._hasKeepAliveDirective;
 		_hasRedirectDirective = rhs._hasRedirectDirective;
@@ -104,7 +104,7 @@ std::ostream &operator<<(std::ostream &o, Server const &i)
 
 	if (i.hasRootPathDirective())
 	{
-		o << "Root: " << i.getRootPath() << std::endl;
+		o << "Root: " << *i.getRootPath() << std::endl;
 	}
 	else
 		o << "No root defined!" << std::endl;

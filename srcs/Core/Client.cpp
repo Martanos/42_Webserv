@@ -1,9 +1,11 @@
 #include "../../includes/Core/Client.hpp"
+#include "../../includes/Cgi/CgiHandler.hpp"
 #include "../../includes/Global/Logger.hpp"
 #include "../../includes/Http/HTTP.hpp"
 #include "../../includes/Http/HttpRequest.hpp"
 #include "../../includes/Http/HttpResponse.hpp"
 #include "../../includes/MethodHandlers/MethodHandlerFactory.hpp"
+#include "../../includes/Utils/StrUtils.hpp"
 #include <cstdio>
 #include <sys/epoll.h>
 #include <sys/resource.h>
@@ -13,6 +15,29 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
+
+// TODO: Remove DefaultStatus map should handle this
+namespace
+{
+std::string getRedirectReasonPhrase(int statusCode)
+{
+	switch (statusCode)
+	{
+	case 301:
+		return "Moved Permanently";
+	case 302:
+		return "Found";
+	case 303:
+		return "See Other";
+	case 307:
+		return "Temporary Redirect";
+	case 308:
+		return "Permanent Redirect";
+	default:
+		return "Redirect";
+	}
+}
+} // namespace
 
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
@@ -214,25 +239,38 @@ void Client::_routeRequest()
 		return;
 	}
 
-	// Use method handlers
+	if (location->getLocationType() == Location::REDIRECT)
+	{
+		const std::pair<int, std::string> *redirect = location->getRedirect();
+		if (redirect)
+		{
+			_response.setRedirectResponse(redirect->first, getRedirectReasonPhrase(redirect->first), redirect->second,
+										  HttpResponse::SUCCESS);
+		}
+		else
+		{
+			Logger::error("Client: Redirect location missing target", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+			_response.setResponseDefaultBody(500, "Invalid redirect configuration", location, HttpResponse::ERROR);
+		}
+		return;
+	}
+
+	if (location->getLocationType() == Location::CGI)
+	{
+		CgiHandler cgiHandler;
+		CgiHandler::ExecutionResult result =
+			cgiHandler.execute(_request, _response, _request.getSelectedServer(), location);
+		Logger::debug("Client: CGI handler completed with result code " + StrUtils::toString(result), __FILE__,
+					  __LINE__, __PRETTY_FUNCTION__);
+		return;
+	}
+
 	IMethodHandler *handler = MethodHandlerFactory::createHandler(uri.getMethod());
 	if (handler)
 	{
 		Logger::debug("Client: Created handler for method: " + uri.getMethod(), __FILE__, __LINE__,
 					  __PRETTY_FUNCTION__);
-		switch (location->getLocationType())
-		{
-		case Location::STATIC:
-		case Location::UPLOAD:
-			handler->handleRequest(_request, _response, *location);
-			break;
-		case Location::CGI:
-			handler->handleCgiRequest(_request, _response, _request.getSelectedServer(), location);
-			break;
-		case Location::REDIRECT:
-			_response.setRedirectResponse(location->getRedirect()->first, location->getRedirect()->second,
-										  HttpResponse::SUCCESS);
-		}
+		handler->handleRequest(_request, _response, *location);
 		delete handler;
 	}
 	else

@@ -1,5 +1,5 @@
 #include "../../includes/Global/Logger.hpp"
-#include "../../includes/Global/StrUtils.hpp"
+#include "../../includes/Utils/StrUtils.hpp"
 #include <iomanip>
 #include <iostream>
 
