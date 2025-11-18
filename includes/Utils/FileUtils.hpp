@@ -85,20 +85,19 @@ static inline std::string traverseSymlink(const std::string &linkPath)
 
 /* File path checks */
 
+// Assume paths are normalized and absolute
 static inline bool inRoot(const std::string &rootPath, const std::string &targetPath)
 {
-	std::string normalizedRoot = normalizePath(rootPath);
-	std::string normalizedTarget = normalizePath(targetPath);
-	if (normalizedRoot.empty() || normalizedTarget.empty())
+	if (rootPath.empty() || targetPath.empty())
 	{
 		return false;
 	}
-	if (normalizedTarget.compare(0, normalizedRoot.length(), normalizedRoot) != 0)
+	if (targetPath.compare(0, rootPath.length(), rootPath) != 0)
 	{
 		return false;
 	}
 	// Ensure that target is either the root itself or a subpath
-	if (normalizedTarget.length() > normalizedRoot.length() && normalizedTarget[normalizedRoot.length()] != '/')
+	if (targetPath.length() > rootPath.length() && targetPath[rootPath.length()] != '/')
 	{
 		return false;
 	}
@@ -125,7 +124,7 @@ static inline FileType getFileType(const std::string &path)
 	struct stat pathStat;
 	if (lstat(path.c_str(), &pathStat) != 0)
 		return NOT_FOUND; // NOT_FOUND
-	switch (pathStat.st_mode)
+	switch (pathStat.st_mode & S_IFMT)
 	{
 	case S_IFREG:
 		return REGULAR_FILE;

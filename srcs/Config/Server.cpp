@@ -159,12 +159,11 @@ std::ostream &operator<<(std::ostream &o, Server const &i)
 
 	if (i.hasLocationBlocks())
 	{
-		for (std::vector<Location> locations = i.getLocations().getAllValues(); !locations.empty();
-			 locations = i.getLocations().getAllValues())
+		o << "Locations: ";
+		for (TrieTree<Location>::const_iterator locIt = i.getLocations().begin(); locIt != i.getLocations().end();
+			 ++locIt)
 		{
-			o << "Locations: ";
-			for (std::vector<Location>::const_iterator it = locations.begin(); it != locations.end(); ++it)
-				o << it->getLocationPath() << " ";
+			o << *locIt;
 			o << std::endl;
 		}
 	}

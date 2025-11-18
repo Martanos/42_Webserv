@@ -37,14 +37,16 @@ bool PutMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &r
 	if (!_ensureDirectory(filePath))
 	{
 		Logger::log(Logger::ERROR, "PutMethodHandler: Failed to ensure directory for path: " + filePath);
-		response.setResponseDefaultBody(500, "Internal Server Error", &location, HttpResponse::ERROR);
+		response.setResponseDefaultBody(500, "Internal Server Error: Failed to ensure directory", &location,
+										HttpResponse::ERROR);
 		return false;
 	}
 
 	if (!_writeBodyToFile(request, filePath))
 	{
 		Logger::log(Logger::ERROR, "PutMethodHandler: Failed to write file: " + filePath);
-		response.setResponseDefaultBody(500, "Internal Server Error", &location, HttpResponse::ERROR);
+		response.setResponseDefaultBody(500, "Internal Server Error: Failed to write file", &location,
+										HttpResponse::ERROR);
 		return false;
 	}
 

@@ -31,9 +31,18 @@ private:
 		std::string path;
 		typename std::map<char, TrieNode<T> *>::const_iterator childIt;
 		bool initialized;
+		bool endpointYielded;
 
-		IteratorState(TrieNode<T> *n, const std::string &p) : node(n), path(p), childIt(), initialized(false)
+		IteratorState(TrieNode<T> *n, const std::string &p)
+			: node(n), path(p), childIt(), initialized(false), endpointYielded(false)
 		{
+			if (node)
+			{
+				const std::map<char, TrieNode<T> *> &children = node->getChildren();
+				childIt = children.begin();
+			}
+			else
+				childIt = typename std::map<char, TrieNode<T> *>::const_iterator();
 		}
 	};
 
@@ -181,22 +190,20 @@ public:
 					continue;
 				}
 
-				// First visit: check if current node is an endpoint
-				if (state.node->isEndOfPath() && state.node->getData() && _currentData != state.node->getData())
+				// First visit: check if current node is an endpoint and hasn't been yielded
+				if (!state.endpointYielded && state.node->isEndOfPath() && state.node->getData())
 				{
+					state.endpointYielded = true;
 					_currentData = state.node->getData();
-
-					// Initialize child iterator for next advancement
-					const std::map<char, TrieNode<T> *> &children = state.node->getChildren();
-					state.childIt = children.begin();
 					return;
 				}
 
 				// Try to visit children
 				const std::map<char, TrieNode<T> *> &children = state.node->getChildren();
-				if (state.childIt == children.end())
+				if (!state.initialized)
 				{
 					state.childIt = children.begin();
+					state.initialized = true;
 				}
 
 				if (state.childIt != children.end())
@@ -308,12 +315,10 @@ public:
 					continue;
 				}
 
-				if (state.node->isEndOfPath() && state.node->getData() && _currentData != state.node->getData())
+				if (!state.endpointYielded && state.node->isEndOfPath() && state.node->getData())
 				{
+					state.endpointYielded = true;
 					_currentData = state.node->getData();
-					const std::map<char, TrieNode<T> *> &children = state.node->getChildren();
-					state.childIt = children.begin();
-					state.initialized = true;
 					return;
 				}
 

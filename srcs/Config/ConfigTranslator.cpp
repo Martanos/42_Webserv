@@ -102,10 +102,12 @@ Server ConfigTranslator::_translateServer(const AST::ASTNode &ast)
 							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
 	// Inheritence step: propagate server-level members to locations that lack them
+	Logger::debug("Propagating server-level members to locations", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	for (TrieTree<Location>::iterator locIt = server.getLocations().begin(); locIt != server.getLocations().end();
 		 ++locIt)
 	{
 		Location &location = *locIt;
+		Logger::debug("Propagating to " + location.getLocationPath(), __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		if (server.hasRootPathDirective() && !location.hasRootPathDirective())
 			location.setRootPath(*server.getRootPath());
 		if (server.hasAutoIndexDirective() && !location.hasAutoIndexDirective())
@@ -138,6 +140,7 @@ Server ConfigTranslator::_translateServer(const AST::ASTNode &ast)
 			}
 		}
 	}
+	Logger::debug("Inserting default root location if needed", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	// Default location block, only created if root path was set at server level
 	if (!server.getLocation("/") && server.wasModified() && server.hasRootPathDirective())
 	{

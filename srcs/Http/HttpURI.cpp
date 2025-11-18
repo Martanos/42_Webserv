@@ -228,6 +228,8 @@ void HttpURI::resolveURI(const Location *location, HttpResponse &response)
 	if (realpath(fullPath.c_str(), resolvedPath) != NULL)
 	{
 		std::string resolved(resolvedPath);
+		if (_decodedPath[_decodedPath.size() - 1] == '/' && resolved[resolved.size() - 1] != '/')
+			resolved += "/";
 		// containment check
 		if (!FileUtils::inRoot(*root, resolved))
 		{
@@ -259,7 +261,7 @@ void HttpURI::resolveURI(const Location *location, HttpResponse &response)
 			return;
 		}
 
-		std::string resolvedDir(resolvedPath);
+		std::string resolvedDir(resolvedPath + std::string("/"));
 
 		// containment check
 		if (resolvedDir.compare(0, location->getRootPath()->size(), *location->getRootPath()) != 0)
@@ -324,7 +326,6 @@ const std::string &HttpURI::getDecodedPath() const
 {
 	return _decodedPath;
 }
-
 
 const std::string &HttpURI::getResolvedPath() const
 {

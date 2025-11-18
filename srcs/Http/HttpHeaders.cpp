@@ -51,10 +51,7 @@ HttpHeaders &HttpHeaders::operator=(HttpHeaders const &rhs)
 
 void HttpHeaders::parseBuffer(std::vector<char> &buffer, HttpResponse &response, HttpBody &body)
 {
-	Logger::debug("HttpHeaders: Parsing buffer, size: " + StrUtils::toString(buffer.size()), __FILE__, __LINE__,
-				  __PRETTY_FUNCTION__);
 	std::string bufferStr(buffer.begin(), buffer.end());
-	Logger::debug("HttpHeaders: Buffer content: " + bufferStr, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 
 	// Continue parsing headers until we find empty line or run out of data
 	while (_headersState == HEADERS_PARSING && !buffer.empty())
@@ -62,12 +59,10 @@ void HttpHeaders::parseBuffer(std::vector<char> &buffer, HttpResponse &response,
 		std::vector<char>::iterator it = std::search(buffer.begin(), buffer.end(), HTTP::CRLF, HTTP::CRLF + 2);
 		if (it == buffer.end())
 		{
-			Logger::debug("HttpHeaders: No CRLF found, waiting for more data", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			// If it can't be found check that the buffer has not currently exceeded the size limit of a header
 			if (buffer.size() > HTTP::DEFAULT_CLIENT_MAX_HEADERS_SIZE)
 			{
 				response.setResponseDefaultBody(413, "Request Header Too Large", NULL, HttpResponse::FATAL_ERROR);
-				Logger::debug("Header size limit exceeded", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 				_headersState = HEADERS_PARSING_ERROR;
 			}
 			else
@@ -78,20 +73,16 @@ void HttpHeaders::parseBuffer(std::vector<char> &buffer, HttpResponse &response,
 		// Extract header data from buffer
 		std::string rawHeader;
 		rawHeader.assign(buffer.begin(), it);
-		Logger::debug("HttpHeaders: Found header line: '" + rawHeader + "'", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		buffer.erase(buffer.begin(), it + 2);
 		if (rawHeader.empty())
 		{
-			Logger::debug("HttpHeaders: Empty line found, headers complete", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			parseAllHeaders(response, body);
 			_headersState = HEADERS_PARSING_COMPLETE;
-			Logger::log(Logger::DEBUG, "Headers parsing complete");
 			return;
 		}
 		else if (rawHeader.size() + 2 > HTTP::DEFAULT_CLIENT_MAX_HEADERS_SIZE)
 		{
 			response.setResponseDefaultBody(413, "Request Line Header Too Large", NULL, HttpResponse::FATAL_ERROR);
-			Logger::debug("Header line size limit exceeded", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			_headersState = HEADERS_PARSING_ERROR;
 			return;
 		}
@@ -100,7 +91,6 @@ void HttpHeaders::parseBuffer(std::vector<char> &buffer, HttpResponse &response,
 		{
 			response.setResponseDefaultBody(413, "Request headers total size too large", NULL,
 											HttpResponse::FATAL_ERROR);
-			Logger::debug("Header total size limit exceeded", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			_headersState = HEADERS_PARSING_ERROR;
 			return;
 		}
@@ -125,8 +115,6 @@ void HttpHeaders::parseHeaderLine(const std::string &rawHeader, HttpResponse &re
 			{
 				if (isSingletonHeader(header.getDirective()))
 				{
-					Logger::debug("Singleton header " + header.getDirective() + " found multiple times", __FILE__,
-								  __LINE__, __PRETTY_FUNCTION__);
 					_headersState = HEADERS_PARSING_ERROR;
 					response.setResponseDefaultBody(400, "Duplicate singleton header found", NULL,
 													HttpResponse::FATAL_ERROR);
@@ -140,7 +128,8 @@ void HttpHeaders::parseHeaderLine(const std::string &rawHeader, HttpResponse &re
 	}
 	catch (const std::exception &e)
 	{
-		Logger::log(Logger::ERROR, "Error parsing header: " + std::string(e.what()));
+		Logger::error("Error parsing header: " + std::string(e.what()) + " skipping...", __FILE__, __LINE__,
+					  __PRETTY_FUNCTION__);
 		response.setResponseDefaultBody(400, "Error parsing header: " + std::string(e.what()), NULL,
 										HttpResponse::FATAL_ERROR);
 		_headersState = HEADERS_PARSING_ERROR;
@@ -169,8 +158,6 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 			}
 			if (hasTransferEncoding)
 			{
-				Logger::debug("Content-Length and Transfer-Encoding headers cannot be used together", __FILE__,
-							  __LINE__, __PRETTY_FUNCTION__);
 				_headersState = HEADERS_PARSING_ERROR;
 				response.setResponseDefaultBody(400,
 												"Content-Length and Transfer-Encoding headers cannot be used together",
@@ -181,8 +168,6 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 			ssize_t contentLength = std::strtol(headerValues[0].c_str(), &endPtr, 10);
 			if (*endPtr != '\0' || contentLength < 0)
 			{
-				Logger::debug("Invalid Content-Length header: " + headerValues[0], __FILE__, __LINE__,
-							  __PRETTY_FUNCTION__);
 				_headersState = HEADERS_PARSING_ERROR;
 				response.setResponseDefaultBody(400, "Invalid Content-Length header: " + headerValues[0], NULL,
 												HttpResponse::FATAL_ERROR);
@@ -212,8 +197,6 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 			}
 			if (hasContentLength)
 			{
-				Logger::debug("Content-Length and Transfer-Encoding headers cannot be used together", __FILE__,
-							  __LINE__, __PRETTY_FUNCTION__);
 				_headersState = HEADERS_PARSING_ERROR;
 				response.setResponseDefaultBody(400,
 												"Content-Length and Transfer-Encoding headers cannot be used together",
@@ -227,8 +210,6 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 			}
 			else
 			{
-				Logger::debug("Invalid Transfer-Encoding header: " + headerValues[0], __FILE__, __LINE__,
-							  __PRETTY_FUNCTION__);
 				_headersState = HEADERS_PARSING_ERROR;
 				response.setResponseDefaultBody(400, "Invalid Transfer-Encoding header: " + headerValues[0], NULL,
 												HttpResponse::FATAL_ERROR);
@@ -247,7 +228,6 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 			}
 			else
 			{
-				Logger::debug("Invalid Connection header: " + headerValues[0], __FILE__, __LINE__, __PRETTY_FUNCTION__);
 				_headersState = HEADERS_PARSING_ERROR;
 				response.setResponseDefaultBody(400, "Invalid Connection header: " + headerValues[0], NULL,
 												HttpResponse::FATAL_ERROR);
@@ -260,7 +240,6 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 			// Host header is required for HTTP/1.1
 			if (headerValues.empty())
 			{
-				Logger::debug("Empty Host header", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 				_headersState = HEADERS_PARSING_ERROR;
 				response.setResponseDefaultBody(400, "Empty Host header", NULL, HttpResponse::FATAL_ERROR);
 				return;
@@ -269,7 +248,6 @@ void HttpHeaders::parseAllHeaders(HttpResponse &response, HttpBody &body)
 	}
 	if (!hostFound)
 	{
-		Logger::debug("Host header is required for this server", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		_headersState = HEADERS_PARSING_ERROR;
 		response.setResponseDefaultBody(400, "Host header is required for this server", NULL,
 										HttpResponse::FATAL_ERROR);

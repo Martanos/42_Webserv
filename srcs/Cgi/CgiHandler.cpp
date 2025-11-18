@@ -338,15 +338,20 @@ std::string CgiHandler::resolveCgiScriptPath(const std::string &uri, const Serve
 	else if (server && server->getRootPath() && !server->getRootPath()->empty())
 		basePath = server->getRootPath();
 
-	if (basePath && !basePath->empty())
-	{
-		std::string normalizedBase = *basePath;
-		if (!normalizedBase.empty() && normalizedBase[normalizedBase.size() - 1] == '/')
-			normalizedBase.erase(normalizedBase.size() - 1);
-		return (normalizedBase + cleanUri);
-	}
+	if (!basePath || basePath->empty())
+		return cleanUri;
 
-	return (cleanUri);
+	std::string normalizedBase = *basePath;
+	if (!normalizedBase.empty() && normalizedBase[normalizedBase.size() - 1] == '/')
+		normalizedBase.erase(normalizedBase.size() - 1);
+
+	if (cleanUri.compare(0, normalizedBase.size(), normalizedBase) == 0)
+		return cleanUri;
+
+	if (!cleanUri.empty() && cleanUri[0] != '/')
+		return normalizedBase + "/" + cleanUri;
+
+	return normalizedBase + cleanUri;
 }
 
 /* ************************************************************************** */

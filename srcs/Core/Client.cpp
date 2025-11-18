@@ -270,6 +270,7 @@ void Client::_routeRequest()
 	{
 		Logger::debug("Client: Created handler for method: " + uri.getMethod(), __FILE__, __LINE__,
 					  __PRETTY_FUNCTION__);
+		Logger::debug("Client: For path: " + uri.getResolvedPath(), __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		handler->handleRequest(_request, _response, *location);
 		delete handler;
 	}

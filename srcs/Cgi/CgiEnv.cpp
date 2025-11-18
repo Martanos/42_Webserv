@@ -125,24 +125,33 @@ void CgiEnv::_transposeData(const HttpRequest &request, const Server *server, co
 			break;
 		}
 
-		std::string cleanUri = StrUtils::sanitizeUriPath(uri.getResolvedPath());
+		std::string scriptName = StrUtils::sanitizeUriPath(uri.getDecodedPath());
+		if (scriptName.empty())
+			scriptName = "/";
+
+		std::string scriptPath = StrUtils::sanitizeUriPath(uri.getResolvedPath());
 		const std::string *basePath = NULL;
 		if (location && location->getRootPath() && !location->getRootPath()->empty())
 			basePath = location->getRootPath();
 		else if (server && server->getRootPath() && !server->getRootPath()->empty())
 			basePath = server->getRootPath();
 
-		std::string scriptPath = cleanUri;
 		if (basePath && !basePath->empty())
 		{
 			std::string normalizedBase = *basePath;
 			if (!normalizedBase.empty() && normalizedBase[normalizedBase.size() - 1] == '/')
 				normalizedBase.erase(normalizedBase.size() - 1);
-			scriptPath = normalizedBase + cleanUri;
+			if (scriptPath.compare(0, normalizedBase.size(), normalizedBase) != 0)
+			{
+				if (!scriptPath.empty() && scriptPath[0] != '/')
+					scriptPath = normalizedBase + "/" + scriptPath;
+				else
+					scriptPath = normalizedBase + scriptPath;
+			}
 		}
-		setEnv("SCRIPT_NAME", cleanUri);
+		setEnv("SCRIPT_NAME", scriptName);
 		setEnv("SCRIPT_FILENAME", scriptPath);
-		Logger::debug("CgiEnv: SCRIPT_NAME=" + cleanUri + " SCRIPT_FILENAME=" + scriptPath, __FILE__, __LINE__,
+		Logger::debug("CgiEnv: SCRIPT_NAME=" + scriptName + " SCRIPT_FILENAME=" + scriptPath, __FILE__, __LINE__,
 					  __PRETTY_FUNCTION__);
 
 		const std::vector<Header> &headers = headersRef.getHeaders();

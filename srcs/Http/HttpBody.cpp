@@ -61,12 +61,8 @@ HttpBody &HttpBody::operator=(HttpBody const &rhs)
 
 void HttpBody::parseBuffer(std::vector<char> &buffer, const Location &location, HttpResponse &response)
 {
-	Logger::debug("HttpBody: parseBuffer called, body type: " + StrUtils::toString(_bodyType) +
-					  ", buffer size: " + StrUtils::toString(buffer.size()),
-				  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	if (_bodyType == BODY_TYPE_NO_BODY)
 	{
-		Logger::debug("HttpBody: No body type, marking as complete", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		_bodyState = BODY_PARSING_COMPLETE;
 	}
 	else if (_bodyType == BODY_TYPE_CHUNKED)
@@ -80,14 +76,9 @@ void HttpBody::parseBuffer(std::vector<char> &buffer, const Location &location, 
 HttpBody::BodyState HttpBody::_parseContentLengthBody(std::vector<char> &buffer, const Location &location,
 													  HttpResponse &response)
 {
-	Logger::debug(
-		"HttpBody: parseContentLengthBody called, expected body size: " + StrUtils::toString(_expectedBodySize) +
-			", is using temp file: " + StrUtils::toString(_isUsingTempFile),
-		__FILE__, __LINE__, __PRETTY_FUNCTION__);
 	// Check intially if expected body size exceeds client max body size
 	if (_expectedBodySize > static_cast<ssize_t>(location.getClientMaxBodySize()))
 	{
-		Logger::debug("Body size exceeds client max body size", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		response.setResponseDefaultBody(413, "Body size exceeds client max body size", &location,
 										HttpResponse::FATAL_ERROR);
 		return BODY_PARSING_ERROR;
@@ -99,7 +90,6 @@ HttpBody::BodyState HttpBody::_parseContentLengthBody(std::vector<char> &buffer,
 		ssize_t bytes_needed = _expectedBodySize - _rawBody.size();
 		if (bytes_needed < 0)
 		{
-			Logger::debug("Body size exceeds expected size", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			response.setResponseDefaultBody(400, "Body size exceeds expected size", &location,
 											HttpResponse::FATAL_ERROR);
 			return BODY_PARSING_ERROR;
@@ -110,15 +100,12 @@ HttpBody::BodyState HttpBody::_parseContentLengthBody(std::vector<char> &buffer,
 		_rawBodySize += bytes_to_copy;
 		if (_rawBodySize > _expectedBodySize)
 		{
-			Logger::debug("Body size exceeds expected size given by headers", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			response.setResponseDefaultBody(400, "Body size exceeds expected size given by headers", &location,
 											HttpResponse::FATAL_ERROR);
 			return BODY_PARSING_ERROR;
 		}
 		else if (_rawBodySize > location.getClientMaxBodySize())
 		{
-			Logger::debug("Body size exceeds client max body size set in configuration", __FILE__, __LINE__,
-						  __PRETTY_FUNCTION__);
 			response.setResponseDefaultBody(413, "Body size exceeds client max body size set in configuration",
 											&location, HttpResponse::FATAL_ERROR);
 			return BODY_PARSING_ERROR;
@@ -135,7 +122,6 @@ HttpBody::BodyState HttpBody::_parseContentLengthBody(std::vector<char> &buffer,
 		ssize_t bytes_needed = _expectedBodySize - _tempFile.getFileSize();
 		if (bytes_needed < 0)
 		{
-			Logger::debug("Body size exceeds expected size", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			response.setResponseDefaultBody(400, "Body size exceeds expected size", &location,
 											HttpResponse::FATAL_ERROR);
 			return BODY_PARSING_ERROR;
@@ -149,8 +135,6 @@ HttpBody::BodyState HttpBody::_parseContentLengthBody(std::vector<char> &buffer,
 		}
 		if (_rawBodySize > location.getClientMaxBodySize())
 		{
-			Logger::debug("Body size exceeds client max body size set in configuration", __FILE__, __LINE__,
-						  __PRETTY_FUNCTION__);
 			response.setResponseDefaultBody(413, "Body size exceeds client max body size set in configuration",
 											&location, HttpResponse::FATAL_ERROR);
 			return BODY_PARSING_ERROR;
@@ -171,17 +155,12 @@ HttpBody::BodyState HttpBody::_parseChunkedBody(std::vector<char> &buffer, const
 		{
 		case CHUNK_SIZE:
 		{
-			Logger::debug("HttpBody: Chunk size state", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			// Chunked size line validation
 			std::vector<char>::iterator it = std::search(buffer.begin(), buffer.end(), HTTP::CRLF, HTTP::CRLF + 2);
-			Logger::debug("HttpBody: Chunk size line search result: " + StrUtils::toString(it - buffer.begin()),
-						  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 			if (it == buffer.end()) // If the CRLF is not found, we need more data
 			{
 				if (buffer.size() > 18) // Limit hex number size to 16 characters (8 bytes) + 2 for \r\n
 				{
-					Logger::debug("Chunked transfer encoding size string exceeded limit", __FILE__, __LINE__,
-								  __PRETTY_FUNCTION__);
 					response.setResponseDefaultBody(400, "Chunked transfer encoding size string exceeded limit",
 													&location, HttpResponse::FATAL_ERROR);
 					return BODY_PARSING_ERROR;
@@ -194,14 +173,11 @@ HttpBody::BodyState HttpBody::_parseChunkedBody(std::vector<char> &buffer, const
 			_rawBodySize += sizeLine.size() + 2; // Add size line and CRLF to raw body size
 			if (sizeLine.empty())
 			{
-				Logger::debug("Empty chunk size line", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 				response.setResponseDefaultBody(400, "Empty chunk size line", &location, HttpResponse::FATAL_ERROR);
 				return BODY_PARSING_ERROR;
 			}
 			else if (sizeLine.size() + 2 > 18) // 16 characters (8 bytes) + 2 for \r\n
 			{
-				Logger::debug("Chunked transfer encoding size string exceeded limit", __FILE__, __LINE__,
-							  __PRETTY_FUNCTION__);
 				response.setResponseDefaultBody(400, "Chunked transfer encoding size string exceeded limit", &location,
 												HttpResponse::FATAL_ERROR);
 				return BODY_PARSING_ERROR;
@@ -210,23 +186,18 @@ HttpBody::BodyState HttpBody::_parseChunkedBody(std::vector<char> &buffer, const
 			_rawBodySize += _expectedBodySize; // Add the expected body size to the raw body size
 			if (_rawBodySize > location.getClientMaxBodySize())
 			{
-				Logger::debug("Body size exceeds client max body size set in configuration", __FILE__, __LINE__,
-							  __PRETTY_FUNCTION__);
 				response.setResponseDefaultBody(413, "Body size exceeds client max body size set in configuration",
 												&location, HttpResponse::FATAL_ERROR);
 				return BODY_PARSING_ERROR;
 			}
 			if (_expectedBodySize == 0)
 			{
-				Logger::debug("Chunked transfer encoding size is 0, switching to trailers state", __FILE__, __LINE__,
-							  __PRETTY_FUNCTION__);
 				_chunkState = CHUNK_TRAILERS;
 				break;
 			}
 			else if (_expectedBodySize == -1)
 			{
 				_chunkState = CHUNK_ERROR;
-				Logger::debug("Invalid chunk size: " + sizeLine, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 				response.setResponseDefaultBody(400, "Invalid chunk size: " + sizeLine, &location,
 												HttpResponse::FATAL_ERROR);
 				return BODY_PARSING_ERROR;
@@ -246,8 +217,6 @@ HttpBody::BodyState HttpBody::_parseChunkedBody(std::vector<char> &buffer, const
 																			// expected body size a fatal error is
 																			// returned
 				{
-					Logger::debug("Chunked transfer encoding body size exceeds expected size", __FILE__, __LINE__,
-								  __PRETTY_FUNCTION__);
 					response.setResponseDefaultBody(400, "Chunked transfer encoding body size exceeds expected size",
 													&location, HttpResponse::FATAL_ERROR);
 					return BODY_PARSING_ERROR;
@@ -281,8 +250,6 @@ HttpBody::BodyState HttpBody::_parseChunkedBody(std::vector<char> &buffer, const
 			{
 				if (buffer.size() > HTTP::DEFAULT_CLIENT_MAX_HEADERS_SIZE)
 				{
-					Logger::debug("Chunked transfer encoding trailers line too long", __FILE__, __LINE__,
-								  __PRETTY_FUNCTION__);
 					response.setResponseDefaultBody(400, "Chunked transfer encoding trailers line too long", &location,
 													HttpResponse::FATAL_ERROR);
 					return BODY_PARSING_ERROR;
@@ -294,8 +261,6 @@ HttpBody::BodyState HttpBody::_parseChunkedBody(std::vector<char> &buffer, const
 				_rawBodySize += it - buffer.begin() + 2; // Add trailer line and CRLF to raw body size
 				if (_rawBodySize > location.getClientMaxBodySize())
 				{
-					Logger::debug("Body size exceeds client max body size set in configuration", __FILE__, __LINE__,
-								  __PRETTY_FUNCTION__);
 					response.setResponseDefaultBody(413, "Body size exceeds client max body size set in configuration",
 													&location, HttpResponse::FATAL_ERROR);
 					return BODY_PARSING_ERROR;
@@ -306,8 +271,6 @@ HttpBody::BodyState HttpBody::_parseChunkedBody(std::vector<char> &buffer, const
 			}
 			else if (it - buffer.begin() > HTTP::DEFAULT_CLIENT_MAX_HEADERS_SIZE)
 			{
-				Logger::debug("Chunked transfer encoding trailers line too long", __FILE__, __LINE__,
-							  __PRETTY_FUNCTION__);
 				response.setResponseDefaultBody(400, "Chunked transfer encoding trailers line too long", NULL,
 												HttpResponse::FATAL_ERROR);
 				return BODY_PARSING_ERROR;
@@ -334,7 +297,7 @@ ssize_t HttpBody::_parseHexSize(const std::string &hexStr) const
 	ssize_t size = std::strtoul(hexStr.c_str(), &endPtr, 16);
 	if (*endPtr != '\0')
 	{
-		Logger::log(Logger::ERROR, "Invalid hex chunk size: " + hexStr);
+		Logger::error("Invalid hex size string: " + hexStr, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		return -1;
 	}
 	return size;
