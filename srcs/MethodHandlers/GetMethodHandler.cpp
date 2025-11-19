@@ -60,7 +60,7 @@ std::string GetMethodHandler::_generateDirectoryListing(const std::string &fileP
 	return (html.str());
 }
 
-bool GetMethodHandler::_serveFile(const std::string &filePath, HttpResponse &response, const Location &location)
+bool GetMethodHandler::_serveFile(const HttpRequest &request, const std::string &filePath, HttpResponse &response, const Location &location)
 {
 	if (!FileUtils::isFileReadable(filePath))
 	{
@@ -93,12 +93,19 @@ bool GetMethodHandler::_serveFile(const std::string &filePath, HttpResponse &res
 					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		return (false);
 	}
+	// Check if CGI
+	if (location.getisCgiPathValue() && FileUtils::isFileExecutable(filePath))
+	{
+		CgiHandler cgi;
+		CgiHandler::ExecutionResult result = cgi.execute(request, response, request.getSelectedServer(), &location);
+		return result == CgiHandler::SUCCESS;
+	}
 	// Set response
 	response.setResponseFile(200, "OK", filePath, MimeTypeResolver::resolveMimeType(filePath), HttpResponse::SUCCESS);
 	return (true);
 }
 
-bool GetMethodHandler::_serveSymlink(const std::string &symlinkPath, HttpResponse &response, const Location &location)
+bool GetMethodHandler::_serveSymlink(const HttpRequest &request, const std::string &symlinkPath, HttpResponse &response, const Location &location)
 {
 	std::string resolvedPath = FileUtils::traverseSymlink(symlinkPath);
 	if (resolvedPath.empty())
@@ -133,7 +140,7 @@ bool GetMethodHandler::_serveSymlink(const std::string &symlinkPath, HttpRespons
 										HttpResponse::ERROR);
 		return false;
 	}
-	return (_serveFile(resolvedPath, response, location));
+	return (_serveFile(request, resolvedPath, response, location));
 }
 
 bool GetMethodHandler::_serveDirectory(const HttpRequest &request, HttpResponse &response, const Location &location)
@@ -154,7 +161,7 @@ bool GetMethodHandler::_serveDirectory(const HttpRequest &request, HttpResponse 
 			std::string indexPath = dirPath + "/" + *it;
 			if (FileUtils::fileExists(indexPath))
 			{
-				return (_serveFile(indexPath, response, location));
+				return (_serveFile(request, indexPath, response, location));
 			}
 		}
 	}
@@ -182,9 +189,9 @@ bool GetMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &r
 	case FileUtils::DIRECTORY:
 		return _serveDirectory(request, response, location);
 	case FileUtils::REGULAR_FILE:
-		return _serveFile(filePath, response, location);
+		return _serveFile(request, filePath, response, location);
 	case FileUtils::SYMBOLIC_LINK:
-		return _serveSymlink(filePath, response, location);
+		return _serveSymlink(request, filePath, response, location);
 	case FileUtils::CHARACTER_DEVICE:
 		response.setResponseDefaultBody(403, "Forbidden: cannot access character devices", &location,
 										HttpResponse::ERROR);

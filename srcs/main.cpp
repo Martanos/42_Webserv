@@ -40,7 +40,7 @@ int main(int argc, char **argv)
 		if (cfg.children.empty())
 			throw std::runtime_error("No server blocks found in config file");
 		// TODO: convert this into a debug log
-		parser.printAST(cfg);
+		// parser.printAST(cfg);
 
 		// 2. Translate the AST into server objects
 		ConfigTranslator translator(cfg);

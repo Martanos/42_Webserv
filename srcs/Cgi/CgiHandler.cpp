@@ -69,6 +69,7 @@ CgiHandler::ExecutionResult CgiHandler::execute(const HttpRequest &request, Http
 										HttpResponse::ERROR);
 		return (ERROR_INTERNAL_ERROR);
 	}
+	Logger::log(Logger::INFO, "CgiHandler::execute called for " + uri.getResolvedPath());
 	// Resolve script path using the resolved request target derived from the routing logic
 	std::string scriptPath = resolveCgiScriptPath(uri.getResolvedPath(), server, location);
 	Logger::debug("CgiHandler: Resolved script path: " + scriptPath, __FILE__, __LINE__, __PRETTY_FUNCTION__);

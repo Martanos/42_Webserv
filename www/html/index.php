@@ -1,13 +1,17 @@
+#!/usr/bin/php
 <?php
-session_start();
+// session_start();
 if (!isset($_SESSION['user'])) {
-    header("Location: login.php");
+    echo "Content-Type: text/html\r\n";
+    echo "Location: login.php\r\n";
+    echo "\r\n";
     exit();
 }
 
 if (isset($_GET['logout'])) {
     session_destroy();
-    header("Location: login.php");
+    echo "Location: login.php\r\n";
+    echo "\r\n";
     exit();
 }
 ?>

@@ -263,6 +263,11 @@ CgiExecutor::ExecutionResult CgiExecutor::forkAndExec(const std::string &scriptP
 		if (interpreter.empty())
 		{
 			shebangInterpreter = getInterpreterFromShebang(scriptPath);
+			// Fallback for PHP files
+			if (shebangInterpreter.empty() && scriptPath.size() > 4 && scriptPath.substr(scriptPath.size() - 4) == ".php")
+			{
+				shebangInterpreter = "/usr/bin/php";
+			}
 		}
 
 		char *args[3];

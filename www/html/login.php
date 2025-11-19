@@ -1,3 +1,4 @@
+#!/usr/bin/php
 <?php
 session_start();
 
@@ -7,7 +8,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($username === 'admin' && $password === '1234') {
         $_SESSION['user'] = $username;
-        header("Location: index.php");
+        echo "Location: index.php\r\n";
+        echo "\r\n";
         exit();
     } else {
         $error = "Invalid login.";
