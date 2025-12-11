@@ -28,21 +28,38 @@ private:
 
 	// Directive translation helpers
 	void _translateDirective(std::vector<AST::ASTNode *>::const_iterator &directive, Directives &directives,
-							 std::string context);
-	void _translateRootPathDirective(const AST::ASTNode &directive, Directives &directives, std::string context);
-	void _translateAutoindexDirective(const AST::ASTNode &directive, Directives &directives, std::string context);
-	void _translateUploadPathDirective(const AST::ASTNode &directive, Directives &directives, std::string context);
-	void _translateCgiPathDirective(const AST::ASTNode &directive, Directives &directives, std::string context);
+							 const std::string &context);
+	void _translateRootPathDirective(const AST::ASTNode &directive, Directives &directives, const std::string &context);
+	void _translateAutoindexDirective(const AST::ASTNode &directive, Directives &directives,
+									  const std::string &context);
+	void _translateUploadPathDirective(const AST::ASTNode &directive, Directives &directives,
+									   const std::string &context);
+	void _translateCgiPathDirective(const AST::ASTNode &directive, Directives &directives, const std::string &context);
 	void _translateClientMaxBodySizeDirective(const AST::ASTNode &directive, Directives &directives,
-											  std::string context);
-	void _translateKeepAliveDirective(const AST::ASTNode &directive, Directives &directives, std::string context);
-	void _translateRedirectDirective(const AST::ASTNode &directive, Directives &directives, std::string context);
-	void _translateIndexDirective(const AST::ASTNode &directive, Directives &directives, std::string context);
-	void _translateStatusPathDirective(const AST::ASTNode &directive, Directives &directives, std::string context);
-	void _translateAllowedMethodsDirective(const AST::ASTNode &directive, Directives &directives, std::string context);
+											  const std::string &context);
+	void _translateKeepAliveDirective(const AST::ASTNode &directive, Directives &directives,
+									  const std::string &context);
+	void _translateRedirectDirective(const AST::ASTNode &directive, Directives &directives, const std::string &context);
+	void _translateIndexDirective(const AST::ASTNode &directive, Directives &directives, const std::string &context);
+	void _translateStatusPathDirective(const AST::ASTNode &directive, Directives &directives,
+									   const std::string &context);
+	void _translateAllowedMethodsDirective(const AST::ASTNode &directive, Directives &directives,
+										   const std::string &context);
 
 	// Utility
 	bool _parseSizeArgument(const std::string &rawValue, double &sizeOut);
+
+	// Logging helpers to reduce boilerplate
+	static std::string _nodeLocation(const AST::ASTNode &node);
+	static std::string _nodeLocation(const AST::ASTNode *node);
+	static void _warnNoArgs(const std::string &context, const std::string &directiveName, const AST::ASTNode &node);
+	static void _warnUnknownToken(const std::string &context, const std::string &directiveName,
+								  const AST::ASTNode &node);
+	static void _warnExtraArgs(std::vector<AST::ASTNode *>::const_iterator it,
+							   std::vector<AST::ASTNode *>::const_iterator end, const std::string &context,
+							   const std::string &directiveName);
+	static void _errorTranslating(const std::string &context, const std::string &directiveName,
+								  const AST::ASTNode &node, const std::exception &e);
 
 public:
 	explicit ConfigTranslator(const AST::ASTNode &ast);

@@ -12,9 +12,8 @@
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-CgiExecutor::CgiExecutor() : _childPid(-1), _timeoutSeconds(DEFAULT_TIMEOUT_SECONDS), _processRunning(false)
+void CgiExecutor::_initPipes()
 {
-	// Initialize pipe file descriptors to invalid state
 	for (int i = 0; i < 2; ++i)
 	{
 		_stdinPipe[i] = FileDescriptor();
@@ -23,27 +22,20 @@ CgiExecutor::CgiExecutor() : _childPid(-1), _timeoutSeconds(DEFAULT_TIMEOUT_SECO
 	}
 }
 
+CgiExecutor::CgiExecutor() : _childPid(-1), _timeoutSeconds(DEFAULT_TIMEOUT_SECONDS), _processRunning(false)
+{
+	_initPipes();
+}
+
 CgiExecutor::CgiExecutor(int timeoutSeconds) : _childPid(-1), _timeoutSeconds(timeoutSeconds), _processRunning(false)
 {
-	// Initialize pipe file descriptors to invalid state
-	for (int i = 0; i < 2; ++i)
-	{
-		_stdinPipe[i] = FileDescriptor();
-		_stdoutPipe[i] = FileDescriptor();
-		_stderrPipe[i] = FileDescriptor();
-	}
+	_initPipes();
 }
 
 CgiExecutor::CgiExecutor(const CgiExecutor &other)
 	: _childPid(-1), _timeoutSeconds(other._timeoutSeconds), _processRunning(false)
 {
-	// Initialize pipe file descriptors to invalid state
-	for (int i = 0; i < 2; ++i)
-	{
-		_stdinPipe[i] = FileDescriptor();
-		_stdoutPipe[i] = FileDescriptor();
-		_stderrPipe[i] = FileDescriptor();
-	}
+	_initPipes();
 	// Note: We don't copy the process state or pipes as they are not copyable
 }
 
@@ -264,7 +256,8 @@ CgiExecutor::ExecutionResult CgiExecutor::forkAndExec(const std::string &scriptP
 		{
 			shebangInterpreter = getInterpreterFromShebang(scriptPath);
 			// Fallback for PHP files
-			if (shebangInterpreter.empty() && scriptPath.size() > 4 && scriptPath.substr(scriptPath.size() - 4) == ".php")
+			if (shebangInterpreter.empty() && scriptPath.size() > 4 &&
+				scriptPath.substr(scriptPath.size() - 4) == ".php")
 			{
 				shebangInterpreter = "/usr/bin/php";
 			}

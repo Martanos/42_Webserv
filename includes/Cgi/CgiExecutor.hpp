@@ -36,6 +36,9 @@ private:
 	int _timeoutSeconds;
 	bool _processRunning;
 
+	// Initialization helper
+	void _initPipes();
+
 public:
 	CgiExecutor();
 	CgiExecutor(int timeoutSeconds);

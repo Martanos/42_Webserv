@@ -16,7 +16,8 @@
 #include <time.h>
 #include <unistd.h>
 
-// TODO: Remove DefaultStatus map should handle this
+// Helper function for redirect reason phrases
+// Note: DefaultStatusMap stores message+body concatenated, so we need a separate lookup for just the phrase
 namespace
 {
 std::string getRedirectReasonPhrase(int statusCode)
@@ -43,39 +44,10 @@ std::string getRedirectReasonPhrase(int statusCode)
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
 
-Client::Client()
+void Client::_initCommon()
 {
 	_keepAlive = HTTP::DEFAULT_KEEP_ALIVE;
-	_clientFd = FileDescriptor();
-	_remoteAddress = SocketAddress();
 	_request = HttpRequest();
-	_response = HttpResponse();
-	_responseBuffer = std::deque<HttpResponse>();
-	long pageSize = sysconf(_SC_PAGESIZE);
-	if (pageSize == -1)
-	{
-		// handle error: fallback, throw, or use a default
-		perror("sysconf");
-		pageSize = 4096; // safe default on most systems
-	}
-	_receiveBuffer = std::vector<char>(static_cast<size_t>(pageSize)); // Is about 4KB depending on the system
-	_potentialServers = NULL;
-	_state = WAITING_FOR_EPOLLIN;
-	_lastActivity = time(NULL);
-}
-
-Client::Client(const Client &src)
-{
-	*this = src;
-}
-
-Client::Client(FileDescriptor socketFd, SocketAddress remoteAddress)
-{
-	_keepAlive = HTTP::DEFAULT_KEEP_ALIVE;
-	_clientFd = socketFd;
-	_remoteAddress = remoteAddress;
-	_request = HttpRequest();
-	_request.setRemoteAddress(&_remoteAddress);
 	_response = HttpResponse();
 	_responseBuffer = std::deque<HttpResponse>();
 	long pageSize = sysconf(_SC_PAGESIZE);
@@ -88,6 +60,26 @@ Client::Client(FileDescriptor socketFd, SocketAddress remoteAddress)
 	_potentialServers = NULL;
 	_state = WAITING_FOR_EPOLLIN;
 	_lastActivity = time(NULL);
+}
+
+Client::Client()
+{
+	_clientFd = FileDescriptor();
+	_remoteAddress = SocketAddress();
+	_initCommon();
+}
+
+Client::Client(const Client &src)
+{
+	*this = src;
+}
+
+Client::Client(FileDescriptor socketFd, SocketAddress remoteAddress)
+{
+	_clientFd = socketFd;
+	_remoteAddress = remoteAddress;
+	_initCommon();
+	_request.setRemoteAddress(&_remoteAddress);
 }
 
 /*

@@ -37,17 +37,7 @@ bool PostMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &
 	// Check if CGI - POST is commonly used for CGI form submissions
 	if (location.getLocationType() == Location::CGI)
 	{
-		std::string scriptPath = request.getURI().getResolvedPath();
-		if (!FileUtils::isFileExecutable(scriptPath))
-		{
-			response.setResponseDefaultBody(403, "Forbidden: CGI script is not executable", &location,
-											HttpResponse::ERROR);
-			return false;
-		}
-		CgiHandler cgi;
-		CgiHandler::ExecutionResult result =
-			cgi.execute(scriptPath, request, response, &location, request.getSelectedServer());
-		return result == CgiHandler::SUCCESS;
+		return executeCgi(request.getURI().getResolvedPath(), request, response, location);
 	}
 
 	// Handle file upload
@@ -108,11 +98,12 @@ bool PostMethodHandler::_generateUniqueFilename(const std::string &uploadPath, c
 												std::string &filePath)
 {
 	// Extract filename from Content-Disposition header if present
-	std::vector<std::string> headerValues = request.getHeaders().getHeader("content-type")->getValues();
-	if (headerValues.empty())
+	const Header *contentTypeHeader = request.getHeaders().getHeader("content-type");
+	if (!contentTypeHeader || contentTypeHeader->getValues().empty())
 	{
 		return (false);
 	}
+	std::vector<std::string> headerValues = contentTypeHeader->getValues();
 	std::string extenstion = MimeTypeResolver::getExtensionByMimeType(headerValues[0]);
 	filePath = FileUtils::generateFileName(uploadPath, "", extenstion);
 	if (filePath.empty())

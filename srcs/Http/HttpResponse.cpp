@@ -7,6 +7,7 @@
 #include "../../includes/Http/HTTP.hpp"
 #include "../../includes/Utils/FileUtils.hpp"
 #include "../../includes/Utils/StrUtils.hpp"
+#include <algorithm>
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
@@ -259,14 +260,7 @@ std::string HttpResponse::getStatusMessage() const
 
 std::string HttpResponse::getVersion() const
 {
-	for (std::vector<Header>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
-	{
-		if (it->getDirective() == "version")
-		{
-			return it->getValues()[0];
-		}
-	}
-	return HTTP_RESPONSE_DEFAULT::VERSION;
+	return _version.empty() ? HTTP_RESPONSE_DEFAULT::VERSION : _version;
 }
 
 std::vector<Header> HttpResponse::getHeaders() const
@@ -370,12 +364,13 @@ void HttpResponse::sendResponse(const FileDescriptor &clientFd, ssize_t &totalBy
 			ssize_t sendBufferSize = HTTP::DEFAULT_SEND_SIZE - totalBytesSent;
 			if (sendBufferSize == 0)
 				return;
-			std::string bytesToSend = _rawResponse.substr(0, sendBufferSize);
-			ssize_t bytesSent = send(clientFd.getFd(), bytesToSend.c_str(), bytesToSend.length(), 0);
+			// Send directly from _rawResponse, avoid creating intermediate string
+			size_t bytesToSendLen = std::min(static_cast<size_t>(sendBufferSize), _rawResponse.length());
+			ssize_t bytesSent = send(clientFd.getFd(), _rawResponse.c_str(), bytesToSendLen, 0);
 			if (bytesSent > 0)
 			{
 				totalBytesSent += bytesSent;
-				_rawResponse = _rawResponse.substr(bytesSent);
+				_rawResponse.erase(0, static_cast<size_t>(bytesSent)); // Modify in-place instead of creating new string
 				if (_rawResponse.empty() && !_streamBody)
 					_sendingState = RESPONSE_SENDING_COMPLETE;
 				else if (_rawResponse.empty() && _streamBody) // Case body is being streamed, still more to send

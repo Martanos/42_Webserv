@@ -35,16 +35,7 @@ bool PutMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &r
 	// Check if CGI - some CGI scripts handle PUT for REST APIs
 	if (location.getLocationType() == Location::CGI)
 	{
-		if (!FileUtils::isFileExecutable(filePath))
-		{
-			response.setResponseDefaultBody(403, "Forbidden: CGI script is not executable", &location,
-											HttpResponse::ERROR);
-			return false;
-		}
-		CgiHandler cgi;
-		CgiHandler::ExecutionResult result =
-			cgi.execute(filePath, request, response, &location, request.getSelectedServer());
-		return result == CgiHandler::SUCCESS;
+		return executeCgi(filePath, request, response, location);
 	}
 
 	// Handle file creation/update

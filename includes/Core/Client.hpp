@@ -54,6 +54,9 @@ private:
 	void _identifyServer();
 	void _identifyCGI();
 
+	// Initialization helper
+	void _initCommon();
+
 	// Request processing methods
 	void _handleBuffer();
 	void _handleRequest();

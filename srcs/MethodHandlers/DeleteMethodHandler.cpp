@@ -30,17 +30,7 @@ bool DeleteMethodHandler::handleRequest(const HttpRequest &request, HttpResponse
 	// Check if CGI - some CGI scripts handle DELETE for API endpoints
 	if (location.getLocationType() == Location::CGI)
 	{
-		std::string scriptPath = request.getURI().getResolvedPath();
-		if (!FileUtils::isFileExecutable(scriptPath))
-		{
-			response.setResponseDefaultBody(403, "Forbidden: CGI script is not executable", &location,
-											HttpResponse::ERROR);
-			return false;
-		}
-		CgiHandler cgi;
-		CgiHandler::ExecutionResult result =
-			cgi.execute(scriptPath, request, response, &location, request.getSelectedServer());
-		return result == CgiHandler::SUCCESS;
+		return executeCgi(request.getURI().getResolvedPath(), request, response, location);
 	}
 
 	// Logic splits between file, directory and others

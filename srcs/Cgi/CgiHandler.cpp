@@ -250,41 +250,39 @@ void CgiHandler::logExecutionDetails(const HttpRequest &request, const std::stri
 	std::string logMessage =
 		"CGI execution: " + uri.getMethod() + " " + uri.getResolvedPath() + " -> " + scriptPath + " (";
 
+	// Map result to string
+	const char *resultStr;
 	switch (result)
 	{
 	case SUCCESS:
-		logMessage += "SUCCESS";
-		Logger::log(Logger::INFO, logMessage + ")");
+		resultStr = "SUCCESS";
 		break;
 	case ERROR_INVALID_SCRIPT_PATH:
-		logMessage += "INVALID_SCRIPT_PATH";
-		Logger::log(Logger::ERROR, logMessage + ")");
+		resultStr = "INVALID_SCRIPT_PATH";
 		break;
 	case ERROR_SCRIPT_NOT_FOUND:
-		logMessage += "SCRIPT_NOT_FOUND";
-		Logger::log(Logger::ERROR, logMessage + ")");
+		resultStr = "SCRIPT_NOT_FOUND";
 		break;
 	case ERROR_EXECUTION_FAILED:
-		logMessage += "EXECUTION_FAILED";
-		Logger::log(Logger::ERROR, logMessage + ")");
+		resultStr = "EXECUTION_FAILED";
 		break;
 	case ERROR_RESPONSE_PARSING_FAILED:
-		logMessage += "RESPONSE_PARSING_FAILED";
-		Logger::log(Logger::ERROR, logMessage + ")");
+		resultStr = "RESPONSE_PARSING_FAILED";
 		break;
 	case ERROR_TIMEOUT:
-		logMessage += "TIMEOUT";
-		Logger::log(Logger::ERROR, logMessage + ")");
+		resultStr = "TIMEOUT";
 		break;
 	case ERROR_INTERNAL_ERROR:
-		logMessage += "INTERNAL_ERROR";
-		Logger::log(Logger::ERROR, logMessage + ")");
+		resultStr = "INTERNAL_ERROR";
 		break;
 	default:
-		logMessage += "UNKNOWN_ERROR";
-		Logger::log(Logger::ERROR, logMessage + ")");
+		resultStr = "UNKNOWN_ERROR";
 		break;
 	}
+
+	logMessage += resultStr;
+	logMessage += ")";
+	Logger::log(result == SUCCESS ? Logger::INFO : Logger::ERROR, logMessage);
 }
 
 bool CgiHandler::isInternalRedirect() const

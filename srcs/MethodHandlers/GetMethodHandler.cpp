@@ -94,20 +94,9 @@ bool GetMethodHandler::_serveFile(const HttpRequest &request, const std::string 
 		return (false);
 	}
 	// Check if CGI
-	printf("Location type: %d\n", location.getLocationType());
-
 	if (location.getLocationType() == Location::CGI)
 	{
-		if (!FileUtils::isFileExecutable(filePath))
-		{
-			response.setResponseDefaultBody(403, "Forbidden: CGI script is not executable", &location,
-											HttpResponse::ERROR);
-			return (false);
-		}
-		CgiHandler cgi;
-		CgiHandler::ExecutionResult result =
-			cgi.execute(filePath, request, response, &location, request.getSelectedServer());
-		return result == CgiHandler::SUCCESS;
+		return executeCgi(filePath, request, response, location);
 	}
 	// Set response
 	response.setResponseFile(200, "OK", filePath, MimeTypeResolver::resolveMimeType(filePath), HttpResponse::SUCCESS);

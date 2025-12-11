@@ -38,6 +38,331 @@ make re           # Clean rebuild
 | `Cgi/` | Fork/exec CGI scripts (CgiHandler, CgiExecutor, CgiEnv, CgiResponse) |
 | `Containers/` | Custom `TrieTree` for O(k) path matching, `RingBuffer` for I/O |
 | `Wrappers/` | RAII wrappers (FileDescriptor, ListeningSocket, SocketAddress) |
+| `Global/` | Singletons/utilities: Logger, MimeTypeResolver, PerformanceMonitor |
+| `Utils/` | Header-only utilities: StrUtils, FileUtils, IPAddressParser |
+
+---
+
+## Detailed File Reference
+
+### Entry Point
+
+#### `srcs/main.cpp`
+- Initializes `Logger` session for file/console logging
+- Parses command-line argument for config file path
+- Creates `ConfigParser` to parse config file into AST
+- Uses `ConfigTranslator` to convert AST → `ServerMap` with `Server` objects
+- Instantiates `ServerManager` with the `ServerMap`
+- Calls `ServerManager::run()` to start the event loop
+
+---
+
+### Core Module (`srcs/Core/`)
+
+#### `ServerManager.cpp`
+- **Main event loop** using epoll for non-blocking I/O multiplexing
+- `run()` → Infinite loop calling `epoll_wait()` and processing events
+- Handles new connections on listening sockets via `_acceptNewConnection()`
+- Dispatches read/write events to appropriate `Client` objects
+- Manages client lifecycle (creation, event handling, disconnection)
+- Uses `EpollManager` to add/modify/remove file descriptors from epoll
+
+#### `Client.cpp`
+- **Per-client state machine** managing HTTP request/response cycle
+- States: `WAITING_FOR_EPOLLIN` → `WAITING_FOR_EPOLLOUT` → `DISCONNECTED`
+- `readIntoBuffer()` → Reads data from socket into `RingBuffer`
+- `processRequest()` → Parses request, routes to appropriate method handler
+- `writeFromBuffer()` → Sends response data from buffer to socket
+- Owns `HttpRequest` and `HttpResponse` objects for the connection
+- Handles keep-alive vs close connection logic
+
+#### `EpollManager.cpp`
+- **RAII wrapper** around Linux epoll API
+- `addFd(fd, events)` → Register fd with epoll (EPOLLIN, EPOLLOUT, etc.)
+- `modifyFd(fd, events)` → Change monitored events for fd
+- `removeFd(fd)` → Unregister fd from epoll
+- `wait(events, maxEvents, timeout)` → Blocks until events ready
+- Sets EPOLLRDHUP for detecting client disconnections
+
+---
+
+### HTTP Module (`srcs/Http/`)
+
+#### `HttpRequest.cpp`
+- **Request parsing state machine** with states: `PARSING_URI`, `PARSING_HEADERS`, `PARSING_BODY`, `PARSING_COMPLETE`, `PARSING_ERROR`
+- `parse(ringBuffer)` → Incrementally parses request from buffer
+- `identifyServer()` → Matches `Host` header to virtual server in `ServerMap`
+- `identifyLocation()` → Finds matching `Location` using TrieTree prefix matching
+- Handles chunked transfer encoding and content-length bodies
+- Tracks internal redirects (max 5) for CGI `Location:` headers
+
+#### `HttpResponse.cpp`
+- **Builds HTTP responses** with status line, headers, body
+- `setResponseDefaultBody(statusCode, message, location, type)` → Uses custom error pages if configured
+- `setResponseCustomBody(statusCode, reason, body, contentType, type)` → Custom content
+- `setFileBody(filePath)` → Streams file content with correct MIME type
+- `toString()` → Serializes response for socket transmission
+- Generates `Date`, `Content-Length`, `Content-Type`, `Connection` headers
+
+#### `HttpURI.cpp`
+- **URI parsing and path resolution**
+- `parse(rawUri)` → Extracts scheme, host, port, path, query string, fragment
+- `decode(encoded)` → Handles percent-encoding (%20 → space, etc.)
+- `resolve(location, server)` → Computes filesystem path from root + location + path
+- Validates path safety (no `..`, no null bytes, within root directory)
+
+#### `HttpHeaders.cpp`
+- **HTTP header parsing** from raw buffer
+- State machine for header lines (handles CRLF, line folding)
+- `getHeader(name)` → Case-insensitive header lookup
+- Stores headers in `std::map<std::string, Header>`
+- Validates header syntax per HTTP/1.1 spec
+
+#### `HttpBody.cpp`
+- **Request body parsing**
+- Handles `Content-Length` based bodies
+- Handles chunked transfer encoding (parses chunk sizes, trailers)
+- Enforces `client_max_body_size` limit (returns 413 if exceeded)
+- `getBody()` → Returns accumulated body data
+
+#### `Header.cpp`
+- **Single header line parsing**
+- Extracts directive (header name) and values
+- Handles multi-value headers (comma-separated)
+
+---
+
+### Config Module (`srcs/Config/`)
+
+#### `ConfigTokeniser.cpp`
+- **Lexer** for config file format
+- Tokenizes input into: `WORD`, `LBRACE`, `RBRACE`, `SEMICOLON`, `NEWLINE`
+- Handles comments (lines starting with `#`)
+- Skips whitespace, preserves token positions for error reporting
+
+#### `ConfigParser.cpp`
+- **Recursive descent parser** building AST from tokens
+- Parses `server { }` and `location { }` blocks
+- Validates directive syntax and nesting rules
+- Produces tree of config nodes for translation
+
+#### `ConfigTranslator.cpp`
+- **AST → Server objects transformation**
+- Creates `Server` instances with `Location` objects
+- Validates directive combinations and required fields
+- Builds `ServerMap` mapping `host:port` → server list
+- Handles virtual hosting (multiple servers on same port)
+
+#### `Server.cpp`
+- **Server configuration storage**
+- Contains `TrieTree<Location>` for location matching
+- `findLocation(path)` → Returns matching location or NULL
+- `findLongestPrefix(path)` → Prefix-based location matching
+- Stores server-level directives (root, index, error_pages, etc.)
+
+#### `Location.cpp`
+- **Location block configuration**
+- Stores location-specific directives (allowed_methods, cgi_path, upload_path)
+- `getLocationType()` → Returns `STATIC`, `CGI`, `UPLOAD`, or `REDIRECT`
+- Inherits from `Directives` for common directive handling
+
+#### `Directives.cpp`
+- **Base class** for Server and Location directive storage
+- Provides `has*()` and `get*()` accessors for all directives
+- Handles directive inheritance (location inherits from server)
+
+#### `ServerMap.cpp`
+- **Maps listening sockets to server vectors**
+- Key: `ListeningSocket` (host:port combination)
+- Value: `std::vector<Server*>` for virtual hosting
+- `getServers(socket)` → Returns servers for that socket
+- Used by Client to identify target server from Host header
+
+#### `ConfigFileReader.cpp`
+- **File reading utility** for config loading
+- Reads entire config file into string
+- Handles file not found and permission errors
+
+---
+
+### CGI Module (`srcs/Cgi/`)
+
+#### `CgiHandler.cpp`
+- **Orchestrator** for CGI execution pipeline
+- `execute(scriptPath, request, response, location, server)` → Main entry point
+- Coordinates: environment setup → execution → response parsing
+- Handles errors and sets appropriate HTTP status codes
+- Returns `ExecutionResult` enum indicating success/failure type
+
+#### `CgiEnv.cpp`
+- **Builds CGI environment variables**
+- Sets standard CGI variables: `REQUEST_METHOD`, `QUERY_STRING`, `CONTENT_TYPE`, `CONTENT_LENGTH`, `SCRIPT_NAME`, `PATH_INFO`, `SERVER_NAME`, `SERVER_PORT`, etc.
+- Converts HTTP headers to `HTTP_*` environment variables
+- `getEnvArray()` → Returns `char**` for `execve()`
+
+#### `CgiExecutor.cpp`
+- **Fork/exec with pipe management**
+- Creates pipes for stdin (request body), stdout (response), stderr (errors)
+- Forks child process, sets up pipes, calls `execve()`
+- Parent process: writes request body to stdin, reads response from stdout
+- Implements timeout handling (default 30s) with SIGALRM
+- Handles EINTR from signal interruption
+
+#### `CgiResponse.cpp`
+- **Parses CGI script output**
+- Separates headers from body (blank line delimiter)
+- Handles `Status:` pseudo-header for custom status codes
+- Detects NPH (Non-Parsed Header) mode
+- Detects internal redirects (`Location:` header with local path)
+- Populates `HttpResponse` with parsed data
+
+---
+
+### Method Handlers (`srcs/MethodHandlers/`)
+
+#### `MethodHandlerFactory.cpp`
+- **Factory pattern** for method handler creation
+- `getHandler(method)` → Returns appropriate handler for HTTP method
+- Returns NULL for unsupported methods (triggers 405 response)
+
+#### `GetMethodHandler.cpp`
+- **Handles GET requests**
+- `handleRequest(request, response, location)` → Main entry point
+- Checks if CGI location → delegates to `CgiHandler`
+- Serves static files with correct MIME type
+- Generates directory listings if `autoindex on`
+- Handles index file lookup (index.html, etc.)
+
+#### `PostMethodHandler.cpp`
+- **Handles POST requests**
+- Checks if CGI location → delegates to `CgiHandler`
+- Handles file uploads to configured `upload_path`
+- Generates unique filenames for uploaded files
+- Returns 201 Created on successful upload
+
+#### `PutMethodHandler.cpp`
+- **Handles PUT requests**
+- Checks if CGI location → delegates to `CgiHandler`
+- Creates or replaces files at requested path
+- Creates parent directories if needed
+- Returns 201 Created (new file) or 204 No Content (replaced)
+
+#### `DeleteMethodHandler.cpp`
+- **Handles DELETE requests**
+- Checks if CGI location → delegates to `CgiHandler`
+- Deletes files at requested path
+- Validates file type (only regular files allowed)
+- Returns 204 No Content on successful deletion
+
+---
+
+### Containers (`srcs/Containers/`, `includes/Containers/`)
+
+#### `RingBuffer.cpp` / `RingBuffer.hpp`
+- **Circular buffer** for efficient I/O operations
+- Fixed-size buffer that wraps around
+- `writeBuffer(data, len)` → Append data to buffer
+- `readBuffer(dest, len)` → Read and consume data
+- `peekBuffer(dest, len)` → Read without consuming
+- Used for socket read/write buffering
+
+#### `TrieTree.hpp` (Header-only template)
+- **Prefix tree** for O(k) path matching
+- `insert(key, value)` → Add path → location mapping
+- `find(key)` → Exact match lookup
+- `findLongestPrefix(key)` → Prefix matching for location routing
+- Stores keys exactly as provided (no normalization)
+- `_isValidKey()` → Validates keys (rejects null bytes)
+
+#### `TrieNode.hpp` (Header-only template)
+- **Node structure** for TrieTree
+- Contains `std::map<char, TrieNode*>` for children
+- Stores optional value at terminal nodes
+
+---
+
+### Wrappers (`srcs/Wrappers/`)
+
+#### `FileDescriptor.cpp`
+- **RAII wrapper** for file descriptors
+- Reference-counted (multiple FileDescriptor objects can share same fd)
+- Auto-closes fd when last reference destroyed
+- `setNonBlocking()` → Sets O_NONBLOCK via fcntl
+- `setReuseAddr()` → Sets SO_REUSEADDR for socket
+- Static factories: `createSocket()`, `createFromAccept()`
+
+#### `ListeningSocket.cpp`
+- **Encapsulates server listening socket**
+- Contains `FileDescriptor` and `SocketAddress`
+- `bind()` → Binds socket to address
+- `listen()` → Puts socket in listening mode
+- `accept(remoteAddr, clientFd)` → Accepts new connection
+
+#### `SocketAddress.cpp`
+- **Encapsulates IPv4/IPv6 socket addresses**
+- Parses host:port strings into `sockaddr_storage`
+- Supports IPv4, IPv6, and hostname resolution via `getaddrinfo()`
+- `getHost()` / `getPort()` → Returns cached string values
+- `getSockAddr()` → Returns raw `sockaddr*` for socket calls
+
+#### `FileManager.cpp`
+- **File operations utility**
+- `copyFile(src, dest, overwrite)` → Copies files (handles cross-mount)
+- `moveFile(src, dest, overwrite)` → Moves files (uses rename or copy+delete)
+- `deleteFile(path)` → Removes file
+- `createDirectory(path)` → Creates directory with parents
+
+---
+
+### Global Utilities (`srcs/Global/`)
+
+#### `Logger.cpp`
+- **Centralized logging** with file and console output
+- Levels: `DEBUG(0)`, `INFO(1)`, `WARNING(2)`, `ERROR(3)`, `CRITICAL(4)`
+- `initializeSession(logDir)` → Creates session log file
+- `log(level, message, file, line, function)` → Log with source context
+- Compile-time filtering via `LOG_MIN_LEVEL` macro
+- Color-coded console output
+
+#### `MimeTypeResolver.cpp`
+- **MIME type detection**
+- Loads `/etc/mime.types` for extension-based lookup
+- Magic byte detection for binary files (PNG, JPEG, GIF, etc.)
+- `getMimeType(filePath)` → Returns Content-Type string
+- Fallback: `application/octet-stream`
+
+#### `PerformanceMonitor.cpp`
+- **Singleton** for performance metrics
+- Tracks request counts, response times, memory usage
+- `Timer` nested class for operation timing
+- `logStats()` → Outputs performance summary
+- Used for debugging and optimization
+
+---
+
+### Header-Only Utilities (`includes/Utils/`)
+
+#### `StrUtils.hpp`
+- **String manipulation functions**
+- `toLowerCase()` / `toUpperCase()` → Case conversion
+- `trimSpaces()` → Whitespace trimming
+- `splitString(str, delimiter)` → String tokenization
+- `toString<T>()` / `fromString<T>()` → Type conversion (C++98 compatible)
+- Character validation: `isControlCharacter()`, `isValidHeaderChar()`, etc.
+
+#### `FileUtils.hpp`
+- **File system utilities**
+- `isFileReadable()` / `isFileWritable()` / `isFileExecutable()` → Access checks
+- `fileExists()` → Existence check
+- `normalizePath()` → Resolves symlinks via `realpath()`
+- `getFileExtension()` / `getFileName()` → Path extraction
+- `inRoot()` → Validates path is within allowed directory
+
+#### `IPAddressParser.hpp`
+- **IP address parsing**
+- `parseIPv4(str, result)` → Parses dotted-decimal to network order
+- `parseIPv6(str, result)` → Basic IPv6 parsing
+- Used by `SocketAddress` for address resolution
 
 ## Coding Conventions
 
