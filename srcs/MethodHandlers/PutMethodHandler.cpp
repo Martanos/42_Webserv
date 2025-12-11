@@ -1,5 +1,7 @@
 #include "../../includes/MethodHandlers/PutMethodHandler.hpp"
+#include "../../includes/Cgi/CgiHandler.hpp"
 #include "../../includes/Global/Logger.hpp"
+#include "../../includes/Utils/FileUtils.hpp"
 #include <cerrno>
 #include <cstring>
 #include <fstream>
@@ -28,9 +30,24 @@ PutMethodHandler &PutMethodHandler::operator=(const PutMethodHandler &other)
 
 bool PutMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &response, const Location &location)
 {
-
 	std::string filePath = request.getURI().getResolvedPath();
 
+	// Check if CGI - some CGI scripts handle PUT for REST APIs
+	if (location.getLocationType() == Location::CGI)
+	{
+		if (!FileUtils::isFileExecutable(filePath))
+		{
+			response.setResponseDefaultBody(403, "Forbidden: CGI script is not executable", &location,
+											HttpResponse::ERROR);
+			return false;
+		}
+		CgiHandler cgi;
+		CgiHandler::ExecutionResult result =
+			cgi.execute(filePath, request, response, &location, request.getSelectedServer());
+		return result == CgiHandler::SUCCESS;
+	}
+
+	// Handle file creation/update
 	struct stat st;
 	bool existed = (stat(filePath.c_str(), &st) == 0);
 

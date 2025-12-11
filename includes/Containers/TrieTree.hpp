@@ -87,33 +87,20 @@ private:
 		}
 	}
 
-	std::string _normalizePath(const std::string &path) const
+	// Validate key - only reject truly invalid keys (empty or containing null bytes)
+	// Does NOT transform the key - callers are responsible for any normalization
+	bool _isValidKey(const std::string &key) const
 	{
-		if (path.empty())
-			return path;
+		if (key.empty())
+			return false;
 
-		// Security checks
-		if (path.find('\0') != std::string::npos)
+		if (key.find('\0') != std::string::npos)
 		{
-			Logger::log(Logger::WARNING, "Invalid path: contains null byte");
-			return "";
+			Logger::log(Logger::WARNING, "Invalid key: contains null byte");
+			return false;
 		}
 
-		// Additional security: reject paths with ".." for traversal attempts
-		if (path.find("..") != std::string::npos)
-		{
-			Logger::log(Logger::WARNING, "Invalid path: potential traversal attempt");
-			return "";
-		}
-
-		// Existing normalization...
-		if (path[0] == '/')
-		{
-			if (path.length() > 1 && path[path.length() - 1] == '/')
-				return path.substr(0, path.length() - 1);
-		}
-
-		return path;
+		return true;
 	}
 
 	bool _removeRecursive(TrieNode<T> *node, const std::string &key, size_t depth)
@@ -493,8 +480,7 @@ public:
 				return false;
 			}
 
-			std::string normalizedKey = _normalizePath(key);
-			if (normalizedKey.empty())
+			if (!_isValidKey(key))
 			{
 				return false;
 			}
@@ -502,9 +488,9 @@ public:
 			TrieNode<T> *current = _root;
 
 			// Traverse or create path
-			for (size_t i = 0; i < normalizedKey.length(); ++i)
+			for (size_t i = 0; i < key.length(); ++i)
 			{
-				char c = normalizedKey[i];
+				char c = key[i];
 				if (!current->hasChild(c))
 				{
 					if (!current->addChild(c)) // addChild returns NULL on failure
@@ -539,15 +525,14 @@ public:
 	}
 
 	// find overload
-	T *find(const std::string &key, bool skipNormalization = false) const
+	T *find(const std::string &key) const
 	{
 		if (!_root)
 		{
 			return NULL;
 		}
 
-		std::string normalizedKey = skipNormalization ? key : _normalizePath(key);
-		if (normalizedKey.empty())
+		if (!_isValidKey(key))
 		{
 			return NULL;
 		}
@@ -555,9 +540,9 @@ public:
 		TrieNode<T> *current = _root;
 
 		// Traverse the path
-		for (size_t i = 0; i < normalizedKey.length(); ++i)
+		for (size_t i = 0; i < key.length(); ++i)
 		{
-			char c = normalizedKey[i];
+			char c = key[i];
 			current = current->getChild(c);
 
 			if (!current)
@@ -582,8 +567,7 @@ public:
 			return NULL;
 		}
 
-		std::string normalizedKey = _normalizePath(key);
-		if (normalizedKey.empty())
+		if (!_isValidKey(key))
 		{
 			return NULL;
 		}
@@ -592,9 +576,9 @@ public:
 		T *lastMatch = NULL;
 
 		// Traverse and remember the last valid endpoint
-		for (size_t i = 0; i < normalizedKey.length(); ++i)
+		for (size_t i = 0; i < key.length(); ++i)
 		{
-			char c = normalizedKey[i];
+			char c = key[i];
 			current = current->getChild(c);
 
 			if (!current)
@@ -617,14 +601,13 @@ public:
 		if (!_root)
 			return false;
 
-		std::string normalizedKey = _normalizePath(key);
-		if (normalizedKey.empty())
+		if (!_isValidKey(key))
 			return false;
 
-		bool existed = contains(normalizedKey);
+		bool existed = contains(key);
 		if (existed)
 		{
-			_removeRecursive(_root, normalizedKey, 0);
+			_removeRecursive(_root, key, 0);
 			--_size;
 		}
 		return existed;
@@ -632,7 +615,7 @@ public:
 
 	bool contains(const std::string &key) const
 	{
-		T *result = find(key, false);
+		T *result = find(key);
 		return result != NULL;
 	}
 

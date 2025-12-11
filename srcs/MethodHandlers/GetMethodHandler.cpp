@@ -1,4 +1,5 @@
 #include "../../includes/MethodHandlers/GetMethodHandler.hpp"
+#include "../../includes/Cgi/CgiHandler.hpp"
 #include "../../includes/Global/Logger.hpp"
 #include "../../includes/Global/MimeTypeResolver.hpp"
 #include "../../includes/Utils/FileUtils.hpp"
@@ -60,7 +61,8 @@ std::string GetMethodHandler::_generateDirectoryListing(const std::string &fileP
 	return (html.str());
 }
 
-bool GetMethodHandler::_serveFile(const HttpRequest &request, const std::string &filePath, HttpResponse &response, const Location &location)
+bool GetMethodHandler::_serveFile(const HttpRequest &request, const std::string &filePath, HttpResponse &response,
+								  const Location &location)
 {
 	if (!FileUtils::isFileReadable(filePath))
 	{
@@ -89,15 +91,22 @@ bool GetMethodHandler::_serveFile(const HttpRequest &request, const std::string 
 											HttpResponse::ERROR);
 			break;
 		}
-		Logger::error("GetMethodHandler: Cannot read file: " + filePath + " - " + std::string(strerror(errno)),
-					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 		return (false);
 	}
 	// Check if CGI
-	if (location.getisCgiPathValue() && FileUtils::isFileExecutable(filePath))
+	printf("Location type: %d\n", location.getLocationType());
+
+	if (location.getLocationType() == Location::CGI)
 	{
+		if (!FileUtils::isFileExecutable(filePath))
+		{
+			response.setResponseDefaultBody(403, "Forbidden: CGI script is not executable", &location,
+											HttpResponse::ERROR);
+			return (false);
+		}
 		CgiHandler cgi;
-		CgiHandler::ExecutionResult result = cgi.execute(request, response, request.getSelectedServer(), &location);
+		CgiHandler::ExecutionResult result =
+			cgi.execute(filePath, request, response, &location, request.getSelectedServer());
 		return result == CgiHandler::SUCCESS;
 	}
 	// Set response
@@ -105,7 +114,8 @@ bool GetMethodHandler::_serveFile(const HttpRequest &request, const std::string 
 	return (true);
 }
 
-bool GetMethodHandler::_serveSymlink(const HttpRequest &request, const std::string &symlinkPath, HttpResponse &response, const Location &location)
+bool GetMethodHandler::_serveSymlink(const HttpRequest &request, const std::string &symlinkPath, HttpResponse &response,
+									 const Location &location)
 {
 	std::string resolvedPath = FileUtils::traverseSymlink(symlinkPath);
 	if (resolvedPath.empty())
@@ -155,7 +165,7 @@ bool GetMethodHandler::_serveDirectory(const HttpRequest &request, HttpResponse 
 	}
 	if (location.hasIndexDirective())
 	{
-		const std::vector<std::string> &indexes = location.getIndexes()->getAllValues();
+		const std::vector<std::string> &indexes = *location.getIndexes();
 		for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); ++it)
 		{
 			std::string indexPath = dirPath + "/" + *it;
@@ -183,7 +193,7 @@ bool GetMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &r
 	// Directory path handling
 	switch (FileUtils::getFileType(filePath))
 	{
-	case FileUtils::NOT_FOUND: // NOT_FOUND
+	case FileUtils::NOT_FOUND:
 		response.setResponseDefaultBody(404, "Not Found", &location, HttpResponse::ERROR);
 		break;
 	case FileUtils::DIRECTORY:

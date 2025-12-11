@@ -1,20 +1,67 @@
+#!/usr/bin/php
 <?php
-$upload_dir = 'upload/';
+$upload_dir = __DIR__ . '/uploads/';
 $message = '';
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['file'])) {
-    $file = $_FILES['file'];
-    if ($file['error'] === UPLOAD_ERR_OK) {
-        // Move to upload directory
-        $target = $upload_dir . basename($file['name']);
-        if (move_uploaded_file($file['tmp_name'], $target)) {
+// Ensure upload directory exists
+if (!is_dir($upload_dir)) {
+    mkdir($upload_dir, 0755, true);
+}
+
+// Parse multipart form data from stdin for CGI
+function parse_multipart_stdin() {
+    $content_type = $_SERVER['CONTENT_TYPE'] ?? '';
+    if (strpos($content_type, 'multipart/form-data') === false) {
+        return null;
+    }
+
+    // Get boundary from Content-Type
+    preg_match('/boundary=(.*)$/', $content_type, $matches);
+    if (empty($matches[1])) {
+        return null;
+    }
+    $boundary = $matches[1];
+
+    // Read stdin
+    $raw_data = file_get_contents('php://stdin');
+    if (empty($raw_data)) {
+        return null;
+    }
+
+    // Split by boundary
+    $parts = explode('--' . $boundary, $raw_data);
+
+    foreach ($parts as $part) {
+        if (empty($part) || $part == "--\r\n") continue;
+
+        // Check if this is the file part
+        if (preg_match('/Content-Disposition: form-data; name="file"; filename="([^"]+)"/', $part, $matches)) {
+            $filename = $matches[1];
+            // Get content after the double CRLF
+            $content_start = strpos($part, "\r\n\r\n");
+            if ($content_start === false) continue;
+            $content = substr($part, $content_start + 4);
+            // Remove trailing CRLF
+            $content = rtrim($content, "\r\n");
+
+            return ['filename' => $filename, 'content' => $content];
+        }
+    }
+    return null;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $file_data = parse_multipart_stdin();
+    if ($file_data && !empty($file_data['filename'])) {
+        $target = $upload_dir . basename($file_data['filename']);
+        if (file_put_contents($target, $file_data['content']) !== false) {
             $message = "<h1>Upload Successful</h1>";
-            $message .= "<p>File uploaded: " . htmlspecialchars(basename($file['name'])) . "</p>";
+            $message .= "<p>File uploaded: " . htmlspecialchars(basename($file_data['filename'])) . "</p>";
         } else {
-            $message = "<h1>Upload Failed</h1><p>Error moving file.</p>";
+            $message = "<h1>Upload Failed</h1><p>Error saving file.</p>";
         }
     } else {
-        $message = "<h1>Upload Failed</h1><p>Error: " . $file['error'] . "</p>";
+        $message = "<h1>Upload Failed</h1><p>No file received or invalid format.</p>";
     }
 }
 
@@ -40,9 +87,10 @@ if (isset($_GET['action']) && $_GET['action'] === 'download' && isset($_GET['fil
     $filepath = $upload_dir . $filename;
 
     if (file_exists($filepath)) {
-        header('Content-Type: application/octet-stream');
-        header('Content-Disposition: attachment; filename="' . $filename . '"');
-        header('Content-Length: ' . filesize($filepath));
+        echo "Content-Type: application/octet-stream\r\n";
+        echo "Content-Disposition: attachment; filename=\"" . $filename . "\"\r\n";
+        echo "Content-Length: " . filesize($filepath) . "\r\n";
+        echo "\r\n";
         readfile($filepath);
         exit;
     } else {
@@ -57,6 +105,9 @@ if (is_dir($upload_dir)) {
     $files = array_diff($files, array('.', '..'));
 }
 
+// Output CGI headers
+echo "Content-Type: text/html\r\n";
+echo "\r\n";
 ?>
 
 <!DOCTYPE html>
@@ -90,6 +141,6 @@ if (is_dir($upload_dir)) {
     </ul>
     <?php endif; ?>
 
-    <p><a href="index.php">Back to Home</a></p>
+    <p><a href="/index.php">Back to Home</a></p>
 </body>
 </html>

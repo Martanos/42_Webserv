@@ -112,9 +112,9 @@ std::ostream &operator<<(std::ostream &o, Server const &i)
 	if (i.hasIndexDirective())
 	{
 		o << "Indexes: ";
-		if (i.getIndexes() && !i.getIndexes()->isEmpty())
+		if (i.getIndexes() && !i.getIndexes()->empty())
 		{
-			std::vector<std::string> indexes = i.getIndexes()->getAllKeys();
+			std::vector<std::string> indexes = *i.getIndexes();
 			for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); ++it)
 				o << *it << " ";
 		}
@@ -327,7 +327,7 @@ void Server::reset()
 
 	// Directive members
 	_rootPath.clear();
-	_indexes = TrieTree<std::string>();
+	_indexes = std::vector<std::string>();
 	_autoIndexValue = HTTP::DEFAULT_AUTOINDEX;
 	_clientMaxBodySize = HTTP::DEFAULT_CLIENT_MAX_BODY_SIZE;
 	_statusPaths.clear();

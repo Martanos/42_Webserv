@@ -1,4 +1,5 @@
 #include "../../includes/MethodHandlers/PostMethodHandler.hpp"
+#include "../../includes/Cgi/CgiHandler.hpp"
 #include "../../includes/Global/Logger.hpp"
 #include "../../includes/Global/MimeTypeResolver.hpp"
 #include "../../includes/Utils/FileUtils.hpp"
@@ -30,9 +31,26 @@ PostMethodHandler &PostMethodHandler::operator=(const PostMethodHandler &other)
 
 bool PostMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &response, const Location &location)
 {
-
 	Logger::debug("PostMethodHandler: Processing POST request to: " + request.getURI().getResolvedPath(), __FILE__,
 				  __LINE__, __PRETTY_FUNCTION__);
+
+	// Check if CGI - POST is commonly used for CGI form submissions
+	if (location.getLocationType() == Location::CGI)
+	{
+		std::string scriptPath = request.getURI().getResolvedPath();
+		if (!FileUtils::isFileExecutable(scriptPath))
+		{
+			response.setResponseDefaultBody(403, "Forbidden: CGI script is not executable", &location,
+											HttpResponse::ERROR);
+			return false;
+		}
+		CgiHandler cgi;
+		CgiHandler::ExecutionResult result =
+			cgi.execute(scriptPath, request, response, &location, request.getSelectedServer());
+		return result == CgiHandler::SUCCESS;
+	}
+
+	// Handle file upload
 	Logger::debug("PostMethodHandler: Handling file upload", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	// Get upload path
 	if (!_validateUploadPath(location, response))

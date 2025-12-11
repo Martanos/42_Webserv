@@ -82,41 +82,42 @@ void CgiEnv::printEnv() const
 	}
 }
 
-void CgiEnv::_transposeData(const HttpRequest &request, const Server *server, const Location *location)
+void CgiEnv::_transposeData(const std::string &pathToExecute, const HttpRequest &request, const Location *location)
 {
-	const HttpURI &uri = request.getURI();
-	const HttpHeaders &headersRef = request.getHeaders();
-	const HttpBody &body = request.getBody();
-	std::string rawUri = uri.getRawPath();
-	if (!uri.getRawQueryString().empty())
-		rawUri += "?" + uri.getRawQueryString();
+	(void)location; // May be used for future location-specific env vars
 
-	Logger::debug("CgiEnv: Begin transpose for raw URI: " + rawUri, __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	try
 	{
+		// Clear any previous environment
+		_envVariables.clear();
+
+		// Server information
 		setEnv("SERVER_NAME", request.getSelectedServerHost());
 		setEnv("SERVER_PORT", request.getSelectedServerPort());
 		setEnv("SERVER_PROTOCOL", "HTTP/1.1");
 		setEnv("SERVER_SOFTWARE", "webserv/1.0");
 		setEnv("GATEWAY_INTERFACE", "CGI/1.1");
 
-		setEnv("REQUEST_METHOD", uri.getMethod());
-		setEnv("QUERY_STRING", uri.getRawQueryString());
+		// Request information
+		setEnv("REQUEST_METHOD", request.getURI().getMethod());
+		setEnv("QUERY_STRING", request.getURI().getDecodedQueryString());
 
+		// Remote client information
 		if (request.getRemoteAddress())
 		{
 			setEnv("REMOTE_ADDR", request.getRemoteAddress()->getHost());
 			setEnv("REMOTE_PORT", request.getRemoteAddress()->getPortString());
 		}
-		setEnv("REQUEST_URI", rawUri);
+		setEnv("REQUEST_URI", request.getURI().getDecodedPath());
 
-		switch (body.getBodyType())
+		// Body information
+		switch (request.getBody().getBodyType())
 		{
 		case HttpBody::BODY_TYPE_CHUNKED:
 		case HttpBody::BODY_TYPE_CONTENT_LENGTH:
 		{
-			setEnv("CONTENT_LENGTH", StrUtils::toString(body.getRawBodySize()));
-			const Header *contentType = headersRef.getHeader("content-type");
+			setEnv("CONTENT_LENGTH", StrUtils::toString(request.getBody().getRawBodySize()));
+			const Header *contentType = request.getHeaders().getHeader("content-type");
 			if (contentType && !contentType->getValues().empty())
 				setEnv("CONTENT_TYPE", contentType->getValues()[0]);
 			break;
@@ -125,42 +126,20 @@ void CgiEnv::_transposeData(const HttpRequest &request, const Server *server, co
 			break;
 		}
 
-		std::string scriptName = StrUtils::sanitizeUriPath(uri.getDecodedPath());
-		if (scriptName.empty())
-			scriptName = "/";
+		// Script information
+		setEnv("SCRIPT_NAME", pathToExecute);
+		setEnv("SCRIPT_FILENAME", pathToExecute);
 
-		std::string scriptPath = StrUtils::sanitizeUriPath(uri.getResolvedPath());
-		const std::string *basePath = NULL;
-		if (location && location->getRootPath() && !location->getRootPath()->empty())
-			basePath = location->getRootPath();
-		else if (server && server->getRootPath() && !server->getRootPath()->empty())
-			basePath = server->getRootPath();
-
-		if (basePath && !basePath->empty())
-		{
-			std::string normalizedBase = *basePath;
-			if (!normalizedBase.empty() && normalizedBase[normalizedBase.size() - 1] == '/')
-				normalizedBase.erase(normalizedBase.size() - 1);
-			if (scriptPath.compare(0, normalizedBase.size(), normalizedBase) != 0)
-			{
-				if (!scriptPath.empty() && scriptPath[0] != '/')
-					scriptPath = normalizedBase + "/" + scriptPath;
-				else
-					scriptPath = normalizedBase + scriptPath;
-			}
-		}
-		setEnv("SCRIPT_NAME", scriptName);
-		setEnv("SCRIPT_FILENAME", scriptPath);
-		Logger::debug("CgiEnv: SCRIPT_NAME=" + scriptName + " SCRIPT_FILENAME=" + scriptPath, __FILE__, __LINE__,
-					  __PRETTY_FUNCTION__);
-
-		const std::vector<Header> &headers = headersRef.getHeaders();
+		// Convert HTTP headers to CGI environment variables
+		const HttpHeaders &httpHeaders = request.getHeaders();
+		const std::vector<Header> &headers = httpHeaders.getHeaders();
 		for (std::vector<Header>::const_iterator it = headers.begin(); it != headers.end(); ++it)
 		{
 			const std::vector<std::string> &values = it->getValues();
 			if (values.empty())
 				continue;
 			std::string headerName = it->getDirective();
+			// Skip headers that are handled separately or should not be passed
 			if (headerName == "authorization" || headerName == "proxy-authorization" ||
 				headerName == "content-length" || headerName == "content-type")
 				continue;
@@ -168,14 +147,15 @@ void CgiEnv::_transposeData(const HttpRequest &request, const Server *server, co
 			setEnv(cgiHeaderName, values[0]);
 		}
 
+		// System PATH
 		const char *systemPath = std::getenv("PATH");
 		if (systemPath)
 			setEnv("PATH", systemPath);
 		else
 			setEnv("PATH", "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin");
 
-		Logger::debug("CgiEnv: Header variables set, total env count: " + StrUtils::toString(getEnvCount()), __FILE__,
-					  __LINE__, __PRETTY_FUNCTION__);
+		Logger::debug("CgiEnv: Environment setup complete, total env count: " + StrUtils::toString(getEnvCount()),
+					  __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
 	catch (const std::exception &e)
 	{

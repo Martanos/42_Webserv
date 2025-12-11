@@ -1,3 +1,9 @@
+#!/usr/bin/php
+<?php
+echo "Status: 400 Bad Request\r\n";
+echo "Content-Type: text/html\r\n";
+echo "\r\n";
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>

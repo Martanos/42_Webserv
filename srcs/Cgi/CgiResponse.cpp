@@ -1,4 +1,5 @@
 #include "../../includes/Cgi/CgiResponse.hpp"
+#include "../../includes/Global/Logger.hpp"
 #include "../../includes/Utils/StrUtils.hpp"
 #include <algorithm>
 #include <cctype>

@@ -2,7 +2,6 @@
 #define GETMETHODHANDLER_HPP
 
 #include "IMethodHandler.hpp"
-#include "../../includes/Cgi/CgiHandler.hpp"
 #include <sys/stat.h>
 
 class GetMethodHandler : public IMethodHandler

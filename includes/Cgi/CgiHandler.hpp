@@ -25,12 +25,12 @@ public:
 	};
 
 private:
-	static const int DEFAULT_TIMEOUT = 30; // seconds
-
+	// Configuration
 	int _timeout;
 	CgiEnv _cgiEnv;
 	CgiExecutor _executor;
 	CgiResponse _response;
+	ExecutionResult _lastResult;
 
 	// Internal redirect state
 	bool _isInternalRedirect;
@@ -45,21 +45,26 @@ private:
 									const Server *server);
 
 	// Utility methods
-	bool validateScriptPath(const std::string &scriptPath) const;
 	void logExecutionDetails(const HttpRequest &request, const std::string &scriptPath, ExecutionResult result) const;
 	bool isInternalRedirectPath(const std::string &location) const;
+	bool validateScriptPath(const std::string &scriptPath) const;
 
 public:
+	static const int DEFAULT_TIMEOUT = 30;
+
 	CgiHandler();
-	CgiHandler(int timeout);
+	explicit CgiHandler(int timeout);
 	CgiHandler(const CgiHandler &other);
 	~CgiHandler();
 
 	CgiHandler &operator=(const CgiHandler &other);
 
 	// Main execution method - returns ExecutionResult and modifies HttpResponse directly
-	ExecutionResult execute(const HttpRequest &request, HttpResponse &response, const Server *server,
-							const Location *location);
+	ExecutionResult execute(const std::string &scriptPath, const HttpRequest &request, HttpResponse &response,
+							const Location *location, const Server *server = NULL);
+
+	// Static utility for path resolution
+	static std::string resolveCgiScriptPath(const std::string &uri, const Server *server, const Location *location);
 
 	// Configuration
 	void setTimeout(int seconds);
@@ -68,9 +73,6 @@ public:
 	// Internal redirect detection
 	bool isInternalRedirect() const;
 	std::string getInternalRedirectPath() const;
-
-	// Utility methods
-	static std::string resolveCgiScriptPath(const std::string &uri, const Server *server, const Location *location);
 };
 
 #endif /* CGIHANDLER_HPP */

@@ -215,11 +215,8 @@ void HttpURI::resolveURI(const Location *location, HttpResponse &response)
 		return;
 	}
 
-	// Combine root and path
-	std::string fullPath = *root;
-	if (root->at(root->size() - 1) != '/' && _decodedPath[0] != '/')
-		fullPath += "/";
-	fullPath += _decodedPath;
+	// Combine root + location path + decoded path
+	std::string fullPath = *root + "/" + location->getLocationPath() + "/" + _decodedPath;
 
 	// Use realpath to attempt to resolve the path
 	char resolvedPath[PATH_MAX];

@@ -37,6 +37,7 @@ Location &Location::operator=(Location const &rhs)
 		_locationPath = rhs._locationPath;
 
 		// Directives
+		_locationType = rhs._locationType;
 		_rootPath = rhs._rootPath;
 		_autoIndexValue = rhs._autoIndexValue;
 		_isCgiPathValue = rhs._isCgiPathValue;
@@ -101,7 +102,7 @@ std::ostream &operator<<(std::ostream &o, Location const &i)
 	if (i.hasIndexDirective())
 	{
 		o << "Indexes: " << std::endl;
-		const std::vector<std::string> indexes = i.getIndexes()->getAllKeys();
+		const std::vector<std::string> indexes = *i.getIndexes();
 		for (size_t idx = 0; idx < indexes.size(); ++idx)
 		{
 			o << "  " << indexes[idx] << std::endl;

@@ -1,11 +1,17 @@
+#!/usr/bin/php
 <?php
 if (isset($_GET['error'])) {
     $code = (int)$_GET['error'];
-    http_response_code($code);
+    echo "Status: $code\r\n";
+    echo "Content-Type: text/html\r\n";
+    echo "\r\n";
     echo "<h1>Error $code</h1>";
     echo "<p>This should trigger the custom error page.</p>";
     exit;
 }
+
+echo "Content-Type: text/html\r\n";
+echo "\r\n";
 ?>
 <!DOCTYPE html>
 <html lang="en">

@@ -27,7 +27,7 @@ public:
 	void printEnv() const;
 
 	// Environment setup
-	void _transposeData(const HttpRequest &request, const Server *server, const Location *location);
+	void _transposeData(const std::string &pathToExecute, const HttpRequest &request, const Location *location);
 
 	// New methods for CGI execution
 

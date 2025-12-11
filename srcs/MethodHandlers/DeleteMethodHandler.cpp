@@ -1,4 +1,5 @@
 #include "../../includes/MethodHandlers/DeleteMethodHandler.hpp"
+#include "../../includes/Cgi/CgiHandler.hpp"
 #include "../../includes/Global/Logger.hpp"
 #include "../../includes/Utils/FileUtils.hpp"
 
@@ -23,9 +24,24 @@ DeleteMethodHandler &DeleteMethodHandler::operator=(const DeleteMethodHandler &o
 
 bool DeleteMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &response, const Location &location)
 {
-
 	Logger::debug("DeleteMethodHandler: Processing DELETE request to: " + request.getURI().getResolvedPath(), __FILE__,
 				  __LINE__, __PRETTY_FUNCTION__);
+
+	// Check if CGI - some CGI scripts handle DELETE for API endpoints
+	if (location.getLocationType() == Location::CGI)
+	{
+		std::string scriptPath = request.getURI().getResolvedPath();
+		if (!FileUtils::isFileExecutable(scriptPath))
+		{
+			response.setResponseDefaultBody(403, "Forbidden: CGI script is not executable", &location,
+											HttpResponse::ERROR);
+			return false;
+		}
+		CgiHandler cgi;
+		CgiHandler::ExecutionResult result =
+			cgi.execute(scriptPath, request, response, &location, request.getSelectedServer());
+		return result == CgiHandler::SUCCESS;
+	}
 
 	// Logic splits between file, directory and others
 	switch (FileUtils::getFileType(request.getURI().getResolvedPath()))
