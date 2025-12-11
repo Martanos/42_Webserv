@@ -52,6 +52,11 @@ private:
 	bool _identifyServer(HttpResponse &response);
 	bool _identifyLocation(HttpResponse &response);
 
+	// Parse state handlers
+	bool _parseUri(std::vector<char> &holdingBuffer, HttpResponse &response);
+	bool _parseHeaders(std::vector<char> &holdingBuffer, HttpResponse &response);
+	bool _parseBody(std::vector<char> &holdingBuffer, HttpResponse &response);
+
 public:
 	HttpRequest();
 	HttpRequest(const HttpRequest &other);

@@ -178,6 +178,110 @@ bool HttpRequest::_identifyLocation(HttpResponse &response)
 *----------------------------------
 */
 
+// Returns true if parsing should continue, false if should return early
+bool HttpRequest::_parseUri(std::vector<char> &holdingBuffer, HttpResponse &response)
+{
+	Logger::debug("HttpRequest: Parsing URI", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+	_uri.parseBuffer(holdingBuffer, response);
+	Logger::debug("HttpRequest: URI state: " + StrUtils::toString(_uri.getURIState()), __FILE__, __LINE__,
+				  __PRETTY_FUNCTION__);
+
+	switch (_uri.getURIState())
+	{
+	case HttpURI::URI_PARSING_COMPLETE:
+		Logger::debug("HttpRequest: URI parsing complete", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		Logger::debug("URI: " + _uri.getMethod() + " " + _uri.getDecodedPath() + " " + _uri.getVersion(), __FILE__,
+					  __LINE__, __PRETTY_FUNCTION__);
+		_parseState = PARSING_HEADERS;
+		Logger::debug("HttpRequest: Transitioned to PARSING_HEADERS", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		return true;
+	case HttpURI::URI_PARSING_ERROR:
+		Logger::error("HttpRequest: Request line parsing error", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		_parseState = PARSING_ERROR;
+		return true;
+	default:
+		return false; // Need more data
+	}
+}
+
+// Returns true if parsing should continue, false if should return early
+bool HttpRequest::_parseHeaders(std::vector<char> &holdingBuffer, HttpResponse &response)
+{
+	Logger::debug("HttpRequest: Starting headers parsing", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+	_headers.parseBuffer(holdingBuffer, response, _body);
+	Logger::debug("HttpRequest: Headers parsing state: " + StrUtils::toString(_headers.getHeadersState()), __FILE__,
+				  __LINE__, __PRETTY_FUNCTION__);
+
+	switch (_headers.getHeadersState())
+	{
+	case HttpHeaders::HEADERS_PARSING_COMPLETE:
+		// Identify server and subsequently location once headers are fully parsed
+		if (!_identifyServer(response) || !_identifyLocation(response))
+		{
+			_parseState = PARSING_ERROR;
+			return true;
+		}
+		// Sanitize URI now that server and location are known
+		_uri.resolveURI(_selectedLocation, response);
+		if (_uri.getURIState() == HttpURI::URI_PARSING_ERROR)
+		{
+			_parseState = PARSING_ERROR;
+			return true;
+		}
+		Logger::debug("HttpRequest: Headers parsing complete", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		// Determine next state based on body type
+		switch (_body.getBodyType())
+		{
+		case HttpBody::BODY_TYPE_NO_BODY:
+			_parseState = PARSING_COMPLETE;
+			break;
+		case HttpBody::BODY_TYPE_CONTENT_LENGTH:
+		case HttpBody::BODY_TYPE_CHUNKED:
+			_parseState = PARSING_BODY;
+			break;
+		default:
+			Logger::error("HttpRequest: Invalid body type", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+			_parseState = PARSING_ERROR;
+			break;
+		}
+		return true;
+	case HttpHeaders::HEADERS_PARSING_ERROR:
+		Logger::error("HttpRequest: Headers parsing error", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		_parseState = PARSING_ERROR;
+		return true;
+	case HttpHeaders::HEADERS_PARSING:
+		Logger::debug("HttpRequest: Headers still parsing, need more data", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		return false; // Need more data
+	}
+	return true;
+}
+
+// Returns true if parsing should continue, false if should return early
+bool HttpRequest::_parseBody(std::vector<char> &holdingBuffer, HttpResponse &response)
+{
+	Logger::debug("HttpRequest: Parsing body", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+	_body.parseBuffer(holdingBuffer, *_selectedLocation, response);
+	Logger::debug("HttpRequest: Body state: " + StrUtils::toString(_body.getBodyState()), __FILE__, __LINE__,
+				  __PRETTY_FUNCTION__);
+
+	switch (_body.getBodyState())
+	{
+	case HttpBody::BODY_PARSING_COMPLETE:
+		Logger::debug("HttpRequest: Body parsing complete", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		_parseState = PARSING_COMPLETE;
+		Logger::debug("HttpRequest: Transitioned to PARSING_COMPLETE", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		return true;
+	case HttpBody::BODY_PARSING:
+		Logger::debug("HttpRequest: Body parsing incomplete, need more data", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		return false; // Need more data
+	case HttpBody::BODY_PARSING_ERROR:
+		Logger::error("HttpRequest: Body parsing error", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+		_parseState = PARSING_ERROR;
+		return true;
+	}
+	return true;
+}
+
 HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffer, HttpResponse &response)
 {
 	PERF_SCOPED_TIMER(http_request_parsing);
@@ -189,122 +293,23 @@ HttpRequest::ParseState HttpRequest::parseBuffer(std::vector<char> &holdingBuffe
 	// Continue parsing until complete or need more data
 	while (_parseState != PARSING_COMPLETE && _parseState != PARSING_ERROR && !holdingBuffer.empty())
 	{
-		// Delegate to the appropriate parser
+		bool shouldContinue = true;
 		switch (_parseState)
 		{
 		case PARSING_URI:
-		{
-			Logger::debug("HttpRequest: Parsing URI", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-			_uri.parseBuffer(holdingBuffer, response);
-			Logger::debug("HttpRequest: URI state: " + StrUtils::toString(_uri.getURIState()), __FILE__, __LINE__,
-						  __PRETTY_FUNCTION__);
-			switch (_uri.getURIState())
-			{
-			case HttpURI::URI_PARSING_COMPLETE:
-			{
-				Logger::debug("HttpRequest: URI parsing complete", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-				Logger::debug("URI: " + _uri.getMethod() + " " + _uri.getDecodedPath() + " " + _uri.getVersion(),
-							  __FILE__, __LINE__, __PRETTY_FUNCTION__);
-				_parseState = PARSING_HEADERS;
-				Logger::debug("HttpRequest: Transitioned to PARSING_HEADERS", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-				break;
-			}
-			case HttpURI::URI_PARSING_ERROR:
-				Logger::error("HttpRequest: Request line parsing error", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-				_parseState = PARSING_ERROR;
-				break;
-			default:
-				return _parseState;
-			}
+			shouldContinue = _parseUri(holdingBuffer, response);
 			break;
-		}
 		case PARSING_HEADERS:
-		{
-			Logger::debug("HttpRequest: Starting headers parsing", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-			_headers.parseBuffer(holdingBuffer, response, _body);
-			Logger::debug("HttpRequest: Headers parsing state: " + StrUtils::toString(_headers.getHeadersState()),
-						  __FILE__, __LINE__, __PRETTY_FUNCTION__);
-			switch (_headers.getHeadersState())
-			{
-			case HttpHeaders::HEADERS_PARSING_COMPLETE:
-			{
-				// Identify server and subsequently location once headers are fully
-				// parsed
-				if (!_identifyServer(response) || !_identifyLocation(response))
-				{
-					_parseState = PARSING_ERROR;
-					break;
-				}
-				// Sanitize URI now that server and location are known
-				_uri.resolveURI(_selectedLocation, response);
-				switch (_uri.getURIState())
-				{
-				case HttpURI::URI_PARSING_COMPLETE:
-					break;
-				case HttpURI::URI_PARSING_ERROR:
-					_parseState = PARSING_ERROR;
-					break;
-				default:
-					break;
-				}
-				Logger::debug("HttpRequest: Headers parsing complete", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-				switch (_body.getBodyType())
-				{
-				case HttpBody::BODY_TYPE_NO_BODY:
-					_parseState = PARSING_COMPLETE;
-					break;
-				case HttpBody::BODY_TYPE_CONTENT_LENGTH:
-				case HttpBody::BODY_TYPE_CHUNKED:
-					_parseState = PARSING_BODY;
-					break;
-				default:
-					Logger::error("HttpRequest: Invalid body type", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-					_parseState = PARSING_ERROR;
-					break;
-				}
-				break;
-			}
-			case HttpHeaders::HEADERS_PARSING_ERROR:
-				Logger::error("HttpRequest: Headers parsing error", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-				_parseState = PARSING_ERROR;
-				break;
-			case HttpHeaders::HEADERS_PARSING:
-				Logger::debug("HttpRequest: Headers still parsing, need more data", __FILE__, __LINE__,
-							  __PRETTY_FUNCTION__);
-				return _parseState;
-			}
+			shouldContinue = _parseHeaders(holdingBuffer, response);
 			break;
-		}
 		case PARSING_BODY:
-		{
-			Logger::debug("HttpRequest: Parsing body", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-			_body.parseBuffer(holdingBuffer, *_selectedLocation, response);
-			Logger::debug("HttpRequest: Body state: " + StrUtils::toString(_body.getBodyState()), __FILE__, __LINE__,
-						  __PRETTY_FUNCTION__);
-			switch (_body.getBodyState())
-			{
-			case HttpBody::BODY_PARSING_COMPLETE:
-			{
-				Logger::debug("HttpRequest: Body parsing complete", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-				_parseState = PARSING_COMPLETE;
-				Logger::debug("HttpRequest: Transitioned to PARSING_COMPLETE", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-				break;
-			}
-			case HttpBody::BODY_PARSING:
-				Logger::debug("HttpRequest: Body parsing incomplete, need more data", __FILE__, __LINE__,
-							  __PRETTY_FUNCTION__);
-				_parseState = PARSING_BODY;
-				return _parseState;
-			case HttpBody::BODY_PARSING_ERROR:
-				Logger::error("HttpRequest: Body parsing error", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-				_parseState = PARSING_ERROR;
-				break;
-			}
+			shouldContinue = _parseBody(holdingBuffer, response);
 			break;
-		}
 		default:
 			break;
 		}
+		if (!shouldContinue)
+			return _parseState;
 	}
 	Logger::debug("HttpRequest: parseBuffer returning state: " + StrUtils::toString(_parseState), __FILE__, __LINE__,
 				  __PRETTY_FUNCTION__);
