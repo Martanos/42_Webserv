@@ -151,7 +151,7 @@ bool HttpRequest::_identifyLocation(HttpResponse &response)
 {
 	try
 	{
-		_selectedLocation = _selectedServer->getLocation(_uri.getDecodedPath());
+		_selectedLocation = _selectedServer->getLocation(_uri.getDecodedPath() + "/");
 	}
 	catch (const std::exception &e)
 	{

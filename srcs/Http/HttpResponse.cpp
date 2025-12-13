@@ -1,6 +1,5 @@
 #include "../../includes/Http/HttpResponse.hpp"
 #include "../../includes/Config/Location.hpp"
-#include "../../includes/Config/Server.hpp"
 #include "../../includes/Global/DefaultStatusMap.hpp"
 #include "../../includes/Global/Logger.hpp"
 #include "../../includes/Global/MimeTypeResolver.hpp"
@@ -8,6 +7,7 @@
 #include "../../includes/Utils/FileUtils.hpp"
 #include "../../includes/Utils/StrUtils.hpp"
 #include <algorithm>
+#include <sstream>
 /*
 ** ------------------------------- CONSTRUCTOR --------------------------------
 */
@@ -196,6 +196,7 @@ void HttpResponse::setRedirectResponse(int statusCode, const std::string &status
 	_statusCode = statusCode;
 	_statusMessage = statusMessage;
 	setHeader(Header("location: " + redirectPath));
+	setHeader(Header("content-length: 0"));
 	_streamBody = false;
 }
 
@@ -346,7 +347,9 @@ void HttpResponse::sendResponse(const FileDescriptor &clientFd, ssize_t &totalBy
 			_statusMessage.clear();
 			for (std::vector<Header>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
 			{
-				_rawResponse += it->getDirective() + ": " + it->getValues()[0] + "\r\n";
+				std::ostringstream headerStream;
+				headerStream << *it;
+				_rawResponse += headerStream.str() + "\r\n";
 			}
 			_rawResponse += "\r\n";
 			_headers.clear();

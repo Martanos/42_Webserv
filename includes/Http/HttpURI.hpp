@@ -46,6 +46,10 @@ private:
 	bool _validatePath(const std::string &path, HttpResponse &response) const;
 	bool _validateVersion(const std::string &version, HttpResponse &response) const;
 
+	// Path resolution helper
+	bool _resolvePathWithContainment(const std::string &path, const std::string &root, bool preserveTrailingSlash,
+									 std::string &outResolved) const;
+
 	// Query parameter parsing
 	void _parseQueryParameters(const std::string &queryString);
 

@@ -131,7 +131,6 @@ void Header::_parseRawHeader()
 			{
 				// remove the quotes from the value
 				value = value.substr(1, value.length() - 2);
-				printf("Value after removing quotes: %s\n", value.c_str());
 				// decode the value
 				value = StrUtils::percentDecode(value);
 				// check if the value has control characters
@@ -163,7 +162,7 @@ void Header::merge(const Header &other)
 
 std::ostream &operator<<(std::ostream &os, const Header &header)
 {
-	os << header.getRawHeader();
+	os << header.getDirective();
 	os << ": ";
 	for (size_t i = 0; i < header.getValues().size(); i++)
 	{
@@ -173,7 +172,7 @@ std::ostream &operator<<(std::ostream &os, const Header &header)
 	}
 	for (size_t i = 0; i < header.getParameters().size(); i++)
 	{
-		os << ";" << header.getParameters()[i].first << "=" << header.getParameters()[i].second;
+		os << "; " << header.getParameters()[i].first << "=\"" << header.getParameters()[i].second << "\"";
 	}
 	return os;
 }

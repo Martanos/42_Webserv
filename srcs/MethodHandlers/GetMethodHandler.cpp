@@ -1,6 +1,4 @@
 #include "../../includes/MethodHandlers/GetMethodHandler.hpp"
-#include "../../includes/Cgi/CgiHandler.hpp"
-#include "../../includes/Global/Logger.hpp"
 #include "../../includes/Global/MimeTypeResolver.hpp"
 #include "../../includes/Utils/FileUtils.hpp"
 #include <dirent.h>
@@ -148,7 +146,7 @@ bool GetMethodHandler::_serveDirectory(const HttpRequest &request, HttpResponse 
 	if (dirPath.empty() || dirPath[dirPath.size() - 1] != '/')
 	{
 		// Redirect to path with trailing slash
-		response.setRedirectResponse(301, "Moved Permanently: Directory path must end with '/'", dirPath + "/",
+		response.setRedirectResponse(301, "Moved Permanently", request.getURI().getDecodedPath() + "/",
 									 HttpResponse::SUCCESS);
 		return (true);
 	}
@@ -163,6 +161,8 @@ bool GetMethodHandler::_serveDirectory(const HttpRequest &request, HttpResponse 
 				return (_serveFile(request, indexPath, response, location));
 			}
 		}
+		response.setResponseDefaultBody(404, "Could not find index file", &location, HttpResponse::ERROR);
+		return (false);
 	}
 	if (location.hasAutoIndexDirective() && location.getAutoIndexValue())
 	{
@@ -178,6 +178,8 @@ bool GetMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &r
 {
 	// Get sanitized file path
 	std::string filePath = request.getURI().getResolvedPath();
+
+	printf("GetMethodHandler: Handling GET request to: %s\n", filePath.c_str());
 
 	// Directory path handling
 	switch (FileUtils::getFileType(filePath))

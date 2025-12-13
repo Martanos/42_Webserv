@@ -126,11 +126,7 @@ void CgiResponse::populateHttpResponse(HttpResponse &httpResponse) const
 	}
 	httpResponse.setStatus(_statusCode, _statusMessage);
 
-	for (std::map<std::string, std::string>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
-	{
-		httpResponse.setHeader(Header(it->first + ": " + it->second));
-	}
-
+	// Set body FIRST - this sets default content-type and content-length
 	// Suppress body for status codes that MUST NOT have a body
 	if (_statusCode == 204 || _statusCode == 304 || (_statusCode >= 100 && _statusCode < 200))
 	{
@@ -140,6 +136,12 @@ void CgiResponse::populateHttpResponse(HttpResponse &httpResponse) const
 	else
 	{
 		httpResponse.setBody(_body);
+	}
+
+	// Set CGI headers AFTER body - this overwrites the defaults set by setBody()
+	for (std::map<std::string, std::string>::const_iterator it = _headers.begin(); it != _headers.end(); ++it)
+	{
+		httpResponse.setHeader(Header(it->first + ": " + it->second));
 	}
 }
 

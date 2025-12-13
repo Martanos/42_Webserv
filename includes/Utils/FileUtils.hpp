@@ -123,7 +123,7 @@ static inline FileType getFileType(const std::string &path)
 {
 	struct stat pathStat;
 	if (lstat(path.c_str(), &pathStat) != 0)
-		return NOT_FOUND; // NOT_FOUND
+		return NOT_FOUND;
 	switch (pathStat.st_mode & S_IFMT)
 	{
 	case S_IFREG:

@@ -1,13 +1,15 @@
 #include "../../includes/Config/Directives.hpp"
+#include "../../includes/Http/HTTP.hpp"
 #include <algorithm>
 
 // Default constructor: initialize directive members and flags
 Directives::Directives()
-	: _rootPath(""), _autoIndexValue(false), _isCgiPathValue(false), _uploadPath(""), _keepAliveValue(false),
-	  _clientMaxBodySize(-1.0), _redirect(std::pair<int, std::string>()), _hasRootPathDirective(false),
-	  _hasAutoIndexDirective(false), _hasisCgiPathDirective(false), _hasUploadPathDirective(false),
-	  _hasKeepAliveDirective(false), _hasClientMaxBodySizeDirective(false), _hasRedirectDirective(false),
-	  _hasIndexDirective(false), _hasStatusPathDirective(false), _hasAllowedMethodsDirective(false)
+	: _rootPath(""), _autoIndexValue(false), _isCgiPathValue(false), _uploadPath(""),
+	  _keepAliveValue(HTTP::DEFAULT_KEEP_ALIVE), _clientMaxBodySize(HTTP::DEFAULT_CLIENT_MAX_BODY_SIZE),
+	  _redirect(std::pair<int, std::string>()), _hasRootPathDirective(false), _hasAutoIndexDirective(false),
+	  _hasisCgiPathDirective(false), _hasUploadPathDirective(false), _hasKeepAliveDirective(false),
+	  _hasClientMaxBodySizeDirective(false), _hasRedirectDirective(false), _hasIndexDirective(false),
+	  _hasStatusPathDirective(false), _hasAllowedMethodsDirective(false)
 {
 }
 

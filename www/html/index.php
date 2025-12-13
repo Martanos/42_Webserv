@@ -54,7 +54,6 @@ echo "\r\n";
     <h2>Welcome, <?= htmlspecialchars($auth_user) ?></h2>
     <ul>
         <li><a href="file_upload.php">File Upload</a></li>
-        <li><a href="upload.php">File Upload (alt)</a></li>
         <li><a href="responses.php">Response Types</a></li>
         <li><a href="/Python/cgi_random.py">Python CGI Script</a></li>
         <li><a href="?logout=1">Logout</a></li>

@@ -101,6 +101,42 @@ Server ConfigTranslator::_translateServer(const AST::ASTNode &ast)
 								" column: " + StrUtils::toString<int>((*it)->column) + " skipping...",
 							__FILE__, __LINE__, __PRETTY_FUNCTION__);
 	}
+	Logger::debug("Inserting default root location if needed", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+	// Default location block, only created if root path was set at server level
+	if (!server.getLocation("/") && server.wasModified() && server.hasRootPathDirective())
+	{
+		Location rootLocation(server.getRootPath()->empty() ? "/" : "/");
+		if (server.hasRootPathDirective())
+			rootLocation.setRootPath(*server.getRootPath());
+		if (server.hasAutoIndexDirective())
+			rootLocation.setAutoIndex(server.getAutoIndexValue());
+		if (server.hasClientMaxBodySizeDirective())
+			rootLocation.setClientMaxBodySize(server.getClientMaxBodySize());
+		if (server.hasKeepAliveDirective())
+			rootLocation.setKeepAlive(server.getKeepAliveValue());
+		if (server.hasIndexDirective())
+			rootLocation.setIndexes(*server.getIndexes());
+		if (server.hasStatusPathDirective())
+			rootLocation.setStatusPaths(*server.getStatusPaths());
+		if (server.hasAllowedMethodsDirective())
+			rootLocation.setAllowedMethods(*server.getAllowedMethods());
+		switch (server.getLocationType())
+		{
+		case Server::STATIC:
+			break;
+		case Server::REDIRECT:
+			rootLocation.setRedirect(*server.getRedirect());
+			break;
+		case Server::CGI:
+			rootLocation.setIsCgiPath(server.getisCgiPathValue());
+			break;
+		case Server::UPLOAD:
+			rootLocation.setUploadPath(*server.getUploadPath());
+			break;
+		}
+		if (rootLocation.wasModified())
+			server.insertLocation(rootLocation);
+	}
 	// Inheritence step: propagate server-level members to locations that lack them
 	Logger::debug("Propagating server-level members to locations", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	for (TrieTree<Location>::iterator locIt = server.getLocations().begin(); locIt != server.getLocations().end();
@@ -139,42 +175,6 @@ Server ConfigTranslator::_translateServer(const AST::ASTNode &ast)
 				break;
 			}
 		}
-	}
-	Logger::debug("Inserting default root location if needed", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-	// Default location block, only created if root path was set at server level
-	if (!server.getLocation("/") && server.wasModified() && server.hasRootPathDirective())
-	{
-		Location rootLocation(server.getRootPath()->empty() ? "/" : "/");
-		if (server.hasRootPathDirective())
-			rootLocation.setRootPath(*server.getRootPath());
-		if (server.hasAutoIndexDirective())
-			rootLocation.setAutoIndex(server.getAutoIndexValue());
-		if (server.hasClientMaxBodySizeDirective())
-			rootLocation.setClientMaxBodySize(server.getClientMaxBodySize());
-		if (server.hasKeepAliveDirective())
-			rootLocation.setKeepAlive(server.getKeepAliveValue());
-		if (server.hasIndexDirective())
-			rootLocation.setIndexes(*server.getIndexes());
-		if (server.hasStatusPathDirective())
-			rootLocation.setStatusPaths(*server.getStatusPaths());
-		if (server.hasAllowedMethodsDirective())
-			rootLocation.setAllowedMethods(*server.getAllowedMethods());
-		switch (server.getLocationType())
-		{
-		case Server::STATIC:
-			break;
-		case Server::REDIRECT:
-			rootLocation.setRedirect(*server.getRedirect());
-			break;
-		case Server::CGI:
-			rootLocation.setIsCgiPath(server.getisCgiPathValue());
-			break;
-		case Server::UPLOAD:
-			rootLocation.setUploadPath(*server.getUploadPath());
-			break;
-		}
-		if (rootLocation.wasModified())
-			server.insertLocation(rootLocation);
 	}
 	return (server);
 }

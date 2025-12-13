@@ -1,5 +1,4 @@
 #include "../../includes/Core/Client.hpp"
-#include "../../includes/Cgi/CgiHandler.hpp"
 #include "../../includes/Global/Logger.hpp"
 #include "../../includes/Http/HTTP.hpp"
 #include "../../includes/Http/HttpRequest.hpp"
@@ -172,6 +171,9 @@ void Client::_handleBuffer()
 
 void Client::_handleRequest()
 {
+	printf("Client: Handling request for client: %s:%s\n", _remoteAddress.getHostString().c_str(),
+		   _remoteAddress.getPortString().c_str());
+	printf("Raw buffer: [%s]\n", std::string(_holdingBuffer.begin(), _holdingBuffer.end()).c_str());
 	while (!_holdingBuffer.empty())
 	{
 		// Set/refresh current potential servers if not set for the request yet

@@ -1,4 +1,6 @@
 #include "../../includes/Config/Location.hpp"
+#include "../../includes/Config/Directives.hpp"
+#include "../../includes/Http/HTTP.hpp"
 #include <iostream>
 
 /*
@@ -177,9 +179,10 @@ void Location::reset()
 	_redirect = std::pair<int, std::string>();
 	_indexes.clear();
 	_uploadPath.clear();
-	_autoIndexValue = false;
+	_autoIndexValue = HTTP::DEFAULT_AUTOINDEX;
+	_keepAliveValue = HTTP::DEFAULT_KEEP_ALIVE;
 	_isCgiPathValue = false;
-	_clientMaxBodySize = -1.0;
+	_clientMaxBodySize = HTTP::DEFAULT_CLIENT_MAX_BODY_SIZE;
 
 	// Flags
 	_hasRootPathDirective = false;

@@ -1,9 +1,9 @@
 #include "../../includes/MethodHandlers/PostMethodHandler.hpp"
-#include "../../includes/Cgi/CgiHandler.hpp"
 #include "../../includes/Global/Logger.hpp"
 #include "../../includes/Global/MimeTypeResolver.hpp"
 #include "../../includes/Utils/FileUtils.hpp"
 #include <cerrno>
+#include <cstdio>
 #include <cstring>
 #include <string>
 #include <sys/stat.h>
@@ -56,7 +56,7 @@ bool PostMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &
 	// Save the uploaded content
 	if (!_saveUploadedFile(filePath, request))
 	{
-		response.setResponseDefaultBody(500, "Internal Server Error", &location, HttpResponse::ERROR);
+		response.setResponseDefaultBody(500, "Could not save uploaded file", &location, HttpResponse::ERROR);
 		return (false);
 	}
 	// Return success response
@@ -101,7 +101,12 @@ bool PostMethodHandler::_generateUniqueFilename(const std::string &uploadPath, c
 	const Header *contentTypeHeader = request.getHeaders().getHeader("content-type");
 	if (!contentTypeHeader || contentTypeHeader->getValues().empty())
 	{
-		return (false);
+		filePath = FileUtils::generateFileName(uploadPath, "", "");
+		if (filePath.empty())
+		{
+			return (false);
+		}
+		return (true);
 	}
 	std::vector<std::string> headerValues = contentTypeHeader->getValues();
 	std::string extenstion = MimeTypeResolver::getExtensionByMimeType(headerValues[0]);

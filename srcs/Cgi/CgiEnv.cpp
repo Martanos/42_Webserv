@@ -1,6 +1,5 @@
 #include "../../includes/Cgi/CgiEnv.hpp"
 #include "../../includes/Config/Location.hpp"
-#include "../../includes/Config/Server.hpp"
 #include "../../includes/Global/Logger.hpp"
 #include "../../includes/Http/HttpRequest.hpp"
 #include "../../includes/Utils/StrUtils.hpp"
@@ -84,8 +83,6 @@ void CgiEnv::printEnv() const
 
 void CgiEnv::_transposeData(const std::string &pathToExecute, const HttpRequest &request, const Location *location)
 {
-	(void)location; // May be used for future location-specific env vars
-
 	try
 	{
 		// Clear any previous environment
@@ -119,16 +116,67 @@ void CgiEnv::_transposeData(const std::string &pathToExecute, const HttpRequest 
 			setEnv("CONTENT_LENGTH", StrUtils::toString(request.getBody().getRawBodySize()));
 			const Header *contentType = request.getHeaders().getHeader("content-type");
 			if (contentType && !contentType->getValues().empty())
-				setEnv("CONTENT_TYPE", contentType->getValues()[0]);
+			{
+				// Reconstruct full Content-Type with parameters (e.g., boundary for multipart)
+				std::string fullContentType = contentType->getValues()[0];
+				const std::vector<std::pair<std::string, std::string> > &params = contentType->getParameters();
+				for (std::vector<std::pair<std::string, std::string> >::const_iterator it = params.begin();
+					 it != params.end(); ++it)
+				{
+					fullContentType += "; " + it->first + "=" + it->second;
+				}
+				setEnv("CONTENT_TYPE", fullContentType);
+			}
 			break;
 		}
 		default:
 			break;
 		}
 
-		// Script information
-		setEnv("SCRIPT_NAME", pathToExecute);
+		// Script information and PATH_INFO extraction
 		setEnv("SCRIPT_FILENAME", pathToExecute);
+
+		// Extract PATH_INFO: the portion of URL path after the script name
+		// E.g., for URL /cgi-bin/script.php/extra/path, PATH_INFO = /extra/path
+		std::string pathInfo;
+		std::string scriptName;
+		const std::string &decodedPath = request.getURI().getDecodedPath();
+
+		// Get the script filename (last component of pathToExecute)
+		size_t lastSlash = pathToExecute.find_last_of('/');
+		std::string scriptFilename =
+			(lastSlash != std::string::npos) ? pathToExecute.substr(lastSlash + 1) : pathToExecute;
+
+		// Find the script filename in the decoded URL path
+		size_t scriptPos = decodedPath.find(scriptFilename);
+		if (scriptPos != std::string::npos)
+		{
+			size_t scriptEnd = scriptPos + scriptFilename.length();
+			// SCRIPT_NAME is the URL path up to and including the script
+			scriptName = decodedPath.substr(0, scriptEnd);
+			// PATH_INFO is everything after the script in the URL
+			if (scriptEnd < decodedPath.length())
+			{
+				pathInfo = decodedPath.substr(scriptEnd);
+				// PATH_INFO must start with '/' if present
+				if (!pathInfo.empty() && pathInfo[0] != '/')
+					pathInfo = "/" + pathInfo;
+			}
+		}
+		else
+		{
+			// Fallback: use decoded path as script name, no PATH_INFO
+			scriptName = decodedPath;
+		}
+
+		setEnv("SCRIPT_NAME", scriptName);
+		setEnv("PATH_INFO", pathInfo);
+
+		// PATH_TRANSLATED: filesystem path that PATH_INFO would map to
+		if (!pathInfo.empty() && location && location->getRootPath())
+		{
+			setEnv("PATH_TRANSLATED", *location->getRootPath() + pathInfo);
+		}
 
 		// Convert HTTP headers to CGI environment variables
 		const HttpHeaders &httpHeaders = request.getHeaders();

@@ -1,5 +1,4 @@
 #include "../../includes/MethodHandlers/DeleteMethodHandler.hpp"
-#include "../../includes/Cgi/CgiHandler.hpp"
 #include "../../includes/Global/Logger.hpp"
 #include "../../includes/Utils/FileUtils.hpp"
 

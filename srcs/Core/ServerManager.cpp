@@ -156,6 +156,7 @@ void ServerManager::run()
 	// Set up signal handlers
 	signal(SIGINT, _handleSignal);
 	signal(SIGTERM, _handleSignal);
+	signal(SIGPIPE, SIG_IGN); // Ignore SIGPIPE to prevent crashes when writing to closed pipes
 
 	// Main event loop
 	while (serverRunning)
@@ -166,22 +167,22 @@ void ServerManager::run()
 		{
 			_handleEventLoop(ready_events, events);
 		}
-		std::vector<int> timedOutClients;
-		for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end(); ++it)
+		// Single-pass iterator-safe timeout check and removal
+		for (std::map<int, Client>::iterator it = _clients.begin(); it != _clients.end();)
 		{
 			if (it->second.isTimedOut())
 			{
-				timedOutClients.push_back(it->first);
+				Logger::debug("ServerManager: Client timed out, removing from epoll and clients map", __FILE__,
+							  __LINE__, __PRETTY_FUNCTION__);
+				Logger::debug("ServerManager: Client fd: " + StrUtils::toString(it->first), __FILE__, __LINE__,
+							  __PRETTY_FUNCTION__);
+				_epollManager.removeFd(it->first);
+				_clients.erase(it++);
 			}
-		}
-		for (std::vector<int>::iterator it = timedOutClients.begin(); it != timedOutClients.end(); ++it)
-		{
-			Logger::debug("ServerManager: Client timed out, removing from epoll and clients map", __FILE__, __LINE__,
-						  __PRETTY_FUNCTION__);
-			Logger::debug("ServerManager: Client fd: " + StrUtils::toString(*it), __FILE__, __LINE__,
-						  __PRETTY_FUNCTION__);
-			_epollManager.removeFd(*it);
-			_clients.erase(*it);
+			else
+			{
+				++it;
+			}
 		}
 	}
 

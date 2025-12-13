@@ -204,6 +204,26 @@ void HttpURI::parseBuffer(std::vector<char> &buffer, HttpResponse &response)
 ** --------------------------------- SANITIZATION METHOD ----------------------------------
 */
 
+// Helper: Resolve path with realpath and verify containment within root
+// Returns true if successful, false if realpath fails or path escapes root
+bool HttpURI::_resolvePathWithContainment(const std::string &path, const std::string &root, bool preserveTrailingSlash,
+										  std::string &outResolved) const
+{
+	char resolvedPath[PATH_MAX];
+	printf("Resolving path: %s with root: %s\n", path.c_str(), root.c_str());
+	if (realpath(path.c_str(), resolvedPath) == NULL)
+		return false;
+
+	outResolved = resolvedPath;
+
+	// Preserve trailing slash if requested and original had one
+	if (preserveTrailingSlash && !outResolved.empty() && outResolved[outResolved.size() - 1] != '/')
+		outResolved += "/";
+
+	// Containment check
+	return FileUtils::inRoot(root, outResolved);
+}
+
 void HttpURI::resolveURI(const Location *location, HttpResponse &response)
 {
 	// Get the root path from location
@@ -215,27 +235,24 @@ void HttpURI::resolveURI(const Location *location, HttpResponse &response)
 		return;
 	}
 
-	// Combine root + location path + decoded path
-	std::string fullPath = *root + "/" + location->getLocationPath() + "/" + _decodedPath;
-
-	// Use realpath to attempt to resolve the path
-	char resolvedPath[PATH_MAX];
+	// Combine root + decoded path
+	std::string fullPath = *root + "/" + _decodedPath;
+	bool hasTrailingSlash = !_decodedPath.empty() && _decodedPath[_decodedPath.size() - 1] == '/';
 
 	// First attempt: resolve full path
-	if (realpath(fullPath.c_str(), resolvedPath) != NULL)
+	if (_resolvePathWithContainment(fullPath, *root, hasTrailingSlash, _resolvedPath))
+		return;
+
+	// Check if containment failed (realpath succeeded but path escapes root)
 	{
-		std::string resolved(resolvedPath);
-		if (_decodedPath[_decodedPath.size() - 1] == '/' && resolved[resolved.size() - 1] != '/')
-			resolved += "/";
-		// containment check
-		if (!FileUtils::inRoot(*root, resolved))
+		char testPath[PATH_MAX];
+		if (realpath(fullPath.c_str(), testPath) != NULL)
 		{
+			// realpath succeeded but containment failed
 			_uriState = URI_PARSING_ERROR;
 			response.setResponseDefaultBody(403, "Forbidden: Path escapes root", location, HttpResponse::ERROR);
 			return;
 		}
-		_resolvedPath = resolved;
-		return;
 	}
 
 	// If full path resolution failed, handle based on location type
@@ -249,22 +266,24 @@ void HttpURI::resolveURI(const Location *location, HttpResponse &response)
 		std::string directoryPath = (lastSlash != std::string::npos) ? fullPath.substr(0, lastSlash) : fullPath;
 
 		if (directoryPath.empty())
-			directoryPath = *location->getRootPath();
+			directoryPath = *root;
 
-		if (realpath(directoryPath.c_str(), resolvedPath) == NULL)
+		std::string resolvedDir;
+		if (!_resolvePathWithContainment(directoryPath, *root, true, resolvedDir))
 		{
-			_uriState = URI_PARSING_ERROR;
-			response.setResponseDefaultBody(404, "Not Found: Could not resolve path", location, HttpResponse::ERROR);
-			return;
-		}
-
-		std::string resolvedDir(resolvedPath + std::string("/"));
-
-		// containment check
-		if (resolvedDir.compare(0, location->getRootPath()->size(), *location->getRootPath()) != 0)
-		{
-			_uriState = URI_PARSING_ERROR;
-			response.setResponseDefaultBody(403, "Forbidden: Path escapes root", location, HttpResponse::ERROR);
+			// Check if it was a containment failure vs not found
+			char testPath[PATH_MAX];
+			if (realpath(directoryPath.c_str(), testPath) != NULL)
+			{
+				_uriState = URI_PARSING_ERROR;
+				response.setResponseDefaultBody(403, "Forbidden: Path escapes root", location, HttpResponse::ERROR);
+			}
+			else
+			{
+				_uriState = URI_PARSING_ERROR;
+				response.setResponseDefaultBody(404, "Not Found: Could not resolve path", location,
+												HttpResponse::ERROR);
+			}
 			return;
 		}
 

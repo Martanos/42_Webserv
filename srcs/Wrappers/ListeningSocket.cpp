@@ -61,11 +61,11 @@ std::ostream &operator<<(std::ostream &o, ListeningSocket const &i)
 void ListeningSocket::bind()
 {
 	errno = 0;
+	_bindFd.setReuseAddr(); // Must be set BEFORE bind() to allow address reuse
 	if (::bind(_bindFd.getFd(), reinterpret_cast<const struct sockaddr *>(_socketAddress.getSockAddr()),
 			   _socketAddress.getSize()) == -1)
 		throw std::runtime_error("Failed to bind socket: current Fd: " + StrUtils::toString(_bindFd.getFd()) +
 								 " error: " + std::string(strerror(errno)));
-	_bindFd.setReuseAddr();
 }
 
 void ListeningSocket::listen()

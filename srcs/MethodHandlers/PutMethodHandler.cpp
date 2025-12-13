@@ -1,7 +1,5 @@
 #include "../../includes/MethodHandlers/PutMethodHandler.hpp"
-#include "../../includes/Cgi/CgiHandler.hpp"
 #include "../../includes/Global/Logger.hpp"
-#include "../../includes/Utils/FileUtils.hpp"
 #include <cerrno>
 #include <cstring>
 #include <fstream>

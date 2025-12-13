@@ -3,6 +3,7 @@
 #include "../../includes/Global/PerformanceMonitor.hpp"
 #include "../../includes/Utils/StrUtils.hpp"
 #include <cstring>
+#include <ctime>
 #include <fcntl.h>
 #include <fstream>
 #include <sys/select.h>
@@ -310,37 +311,162 @@ CgiExecutor::ExecutionResult CgiExecutor::forkAndExec(const std::string &scriptP
 CgiExecutor::ExecutionResult CgiExecutor::communicateWithChild(const std::string &inputData, std::string &outputData,
 															   std::string &errorData)
 {
-	// Write input data to child's stdin using FileDescriptor wrapper
-	if (!inputData.empty())
-	{
-		ssize_t written = _stdinPipe[1].writePipe(inputData);
-		if (written != static_cast<ssize_t>(inputData.length()))
-		{
-			Logger::log(Logger::ERROR, "Failed to write all input data to CGI process");
-			return ERROR_WRITE_FAILED;
-		}
-	}
+	// Use select() to handle reading and writing simultaneously
+	// This prevents deadlock when writing large amounts of data
 
-	// Close stdin pipe to signal end of input
-	_stdinPipe[1].closeDescriptor();
-
-	// Read output from child's stdout and stderr using FileDescriptor wrapper
+	size_t inputOffset = 0;
+	bool stdinClosed = inputData.empty();
 	bool stdoutClosed = false;
 	bool stderrClosed = false;
 
-	while (!stdoutClosed || !stderrClosed)
+	// Set stdin pipe to non-blocking mode
+	if (!stdinClosed)
 	{
-		bool dataAvailable = false;
+		int flags = fcntl(_stdinPipe[1].getFd(), F_GETFL, 0);
+		fcntl(_stdinPipe[1].getFd(), F_SETFL, flags | O_NONBLOCK);
+	}
 
-		// Check if stdout has data ready
-		if (!stdoutClosed && _stdoutPipe[0].waitForPipeReady(true, _timeoutSeconds * 1000))
+	// Set stdout and stderr pipes to non-blocking mode
+	int stdoutFlags = fcntl(_stdoutPipe[0].getFd(), F_GETFL, 0);
+	fcntl(_stdoutPipe[0].getFd(), F_SETFL, stdoutFlags | O_NONBLOCK);
+	int stderrFlags = fcntl(_stderrPipe[0].getFd(), F_GETFL, 0);
+	fcntl(_stderrPipe[0].getFd(), F_SETFL, stderrFlags | O_NONBLOCK);
+
+	time_t startTime = time(NULL);
+
+	while (!stdoutClosed || !stderrClosed || !stdinClosed)
+	{
+		// Check for timeout
+		if (time(NULL) - startTime > _timeoutSeconds)
 		{
-			std::string buffer;
-			ssize_t bytesRead = _stdoutPipe[0].readPipe(buffer, MAX_OUTPUT_SIZE - outputData.length());
+			Logger::log(Logger::ERROR, "CGI process timeout during communication");
+			killProcess();
+			return ERROR_TIMEOUT;
+		}
+
+		fd_set readFds, writeFds;
+		FD_ZERO(&readFds);
+		FD_ZERO(&writeFds);
+
+		int maxFd = -1;
+
+		// Add stdin to write set if we still have data to write
+		if (!stdinClosed)
+		{
+			FD_SET(_stdinPipe[1].getFd(), &writeFds);
+			if (_stdinPipe[1].getFd() > maxFd)
+				maxFd = _stdinPipe[1].getFd();
+		}
+
+		// Add stdout to read set
+		if (!stdoutClosed)
+		{
+			FD_SET(_stdoutPipe[0].getFd(), &readFds);
+			if (_stdoutPipe[0].getFd() > maxFd)
+				maxFd = _stdoutPipe[0].getFd();
+		}
+
+		// Add stderr to read set
+		if (!stderrClosed)
+		{
+			FD_SET(_stderrPipe[0].getFd(), &readFds);
+			if (_stderrPipe[0].getFd() > maxFd)
+				maxFd = _stderrPipe[0].getFd();
+		}
+
+		if (maxFd < 0)
+			break;
+
+		struct timeval timeout;
+		timeout.tv_sec = 1;
+		timeout.tv_usec = 0;
+
+		int ready = select(maxFd + 1, &readFds, &writeFds, NULL, &timeout);
+		if (ready < 0)
+		{
+			if (errno == EINTR)
+				continue;
+			Logger::log(Logger::ERROR, "select() failed in CGI communication");
+			return ERROR_READ_FAILED;
+		}
+
+		// Check if child process has exited (with WNOHANG to not block)
+		// If child has exited and we have no more data to read, we can stop
+		if (ready == 0 && _childPid > 0)
+		{
+			int status;
+			pid_t result = waitpid(_childPid, &status, WNOHANG);
+			if (result > 0)
+			{
+				// Child has exited, do one final read attempt then close pipes
+				Logger::debug("CgiExecutor: Child process has exited, draining remaining data", __FILE__, __LINE__,
+							  __PRETTY_FUNCTION__);
+				_processRunning = false;
+				// Read any remaining data from stdout/stderr
+				if (!stdoutClosed)
+				{
+					char buffer[65536];
+					while (true)
+					{
+						ssize_t bytesRead = read(_stdoutPipe[0].getFd(), buffer, sizeof(buffer));
+						if (bytesRead > 0)
+							outputData.append(buffer, bytesRead);
+						else
+							break;
+					}
+					stdoutClosed = true;
+				}
+				if (!stderrClosed)
+				{
+					char buffer[65536];
+					while (true)
+					{
+						ssize_t bytesRead = read(_stderrPipe[0].getFd(), buffer, sizeof(buffer));
+						if (bytesRead > 0)
+							errorData.append(buffer, bytesRead);
+						else
+							break;
+					}
+					stderrClosed = true;
+				}
+				break;
+			}
+		}
+
+		// Handle stdin writing
+		if (!stdinClosed && FD_ISSET(_stdinPipe[1].getFd(), &writeFds))
+		{
+			size_t remaining = inputData.length() - inputOffset;
+			size_t toWrite = (remaining > 65536) ? 65536 : remaining; // Write in 64KB chunks
+
+			ssize_t written = write(_stdinPipe[1].getFd(), inputData.c_str() + inputOffset, toWrite);
+			if (written > 0)
+			{
+				inputOffset += written;
+				if (inputOffset >= inputData.length())
+				{
+					_stdinPipe[1].closeDescriptor();
+					stdinClosed = true;
+				}
+			}
+			else if (written < 0 && errno != EAGAIN && errno != EWOULDBLOCK)
+			{
+				Logger::log(Logger::ERROR, "Failed to write to CGI stdin: " + std::string(strerror(errno)) +
+											   " (wrote " + StrUtils::toString(inputOffset) + "/" +
+											   StrUtils::toString(inputData.length()) + " bytes)");
+				_stdinPipe[1].closeDescriptor();
+				stdinClosed = true;
+			}
+		}
+
+		// Handle stdout reading
+		if (!stdoutClosed && FD_ISSET(_stdoutPipe[0].getFd(), &readFds))
+		{
+			char buffer[65536];
+			ssize_t bytesRead = read(_stdoutPipe[0].getFd(), buffer, sizeof(buffer));
 			if (bytesRead > 0)
 			{
-				outputData += buffer;
-				dataAvailable = true;
+				outputData.append(buffer, bytesRead);
 				if (outputData.length() >= MAX_OUTPUT_SIZE)
 				{
 					Logger::log(Logger::ERROR, "CGI output too large");
@@ -349,23 +475,23 @@ CgiExecutor::ExecutionResult CgiExecutor::communicateWithChild(const std::string
 				}
 			}
 			else if (bytesRead == 0)
-				stdoutClosed = true;
-			else
 			{
-				Logger::log(Logger::ERROR, "Failed to read from stdout pipe");
+				stdoutClosed = true;
+			}
+			else if (errno != EAGAIN && errno != EWOULDBLOCK)
+			{
 				stdoutClosed = true;
 			}
 		}
 
-		// Check if stderr has data ready
-		if (!stderrClosed && _stderrPipe[0].waitForPipeReady(true, _timeoutSeconds * 1000))
+		// Handle stderr reading
+		if (!stderrClosed && FD_ISSET(_stderrPipe[0].getFd(), &readFds))
 		{
-			std::string buffer;
-			ssize_t bytesRead = _stderrPipe[0].readPipe(buffer, MAX_OUTPUT_SIZE - errorData.length());
+			char buffer[65536];
+			ssize_t bytesRead = read(_stderrPipe[0].getFd(), buffer, sizeof(buffer));
 			if (bytesRead > 0)
 			{
-				errorData += buffer;
-				dataAvailable = true;
+				errorData.append(buffer, bytesRead);
 				if (errorData.length() >= MAX_OUTPUT_SIZE)
 				{
 					Logger::log(Logger::ERROR, "CGI error output too large");
@@ -374,32 +500,12 @@ CgiExecutor::ExecutionResult CgiExecutor::communicateWithChild(const std::string
 				}
 			}
 			else if (bytesRead == 0)
-				stderrClosed = true;
-			else
 			{
-				Logger::log(Logger::ERROR, "Failed to read from stderr pipe");
 				stderrClosed = true;
 			}
-		}
-
-		// If no data was available and pipes are still open, check for timeout
-		if (!dataAvailable && (!stdoutClosed || !stderrClosed))
-		{
-			// Use a shorter timeout for individual checks to avoid hanging
-			if (!_stdoutPipe[0].waitForPipeReady(true, 100) && !_stderrPipe[0].waitForPipeReady(true, 100))
+			else if (errno != EAGAIN && errno != EWOULDBLOCK)
 			{
-				// Check if child process is still running
-				if (!_processRunning)
-				{
-					stdoutClosed = true;
-					stderrClosed = true;
-				}
-				else
-				{
-					Logger::log(Logger::ERROR, "CGI process timeout");
-					killProcess();
-					return ERROR_TIMEOUT;
-				}
+				stderrClosed = true;
 			}
 		}
 	}
