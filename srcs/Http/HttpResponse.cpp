@@ -61,7 +61,7 @@ void HttpResponse::_getDateHeader()
 	std::time_t now = std::time(0);
 	char buf[80];
 	std::strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", std::gmtime(&now));
-	insertHeader(Header("date: " + std::string(buf) + " GMT"));
+	insertHeader(Header("date: " + std::string(buf)));
 }
 
 void HttpResponse::_setServerHeader()
@@ -329,7 +329,7 @@ void HttpResponse::setLastModifiedHeader()
 	char buffer[100];
 	struct tm *tm = std::gmtime(&lastModified);
 	strftime(buffer, sizeof(buffer), "%a, %d %b %Y %H:%M:%S GMT", tm);
-	setHeader(Header("last-modified: " + std::string(buffer) + " GMT"));
+	setHeader(Header("last-modified: " + std::string(buffer)));
 }
 
 void HttpResponse::sendResponse(const FileDescriptor &clientFd, ssize_t &totalBytesSent)

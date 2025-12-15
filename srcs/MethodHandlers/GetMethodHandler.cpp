@@ -143,23 +143,61 @@ bool GetMethodHandler::_serveSymlink(const HttpRequest &request, const std::stri
 bool GetMethodHandler::_serveDirectory(const HttpRequest &request, HttpResponse &response, const Location &location)
 {
 	std::string dirPath = request.getURI().getResolvedPath();
+	std::string requestUri = request.getURI().getRawPath();
+
+	// Check if request URI has trailing slash
+	bool hasTrailingSlash = !requestUri.empty() && requestUri[requestUri.size() - 1] == '/';
+
+	// Ensure trailing slash for directory path handling
 	if (dirPath.empty() || dirPath[dirPath.size() - 1] != '/')
 	{
-		// Redirect to path with trailing slash
-		response.setRedirectResponse(301, "Moved Permanently", request.getURI().getDecodedPath() + "/",
-									 HttpResponse::SUCCESS);
-		return (true);
+		dirPath += "/";
 	}
+
+	// Redirect to trailing slash if request doesn't have one and there's no index file to serve
+	if (!hasTrailingSlash)
+	{
+		// Check if there's an index file that could be served directly
+		bool hasIndexFile = false;
+		if (location.hasIndexDirective())
+		{
+			const std::vector<std::string> &indexes = *location.getIndexes();
+			for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); ++it)
+			{
+				std::string indexPath = dirPath + *it;
+				if (FileUtils::fileExists(indexPath))
+				{
+					hasIndexFile = true;
+					break;
+				}
+			}
+		}
+
+		// Only redirect if there's no index file to serve (serve directory listing)
+		if (!hasIndexFile && location.hasAutoIndexDirective() && location.getAutoIndexValue())
+		{
+			response.setRedirectResponse(301, "Moved Permanently", requestUri + "/", HttpResponse::SUCCESS);
+			return true;
+		}
+	}
+
 	if (location.hasIndexDirective())
 	{
 		const std::vector<std::string> &indexes = *location.getIndexes();
 		for (std::vector<std::string>::const_iterator it = indexes.begin(); it != indexes.end(); ++it)
 		{
-			std::string indexPath = dirPath + "/" + *it;
+			std::string indexPath = dirPath + *it;
 			if (FileUtils::fileExists(indexPath))
 			{
 				return (_serveFile(request, indexPath, response, location));
 			}
+		}
+		// If no index file found but autoindex is on, show directory listing
+		if (location.hasAutoIndexDirective() && location.getAutoIndexValue())
+		{
+			std::string listing = _generateDirectoryListing(dirPath);
+			response.setResponseCustomBody(200, "OK", listing, "text/html", HttpResponse::SUCCESS);
+			return (true);
 		}
 		response.setResponseDefaultBody(404, "Could not find index file", &location, HttpResponse::ERROR);
 		return (false);

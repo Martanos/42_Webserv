@@ -40,29 +40,39 @@ bool PostMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &
 		return executeCgi(request.getURI().getResolvedPath(), request, response, location);
 	}
 
+	// Check if requested file is executable - execute as CGI for POST requests
+	// This handles cases where executable files (like CGI binaries) are posted to
+	std::string filePath = request.getURI().getResolvedPath();
+	if (FileUtils::isFileExecutable(filePath))
+	{
+		Logger::debug("PostMethodHandler: File is executable, treating as CGI: " + filePath, __FILE__, __LINE__,
+					  __PRETTY_FUNCTION__);
+		return executeCgi(filePath, request, response, location);
+	}
+
 	// Handle file upload
 	Logger::debug("PostMethodHandler: Handling file upload", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 	// Get upload path
 	if (!_validateUploadPath(location, response))
 		return (false);
 	// Generate unique filename
-	std::string filePath;
-	if (!_generateUniqueFilename(*location.getUploadPath(), request, filePath))
+	std::string uploadFilePath;
+	if (!_generateUniqueFilename(*location.getUploadPath(), request, uploadFilePath))
 	{
 		response.setResponseDefaultBody(500, "Internal Server Error: Failed to generate unique filename", &location,
 										HttpResponse::ERROR);
 		return (false);
 	}
 	// Save the uploaded content
-	if (!_saveUploadedFile(filePath, request))
+	if (!_saveUploadedFile(uploadFilePath, request))
 	{
 		response.setResponseDefaultBody(500, "Could not save uploaded file", &location, HttpResponse::ERROR);
 		return (false);
 	}
 	// Return success response
-	response.setResponseCustomBody(201, "Created", "File uploaded successfully: " + filePath, "text/plain",
+	response.setResponseCustomBody(201, "Created", "File uploaded successfully: " + uploadFilePath, "text/plain",
 								   HttpResponse::SUCCESS);
-	Logger::debug("PostMethodHandler: File uploaded successfully: " + filePath, __FILE__, __LINE__,
+	Logger::debug("PostMethodHandler: File uploaded successfully: " + uploadFilePath, __FILE__, __LINE__,
 				  __PRETTY_FUNCTION__);
 	return (true);
 }

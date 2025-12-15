@@ -62,6 +62,7 @@ make re           # Clean rebuild
 #### `ServerManager.cpp`
 - **Main event loop** using epoll for non-blocking I/O multiplexing
 - `run()` → Infinite loop calling `epoll_wait()` and processing events
+- **Ignores SIGPIPE** at startup via `signal(SIGPIPE, SIG_IGN)` to prevent crashes when writing to broken pipes (e.g., CGI child exits early)
 - Handles new connections on listening sockets via `_acceptNewConnection()`
 - Dispatches read/write events to appropriate `Client` objects
 - Manages client lifecycle (creation, event handling, disconnection)
@@ -423,15 +424,15 @@ enum ClientState { WAITING_FOR_EPOLLIN, WAITING_FOR_EPOLLOUT, DISCONNECTED };
 
 ## CGI Handling
 
-CGI execution for dynamic content (Python scripts in `www/cgi-bin/`).
+CGI execution for dynamic content (PHP, Python scripts in `www/cgi-bin/` or locations with `cgi_path true`).
 
 ### CGI Flow
 ```
-GetMethodHandler::_serveFile()
+GetMethodHandler::_serveFile() / PostMethodHandler::handleRequest()
     └── CgiHandler::execute(scriptPath, request, response, &location, server)
             ├── CgiEnv::_transposeData() → Build CGI environment variables
             ├── CgiExecutor::execute()   → Fork/exec with pipes, timeout handling
-            └── CgiResponse::parseOutput() → Parse script output into HttpResponse
+            └── CgiResponse::populateHttpResponse() → Parse script output into HttpResponse
 ```
 
 ### Key Classes
@@ -439,8 +440,28 @@ GetMethodHandler::_serveFile()
 |-------|----------------|
 | `CgiHandler` | Orchestrator - coordinates env setup, execution, response parsing |
 | `CgiEnv` | Builds CGI environment variables (REQUEST_METHOD, QUERY_STRING, etc.) |
-| `CgiExecutor` | Fork/exec, pipe management (stdin/stdout/stderr), timeout (default 30s) |
-| `CgiResponse` | Parses CGI output (headers + body), handles NPH mode, populates HttpResponse |
+| `CgiExecutor` | Fork/exec, pipe management (stdin/stdout/stderr), timeout (default 30s), child exit detection |
+| `CgiResponse` | Parses CGI output (headers + body), handles NPH mode, populates HttpResponse (body before headers to preserve CGI headers) |
+
+### CGI Implementation Notes
+
+#### Signal Handling
+- **SIGPIPE ignored** in `ServerManager::run()` via `signal(SIGPIPE, SIG_IGN)` - prevents server crash when CGI child exits unexpectedly while parent is writing to stdin pipe
+
+#### Child Process Detection
+- `CgiExecutor::_communicateWithChild()` uses `waitpid(WNOHANG)` to detect early child termination during pipe I/O
+- Prevents indefinite blocking when child process exits before reading all stdin data
+
+#### CGI Response Processing
+- `CgiResponse::populateHttpResponse()` sets body **before** headers - ensures CGI-provided headers (Status, Content-Type, Location, Content-Disposition) override defaults set by `setBody()`
+
+#### Header Formatting
+- `HttpResponse::sendResponse()` uses `operator<<` to format headers with parameters (e.g., `Content-Disposition: attachment; filename="file.txt"`)
+- `Header::operator<<` properly quotes parameter values and uses `getDirective()` for the header name
+
+#### File Upload Body Handling
+- `HttpBody` uses `fsync()` after writing multipart body to temp file - ensures data is flushed to disk before CGI reads it
+- CGI scripts receive body via stdin pipe from temp file
 
 ### CgiHandler::execute() Signature
 ```cpp
@@ -469,6 +490,34 @@ CGI scripts can trigger internal redirects by returning a `Location:` header wit
 - Status 200 (not 3xx)
 
 Tracked via `MAX_INTERNAL_REDIRECTS = 5` in HttpRequest.
+
+### HTTP Redirects from CGI
+CGI scripts can issue HTTP redirects using the `Status:` pseudo-header:
+```php
+header("Status: 303 See Other");
+header("Location: /new-page.php?msg=success");
+echo "";  // Empty body for redirect
+exit;
+```
+
+### CGI Script Requirements
+PHP/Python CGI scripts must:
+1. **Parse QUERY_STRING manually** - `$_GET` and similar are not auto-populated:
+   ```php
+   parse_str($_SERVER['QUERY_STRING'], $_GET);
+   ```
+2. **Read stdin with CONTENT_LENGTH** - Don't rely on EOF for POST body:
+   ```php
+   $contentLength = isset($_SERVER['CONTENT_LENGTH']) ? intval($_SERVER['CONTENT_LENGTH']) : 0;
+   $input = '';
+   while ($contentLength > 0) {
+       $chunk = fread(STDIN, min(8192, $contentLength));
+       if ($chunk === false) break;
+       $input .= $chunk;
+       $contentLength -= strlen($chunk);
+   }
+   ```
+3. **Output proper CGI headers** - At minimum `Content-Type:`, separated from body by blank line
 
 ## Config File Format
 
@@ -534,6 +583,44 @@ server {
 ```
 
 ## Known Bugs / Workarounds
+
+### CGI Issues (FIXED)
+
+#### 1. ~~CGI File Upload Hanging Indefinitely~~ (FIXED)
+**Files:** `srcs/Core/ServerManager.cpp`, `srcs/Cgi/CgiExecutor.cpp`, `srcs/Http/HttpBody.cpp`
+
+**Was:** File uploads via CGI would hang indefinitely. The server would fork the CGI process, but the process would never complete.
+
+**Causes & Fixes:**
+1. **SIGPIPE crash** - When CGI child exited early, parent writing to stdin pipe received SIGPIPE and crashed. Fixed by adding `signal(SIGPIPE, SIG_IGN)` in `ServerManager::run()`.
+2. **No child exit detection** - Parent blocked on write() even after child died. Fixed by checking `waitpid(WNOHANG)` in `CgiExecutor::_communicateWithChild()`.
+3. **Temp file not synced** - CGI script read incomplete data from temp file. Fixed by adding `fsync()` in `HttpBody` after writing multipart data.
+
+#### 2. ~~CGI Headers Overwritten by setBody()~~ (FIXED)
+**File:** `srcs/Cgi/CgiResponse.cpp`
+
+**Was:** CGI-provided headers like `Content-Type`, `Status`, `Content-Disposition` were being overwritten when `setBody()` was called, because `setBody()` sets default Content-Type.
+
+**Fix:** Reordered `populateHttpResponse()` to call `setBody()` before `setHeader()` for CGI headers, ensuring CGI headers take precedence.
+
+#### 3. ~~Header Parameters Not Included in Response~~ (FIXED)
+**Files:** `srcs/Http/HttpResponse.cpp`, `srcs/Http/Header.cpp`
+
+**Was:** Header parameters like `filename` in `Content-Disposition: attachment; filename="file.txt"` were being stripped from responses.
+
+**Fixes:**
+1. `HttpResponse::sendResponse()` now uses `operator<<` instead of `getRawHeader()` to format headers
+2. `Header::operator<<` fixed to use `getDirective()` for header name and properly quote parameter values
+
+#### 4. ~~$_GET Not Populated in PHP CGI~~ (FIXED)
+**File:** `www/html/file_upload.php` (or similar CGI scripts)
+
+**Was:** PHP scripts running as CGI don't automatically populate `$_GET` from the query string.
+
+**Fix:** CGI scripts must manually parse QUERY_STRING:
+```php
+parse_str($_SERVER['QUERY_STRING'], $_GET);
+```
 
 ### Path Resolution Issues
 
