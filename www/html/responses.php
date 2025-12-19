@@ -30,7 +30,6 @@ echo "\r\n";
     <p>Or test actual server errors:</p>
     <ul>
         <li><strong>404 Not Found:</strong> <a href="/nonexistent">Non-existent page</a></li>
-        <li><strong>403 Forbidden:</strong> <a href="/Python/">Access Python directory</a></li>
     </ul>
     <p><a href="index.php">Back to Home</a></p>
 </body>

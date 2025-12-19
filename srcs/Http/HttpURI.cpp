@@ -210,7 +210,6 @@ bool HttpURI::_resolvePathWithContainment(const std::string &path, const std::st
 										  std::string &outResolved) const
 {
 	char resolvedPath[PATH_MAX];
-	printf("Resolving path: %s with root: %s\n", path.c_str(), root.c_str());
 	if (realpath(path.c_str(), resolvedPath) == NULL)
 		return false;
 

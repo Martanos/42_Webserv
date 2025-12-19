@@ -27,7 +27,6 @@ SRC_FILES = main.cpp \
 		Config/Location.cpp \
 		Config/Server.cpp \
 		Config/ServerMap.cpp \
-		Containers/RingBuffer.cpp \
 		Core/Client.cpp \
 		Core/EpollManager.cpp \
 		Core/ServerManager.cpp \

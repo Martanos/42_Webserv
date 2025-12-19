@@ -217,8 +217,6 @@ bool GetMethodHandler::handleRequest(const HttpRequest &request, HttpResponse &r
 	// Get sanitized file path
 	std::string filePath = request.getURI().getResolvedPath();
 
-	printf("GetMethodHandler: Handling GET request to: %s\n", filePath.c_str());
-
 	// Directory path handling
 	switch (FileUtils::getFileType(filePath))
 	{
